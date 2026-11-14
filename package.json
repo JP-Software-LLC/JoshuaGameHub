@@ -1,0 +1,19 @@
+{
+  "name": "clean-getaway",
+  "version": "0.2.0",
+  "private": true,
+  "description": "4-player browser chase game: one Thief, three Guards.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node server/index.js",
+    "start": "node server/index.js",
+    "start:game": "node server/index.js",
+    "start:web": "node server/web.js",
+    "build:static": "node scripts/build-static.js",
+    "test": "node scripts/sim-test.js && node scripts/smoke.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "ws": "^8.18.0"
+  }
+}
