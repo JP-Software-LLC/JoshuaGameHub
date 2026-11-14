@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) and **Arrow Blitz** (up to 40, 1-minute arrow sequences).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) and **Memory Tiles** (up to 40, remember-the-picture survival).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -60,6 +60,10 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - One 1-minute round, up to 40. Type the shown arrow sequence (arrow keys/WASD; touch d-pad). Starts at 3 arrows, +1 after every completed sequence. Wrong key = shake + restart that sequence (length unchanged). Typed arrows turn solid yellow; Math Race dark grey background.
 - Score: 10 per arrow of a completed sequence; +50% bonus on each sequence once the flawless streak (completed with no slip) is ≥ 3; any slip resets the streak. Arrows only for now (a 2nd mode may come later).
 - Client-side play from a shared seed; server = `server/arrowroom.js`, a 1-round subclass of the Math Race room (MathRoom KIND/ROUNDS/ROUND_MS/MAX_SCORE statics; single-round rooms skip straight to `final`).
+
+## Memory Tiles rules
+- Up to 40 on a 5×5 board of black tiles. Each round: all tiles show pictures (5 s, −0.4 s per round, min 1.6 s) → flip back → target picture shown → 5 s (constant) to move with arrows (only during this phase) onto a matching tile. Not on a match = OUT; if nobody matched, nobody is out. Round 1 has 2 different pictures, +1 per round (max 10). Last one standing wins; ranking by rounds survived.
+- Server-authoritative (`shared/memory.js` Game in `server/memoryroom.js`); each player's position is sent ONLY to them (`me{x,y}`) until the round's `result`, which reveals everyone (avatars laid out in a mini-grid per tile, never stacked). Solo mode vs 7 bots runs the same Game in the browser.
 
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.

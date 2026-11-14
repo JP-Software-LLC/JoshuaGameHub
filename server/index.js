@@ -7,6 +7,7 @@
 //   Rush Hour:       start{} pos{d,x} (~10/s) finish{time}
 //   Bear Attack!:    start{} in{x,y} (stick direction, on change)
 //   Math Race extras: mode{mode} (host, lobby) · teacher{} (private host becomes a non-playing teacher)
+//   Memory Tiles:    start{} tile{dx,dy} (server replies me{x,y} only to you)
 //   Arrow Blitz:     start{} score{round:1,n}   (Math Race room, one round)
 //   Hurdle Dash:     start{} pos{d,x=state} finish{time,extra=clean jumps}
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
@@ -22,8 +23,9 @@ const { RushRoom }=require("./rushroom");
 const { BearRoom }=require("./bearroom");
 const { HurdleRoom }=require("./hurdleroom");
 const { ArrowRoom }=require("./arrowroom");
+const { MemoryRoom }=require("./memoryroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -101,6 +103,7 @@ async function onMessage(c,m){
     case "start":  return toRoom(c,{ t:"start" });
     case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
     case "teacher":return toRoom(c,{ t:"teacher" });
+    case "tile":   return toRoom(c,{ t:"tile", dx:m.dx|0, dy:m.dy|0 });
     case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "pick":   return toRoom(c,{ t:"pick", b:m.b|0 });
     case "throw":  return toRoom(c,{ t:"throw", b:m.b|0 });

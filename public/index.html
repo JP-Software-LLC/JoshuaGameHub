@@ -253,7 +253,7 @@
   <section class="hero wrap">
     <span class="eyebrow rise d1"><i></i>BROWSER · MULTIPLAYER · FREE</span>
     <h1 class="rise d2">Small games.<br><span class="g">Big rivalries.</span></h1>
-    <p class="lede rise d3">Seven quick-fire multiplayer games for up to 40 players, right in your browser. No downloads, no accounts. Pick a name, grab some friends, and play.</p>
+    <p class="lede rise d3">Eight quick-fire multiplayer games for up to 40 players, right in your browser. No downloads, no accounts. Pick a name, grab some friends, and play.</p>
     <form class="joinbox rise d4" id="joinForm" autocomplete="off"><span>Have a room code?</span><input id="joinCode" maxlength="4" placeholder="ABCD" aria-label="Room code"><button class="btn" type="submit">JOIN</button></form>
     <span class="joinerr" id="joinErr" role="status"></span>
   </section>
@@ -325,6 +325,7 @@ const GAMES=[
   { id:"bear-attack", kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
   { id:"hurdle-dash", kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
+  { id:"memory-tiles", kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
 ];
 
 // ------------------------------------------------------------
@@ -465,6 +466,26 @@ function arrowThumb(){
   x.font="800 46px 'JetBrains Mono', ui-monospace, monospace"; x.fillStyle="#5b9bff"; x.fillText("arrow",w/2-62,320); x.fillStyle="#facc15"; x.fillText("blitz",w/2+76,320);
   return c;
 }
+// Memory Tiles thumbnail: a 5×5 board, a few tiles flipped to show pictures, the "FIND" card
+function memoryThumb(){
+  const pics=["🍕","⚽","🍕","🌙","⚽"], up=new Set([1,3,7,11,13,17,19,23]);
+  let tiles="";
+  for (let i=0;i<25;i++){ const x=170+(i%5)*54, y=40+((i/5)|0)*54;
+    tiles+=up.has(i)?`<rect x="${x}" y="${y}" width="48" height="48" rx="9" fill="#fff3d6"/><text x="${x+24}" y="${y+34}" text-anchor="middle" font-size="28">${pics[i%5]}</text>`
+      :`<rect x="${x}" y="${y}" width="48" height="48" rx="9" fill="#0a0a0a" stroke="#2a2a2a"/>`; }
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><radialGradient id="mg" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#3b2a85"/><stop offset="1" stop-color="#0f0b26"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#mg)"/>
+    <rect x="160" y="30" width="280" height="280" rx="18" fill="#130e30" stroke="#3b2f7a"/>${tiles}
+    <rect x="276" y="148" width="48" height="48" rx="9" fill="none" stroke="#ffd23f" stroke-width="5"/>
+    <circle cx="300" cy="182" r="11" fill="#ff5d9e" stroke="#fff" stroke-width="2"/>
+    <g transform="translate(30,120)"><rect width="110" height="120" rx="18" fill="#fff3d6" stroke="#ffd23f" stroke-width="5"/><text x="55" y="30" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="14" fill="#1a1238">FIND</text><text x="55" y="92" text-anchor="middle" font-size="54">🍕</text></g>
+    <text x="300" y="356" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="38" fill="#ffd23f" stroke="#1a1238" stroke-width="6" paint-order="stroke">MEMORY TILES</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
 // Bear Attack! thumbnail: ice sheet, a charging bear, red dash path, skaters
 function bearThumb(){
   const sk=(x,y,c)=>`<g transform="translate(${x},${y})"><circle r="15" fill="${c}"/><ellipse cx="-5" cy="-6" rx="5" ry="3" fill="#fff" opacity=".45"/><circle cx="-4" cy="-1" r="4" fill="#fff"/><circle cx="5" cy="-1" r="4" fill="#fff"/><circle cx="-3" cy="-1" r="2" fill="#10324a"/><circle cx="6" cy="-1" r="2" fill="#10324a"/></g>`;
@@ -501,6 +522,7 @@ for (const g of GAMES){
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
+  if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
   lib.appendChild(el);
 }
 const live=GAMES.filter(g=>!g.soon).length;
@@ -658,9 +680,13 @@ const FEATURES={
     desc:"Type the arrow sequence in order with your arrow keys. Every one you finish adds another arrow. A wrong key shakes the screen and starts that sequence over. Go three in a row without a slip for bonus points!",
     roles:[["<span class=ico>⬆️</span>","TYPE","#facc15","Arrows turn yellow."],["<span class=ico>➕</span>","GROW","#5b9bff","3 → 4 → 5 arrows…"],["<span class=ico>🔥</span>","STREAK","#f97316","+50% after 3 flawless."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["PRACTICE","practice"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ 1 minute"] },
+  "memory-tiles":{ acc:"#ff5d9e", chips:["Up to 40","Online + bots","Brainy"], logo:"MEMORY TILES", sub:"LOOK · REMEMBER · STAND", tag:"LAST ONE STANDING",
+    desc:"Every tile flips to show a picture for a few seconds, then goes black. When you are told what to find, use the arrows to stand on a matching tile before time runs out. Each round adds a new picture and gives you less time to look.",
+    roles:[["<span class=ico>👀</span>","LOOK","#ffd23f","Pictures flash, then hide."],["<span class=ico>🏃</span>","STAND","#2ee6c5","5 s to reach a match."],["<span class=ico>👑</span>","SURVIVE","#ff5d9e","Last one in wins."]],
+    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ ~1–2 min games"] },
 };
 const ROT_MS=9000; let rotTimer=0, userPicked=false;
-const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb })[g.thumb]();
+const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb })[g.thumb]();
 function renderTabs(){
   $("ftabs").innerHTML=GAMES.filter(g=>!g.soon).map(g=>`<button class="ftab" role="tab" data-id="${g.id}" data-kind="${g.kind}" aria-selected="${g.id===featured}" style="--acc:${FEATURES[g.id].acc};--rot:${ROT_MS}ms">${g.title}<span class="dot" hidden></span><span class="bar"></span></button>`).join("");
 }
