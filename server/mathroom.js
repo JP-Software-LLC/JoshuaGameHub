@@ -13,7 +13,7 @@ const COUNTDOWN_MS=env("MATH_COUNTDOWN_MS",3000);     // 3-2-1 before each round
 const ROUND_MS=env("MATH_ROUND_MS",30000);        // answering time
 const GRACE_MS=env("MATH_GRACE_MS",2500);         // wait for late score reports
 const RESULTS_MS=env("MATH_RESULTS_MS",9000);       // round leaderboard on screen
-const AUTO_START_MS=30000;   // public lobbies start on their own once 2+ players are in
+const AUTO_START_MS=30000;   // any lobby starts on its own 30 s after a 2nd player joins (host can start sooner)
 
 class MathRoom extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
@@ -65,9 +65,9 @@ class MathRoom extends RoomBase {
     this.send({ t:"joined", code:this.code, game:"math", pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
   }
-  // public rooms: start automatically AUTO_START_MS after the 2nd player arrives
+  // start automatically AUTO_START_MS after the 2nd player arrives (public and private)
   scheduleAuto(){
-    if (!this.isPublic || this.state!=="lobby") return;
+    if (this.state!=="lobby") return;
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startGame(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }

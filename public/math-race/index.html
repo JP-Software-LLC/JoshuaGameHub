@@ -444,7 +444,7 @@ function renderLobby(){
   const note=()=>{
     let t=L.state==="playing"?"A race is in progress…":host?"You're the host. Start when everyone's in.":"Waiting for the host to start…";
     if (L.autoIn){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting automatically in ${s}s`+(host?" (or start now)":""); }
-    else if (L.pub&&L.state==="lobby") t="Waiting for another racer…"+(host?" or start now.":"");
+    else if (L.state==="lobby") t="Auto-starts 30 s after a 2nd racer joins."+(host?" Or start now.":"");
     $("lNote").textContent=(L.pub?"":"Share the code so friends can join. ")+t;
   };
   note(); lobbyTimer=setInterval(note,500);

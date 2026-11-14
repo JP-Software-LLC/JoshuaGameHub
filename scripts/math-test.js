@@ -36,7 +36,8 @@ srv.stdout.on("data",async d=>{
     for (let i=1;i<8;i++){ const c=client("P"+i); await c.ready; await c.wait(m=>m.t==="welcome"); c.send({ t:"join", code:j.code }); others.push(c); }
     await Promise.all(others.map(c=>c.wait(m=>m.t==="joined")));
     const all=[host,...others];
-    await host.wait(m=>m.t==="lobby"&&m.players.length===8);
+    const full=await host.wait(m=>m.t==="lobby"&&m.players.length===8);
+    if (!full.autoIn) fail("private lobby should auto-start countdown with 2+ players");
 
     others[0].send({ t:"start" });                          // non-host: ignored
     await sleep(300);
