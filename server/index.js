@@ -116,7 +116,16 @@ const server=http.createServer(async (req,res)=>{
   if (req.url==="/health"){
     let redis=true; try{ redis=await bus.ping(); }catch{ redis=false; }
     res.writeHead(redis?200:503,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"}); // hub reads the online count
-    return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:conns.size }));
+    const games={};                                   // players per game (rooms hosted on this instance)
+    for (const r of rooms.values()) games[r.kind]=(games[r.kind]||0)+r.connectedCount();
+    return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:conns.size, games }));
+  }
+  // hub "Have a code?" box: which game does this room code belong to?
+  if (req.url.startsWith("/room?")){
+    const code=cleanCode(new URL(req.url,"http://x").searchParams.get("code"));
+    const r=code?await bus.get(K.room(code)):null;
+    res.writeHead(r?200:404,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"});
+    return res.end(JSON.stringify(r?{ code, kind:r.kind||"cg", state:r.state, humans:r.humans, max:r.max }:{ error:"No room with that code." }));
   }
   serveStatic(req,res);
 });

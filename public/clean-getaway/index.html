@@ -437,6 +437,9 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// hub "Have a code?" deep link: ?join=CODE
+addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
+  $("codeIn").value=j.toUpperCase(); $("btnJoin").click(); });
 </script>
 </body>
 </html>
