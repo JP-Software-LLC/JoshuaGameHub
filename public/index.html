@@ -67,7 +67,7 @@
   .lede{max-width:620px;margin:0 auto;color:var(--dim);font-size:clamp(16px,2vw,19px);line-height:1.6}
 
   /* ---------- featured showcase ---------- */
-  .feature{margin:44px auto 28px;perspective:1600px}
+  .feature{margin:28px auto 24px;perspective:1600px;max-width:980px}
   .show{position:relative;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);border-radius:22px;overflow:hidden;
     background:var(--glass);border:1px solid var(--edge2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     box-shadow:0 40px 120px -30px rgba(0,0,0,.8),0 0 0 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
@@ -80,7 +80,7 @@
   @keyframes spin{to{--ang:360deg}}
   .glare{position:absolute;inset:0;pointer-events:none;background:radial-gradient(500px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.07),transparent 45%);z-index:3}
 
-  .stagewrap{position:relative;background:#000;min-height:420px;overflow:hidden;
+  .stagewrap{position:relative;background:#000;min-height:300px;max-height:min(46vh,380px);overflow:hidden;
     border-right:1px solid var(--edge)}
   #demo{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
   .stagewrap::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -207,7 +207,19 @@
   .tstep>div>b{display:block;color:var(--ink);font-size:16px;margin-bottom:2px}
   .tstep span b{color:var(--ink)}
   .tstep span{color:var(--dim);font-size:14px;line-height:1.45}
-  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:14px}
+  .tgrid{display:flex;flex-direction:column;border-radius:var(--r);background:var(--glass);border:1px solid var(--edge2);overflow:hidden}
+  .trow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid var(--edge2)}
+  .trow:first-child{border-top:0}
+  .trow:hover{background:rgba(255,255,255,.03)}
+  .trow .ico{font-size:24px;width:36px;text-align:center;flex:none}
+  .trow .tx{flex:1;min-width:0}
+  .trow .tx b{display:block;font-size:16px;color:var(--ink)}
+  .trow .tx span{color:var(--dim);font-size:14px}
+  .trow .len{color:#aeb6c3;font-size:13px;white-space:nowrap}
+  .trow .go{flex:none;text-decoration:none;font-family:var(--px);font-size:9px;padding:11px 14px;border-radius:10px;background:#ff6b6b;color:#1a0b0b;box-shadow:0 3px 0 #a33a3a;white-space:nowrap}
+  .trow .go:hover{filter:brightness(1.08)}
+  @media (max-width:620px){ .trow .len{display:none} .trow .tx span{font-size:13px} }
+  .tdash{display:inline-block;margin-top:14px;color:#ffb3b3;font-weight:600}
   .tcard{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:var(--r);background:var(--glass);border:1px solid var(--edge2);transition:border-color .2s,transform .2s}
   .tcard:hover{border-color:rgba(255,120,120,.45);transform:translateY(-3px)}
   .tcard .th{display:flex;align-items:center;gap:12px}
@@ -248,7 +260,8 @@
   @media (max-width:900px){
     .show{grid-template-columns:1fr}
     .stagewrap{border-right:0;border-bottom:1px solid var(--edge);min-height:0;aspect-ratio:27/23}
-    .info{padding:26px 22px 26px}
+    .info{padding:20px 18px}
+    .stagewrap{max-height:none}
     nav a.hide-m{display:none}
     .how{grid-template-columns:1fr}
   }
@@ -324,23 +337,25 @@
     </div>
   </section>
 
+
+  <section class="wrap sec" id="games">
+    <div class="sechead"><div style="display:flex;flex-direction:column;gap:12px"><h2>LIBRARY</h2><div class="filters" id="filters" role="group" aria-label="Filter games"></div></div><p id="libCount"></p></div>
+    <div class="grid" id="lib"></div>
+  </section>
+
   <section class="wrap sec teach" id="teachers" aria-label="For teachers">
     <div class="sechead"><div><span class="kicker">🍎 FOR TEACHERS</span><h2>WHOLE-CLASS GAMES</h2></div><p>Up to 40 students · free · nothing to install</p></div>
     <div class="tintro">
       <p class="tlead">Six of our games have a <b>Teacher mode</b>. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
       <div class="tsteps">
-        <div class="tstep"><div><b>Pick a game below</b><span>Press <b>🍎 Start as teacher</b>. You get a 4-letter room code.</span></div></div>
+        <div class="tstep"><div><b>Pick a game from the list</b><span>Press <b>🍎 Start as teacher</b>. You get a 4-letter room code.</span></div></div>
         <div class="tstep"><div><b>Put the code on the board</b><span>Students open <b>joshuagamehub.website</b>, type a name, and enter the code in "Have a room code?".</span></div></div>
         <div class="tstep"><div><b>Press "Start for the class"</b><span>Nothing starts until you say so. You watch, they play, and the winners' board appears at the end.</span></div></div>
       </div>
     </div>
     <div class="tgrid" id="tgrid"></div>
-    <div class="tfacts"><span>No accounts or emails: students just type a first name</span><span>Room codes are consonants only, so they never spell words</span><span>Kid-friendly games and wording</span><span>Works on Chromebooks, tablets and phones</span><span>Up to 40 students per room</span></div>
-  </section>
-
-  <section class="wrap sec" id="games">
-    <div class="sechead"><div style="display:flex;flex-direction:column;gap:12px"><h2>LIBRARY</h2><div class="filters" id="filters" role="group" aria-label="Filter games"></div></div><p id="libCount"></p></div>
-    <div class="grid" id="lib"></div>
+    <a class="tdash" href="/teacher/">📊 Teacher sign in: save results and track each student →</a>
+    <div class="tfacts"><span>Students never need an account</span><span>Room codes are consonants only, so they never spell words</span><span>Kid-friendly games and wording</span><span>Works on Chromebooks, tablets and phones</span><span>Up to 40 students per room</span></div>
   </section>
 
   <section class="wrap sec" id="how">
@@ -776,11 +791,9 @@ const CLASS_GAMES=[
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
 ];
-$("tgrid").innerHTML=CLASS_GAMES.map(c=>{ const g=GAMES.find(x=>x.id===c.id); return `<div class="tcard">
-  <div class="th"><span class="ico">${c.ico}</span><div><h3>${g.title}</h3><div class="skill">${c.skill}</div></div></div>
-  <p>${c.desc}</p>
-  <div class="tm"><span>⏱ ${c.len}</span><span>👀 ${c.view}</span><span>👥 Up to 40</span></div>
-  <div class="acts"><a class="go" href="${g.path}?play=teacher">🍎 START AS TEACHER</a><a class="try" href="${g.path}">TRY IT</a></div></div>`; }).join("");
+$("tgrid").innerHTML=CLASS_GAMES.map(c=>{ const g=GAMES.find(x=>x.id===c.id); return `<div class="trow">
+  <span class="ico">${c.ico}</span><div class="tx"><b>${g.title}</b><span>${c.skill}</span></div><span class="len">⏱ ${c.len}</span>
+  <a class="go" href="${g.path}?play=teacher">🍎 START</a></div>`; }).join("");
 
 // ------------------------------------------------------------
 //  Library filters
