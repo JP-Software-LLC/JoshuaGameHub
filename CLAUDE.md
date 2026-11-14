@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) and **SPLAT!** (2–6 player kids party game).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) and **Rush Hour** (up to 40, lane racing).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -35,6 +35,13 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Turn: up to 3 throws. Hiders pick barrel Left/Up/Right behind a sheet (10 s, 5 s, 3 s; changeable; random if none). Sheet lifts; thrower picks (4 s, random after). Hit hiders sit out the rest of the turn. Turn ends early if all are hit. ≈30–40 s per turn.
 - Points: +10 per throw dodged, +20 per player splatted (balanced: equal expected points throwing vs hiding at any lobby size).
 - Server-authoritative; hiding spots are never sent to the thrower. `server/splatroom.js`, `public/splat/index.html`, timings overridable via SPLAT_*_MS.
+
+## Rush Hour rules
+- Up to 40 racers, 3-lane road, chase camera (Three.js r128 from cdnjs). Controls: Left/Right lane change, Down = brake (hold). Touch: on-screen ◀ ▼ ▶ + swipes. Solo mode vs 7 ghost bots.
+- Players never collide with each other (others are translucent ghosts). NPCs: red cars, blue trucks, white semis — all slower than players. Rear-end = big slowdown + short stun; sideswipe = smaller slowdown + pushed back to your lane. Glowing boost strips = +12 m/s fading over 1 s.
+- `shared/rush.js` holds ALL tuning + physics + traffic + bot AI (used by browser, bots and `scripts/rush-balance.js`). Traffic comes from the race seed; each NPC appears SPAWN (180 m) ahead of each racer at its fixed spot, so everyone meets the same traffic at the same place.
+- Catch-up is a smooth function of METRES BEHIND THE LEADER (never of place): more top speed/accel, softer bumps, and a vehicle you're stuck behind drives away sooner. Balance (run `node scripts/rush-balance.js`): 4,400 m ≈ 2:00–2:05 median; first→last spread median ~9–11 s, worst ~15 s (target ≤ ~25 s).
+- Server (`server/rushroom.js`) only relays positions (~10/s) and ranks finish times (unfinished → by distance); race closes 45 s after the winner. Results: top max(3, 15 %) + your place.
 
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.

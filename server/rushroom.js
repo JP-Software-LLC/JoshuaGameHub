@@ -1,0 +1,112 @@
+// Rush Hour room: up to 40 racers. The server never simulates driving: each browser drives its
+// own car on a road generated from a shared seed. The server relays everyone's position ~10×/s
+// (for ghost cars and the catch-up), records finish times, and ranks the race.
+"use strict";
+const crypto=require("crypto");
+const { RoomBase }=require("./roombase");
+const RUSH=require("../shared/rush.js");
+
+const env=(k,d)=>+process.env[k]||d;
+const MAX_PLAYERS=40, MIN_PLAYERS=1;
+const COUNTDOWN_MS=env("RUSH_COUNTDOWN_MS",3000);
+const RELAY_MS=100;                                   // position broadcast rate
+const AFTER_FIRST_MS=env("RUSH_AFTER_FIRST_MS",45000); // race closes this long after the winner finishes
+const MAX_RACE_MS=env("RUSH_MAX_MS",6*60*1000);
+const AUTO_START_MS=env("RUSH_AUTO_MS",30000);
+const DIST=env("RUSH_DIST",RUSH.T.dist);
+
+class RushRoom extends RoomBase {
+  constructor(code, isPublic, bus, instanceId, onClose){
+    super(code, isPublic, bus, instanceId, onClose, "rush", MAX_PLAYERS);
+    this.players=new Map();   // pid -> {pid,cid,name,token,connected,color,d,x,fin}
+    this.nextPid=1; this.host=0; this.autoAt=0; this.relay=null; this.endTimer=null;
+  }
+  humanCount(){ return this.players.size; }
+  connectedCount(){ let n=0; for (const p of this.players.values()) if (p.connected) n++; return n; }
+  canReconnect(){ for (const p of this.players.values()) if (!p.connected) return true; return false; }
+  cleanup(){ clearInterval(this.relay); clearTimeout(this.endTimer); clearTimeout(this.capTimer); clearTimeout(this.autoTimer); }
+  byCid(cid){ for (const p of this.players.values()) if (p.cid===cid) return p; return null; }
+  freeColor(){ const used=new Set([...this.players.values()].map(p=>p.color)); for (let i=0;i<MAX_PLAYERS;i++) if (!used.has(i)) return i; return 0; }
+  roster(){ return [...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, connected:p.connected })); }
+
+  lobby(){
+    return this.send({ t:"lobby", game:"rush", code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
+      host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
+  }
+  handle(msg){
+    const p=this.byCid(msg.cid);
+    switch (msg.t){
+      case "join": return this.join(msg);
+      case "start": if (p && p.pid===this.host && this.state==="lobby") this.startRace(); return;
+      case "pos":
+        if (!p || this.state!=="playing" || p.fin!=null) return;
+        if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(DIST,msg.d));
+        if (Number.isFinite(msg.x)) p.x=Math.max(-6,Math.min(6,msg.x));
+        return;
+      case "finish":
+        if (!p || this.state!=="playing" || p.fin!=null) return;
+        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=DIST;      // trust the client (by design)
+        this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
+        if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),AFTER_FIRST_MS);
+        this.checkAllDone(); return;
+      case "leave": case "drop":
+        if (!p) return;
+        if (this.state==="playing" && msg.t==="drop") p.connected=false;
+        else this.players.delete(p.pid);
+        if (p.pid===this.host) this.pickHost();
+        this.register(); this.lobby(); this.scheduleAuto(); this.checkEmpty();
+        if (this.state==="playing") this.checkAllDone();
+        return;
+    }
+  }
+  pickHost(){ const n=[...this.players.values()].find(q=>q.connected); this.host=n?n.pid:0; }
+  join({cid,name,token}){
+    let p=token?[...this.players.values()].find(q=>q.token===token):null;
+    if (p) Object.assign(p,{ cid,name,connected:true });
+    else {
+      if (this.players.size>=MAX_PLAYERS) return this.send({ t:"error", code:"full", msg:"That race is full (40 racers)." },cid);
+      if (this.state!=="lobby") return this.send({ t:"error", code:"full", msg:"That race has already started." },cid);
+      p={ pid:this.nextPid++, cid, name, token, connected:true, color:this.freeColor(), d:0, x:0, fin:null };
+      this.players.set(p.pid,p);
+    }
+    if (!this.host || !this.players.get(this.host)?.connected) this.host=p.pid;
+    this.emptySince=0; this.saveSession(token);
+    this.send({ t:"joined", code:this.code, game:"rush", pid:p.pid },cid);
+    this.register(); this.lobby(); this.scheduleAuto();
+    if (this.state==="playing") this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
+  }
+  scheduleAuto(){
+    if (this.state!=="lobby") return;
+    if (this.connectedCount()>=2){
+      if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startRace(),AUTO_START_MS); this.lobby(); }
+    } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
+  }
+  goMsg(){ return { t:"go", seed:this.seed, dist:DIST, players:this.roster() }; }
+  startRace(){
+    if (this.state!=="lobby" || this.connectedCount()<MIN_PLAYERS) return;
+    clearTimeout(this.autoTimer); this.autoAt=0;
+    for (const p of this.players.values()) Object.assign(p,{ d:0, x:0, fin:null });
+    this.seed=crypto.randomInt(1,2**31-1); this.startAt=Date.now()+COUNTDOWN_MS;
+    this.state="playing"; this.register(); this.lobby();
+    this.send({ ...this.goMsg(), in:COUNTDOWN_MS });
+    this.relay=setInterval(()=>this.send({ t:"ps", p:[...this.players.values()].map(q=>[q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]) }),RELAY_MS);
+    this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+MAX_RACE_MS);
+  }
+  checkAllDone(){
+    const racing=[...this.players.values()].filter(p=>p.connected&&p.fin==null);
+    if (!racing.length && [...this.players.values()].some(p=>p.fin!=null)) this.finish();
+    else if (!this.players.size) this.finish();
+  }
+  finish(){
+    if (this.state!=="playing") return;
+    clearInterval(this.relay); clearTimeout(this.endTimer); clearTimeout(this.capTimer); this.endTimer=null;
+    const rank=[...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d }))
+      .sort((a,b)=>(a.time==null)-(b.time==null) || (a.time!=null ? a.time-b.time : b.d-a.d));
+    this.send({ t:"results", rank, dist:DIST });
+    this.state="lobby";
+    for (const [pid,p] of this.players) if (!p.connected) this.players.delete(pid);
+    if (!this.players.get(this.host)) this.pickHost();
+    this.register(); this.lobby(); this.scheduleAuto();
+  }
+}
+module.exports={ RushRoom, MAX_PLAYERS };

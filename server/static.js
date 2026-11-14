@@ -21,6 +21,7 @@ function serveStatic(req,res){
   if (p==="/config.js"){ res.writeHead(200,{"content-type":TYPES[".js"],"cache-control":"no-store"}); return res.end(configJs()); }
   let file;
   if (p==="/sim.js") file=path.join(ROOT,"shared","sim.js");
+  else if (p==="/rush.js") file=path.join(ROOT,"shared","rush.js");
   else {
     if (p.endsWith("/")) p+="index.html";
     file=path.normalize(path.join(PUBLIC,p));
