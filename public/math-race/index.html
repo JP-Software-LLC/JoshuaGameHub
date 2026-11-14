@@ -47,6 +47,11 @@
   a.back{color:var(--b5);text-decoration:none;font-size:13px;font-weight:600;letter-spacing:.5px;align-self:flex-start}
   a.back:hover{color:var(--b3)}
   .hint{display:flex;gap:16px;flex-wrap:wrap;color:var(--b6);font-size:13px}
+  .practice{display:flex;flex-direction:column;gap:8px;padding-top:4px;border-top:1px solid var(--b7);padding-top:16px}
+  .seg{display:flex;gap:4px;background:var(--bg);border:1px solid var(--b7);border-radius:12px;padding:4px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--b5);padding:9px 0;border-radius:8px;font-family:var(--mono);font-weight:700;font-size:14px;cursor:pointer;transition:background .15s,color .15s}
+  .seg button:hover{color:var(--b2)}
+  .seg button.on{background:var(--b6);color:var(--b1);box-shadow:inset 0 0 0 1px var(--b5)}
 
   /* ---------- lobby ---------- */
   .code{font-family:var(--mono);font-weight:800;font-size:46px;letter-spacing:10px;color:var(--b1);line-height:1}
@@ -150,11 +155,11 @@
 <section class="screen on fade" id="menu"><div class="panel">
   <a class="back" href="../">← GAME HUB</a>
   <h1 class="wordmark">math<span>race</span></h1>
-  <p class="sub">30 seconds per round. Add the numbers and type the answer. There's no Enter key: the right answer moves you on. A wrong one costs you 3 seconds.</p>
+  <p class="sub">One minute per round. Add the numbers and type the answer. There's no Enter key: the right answer moves you on. A wrong one costs you 3 seconds.</p>
   <div><div class="label" style="margin-bottom:8px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Public race</button><button class="btn ghost" id="bPrivate">Private race</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="ROOM CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;font-family:var(--mono)"><button class="btn ghost" id="bJoin" style="flex:0 0 auto">Join</button></div>
-  <button class="btn ghost" id="bPractice">Solo practice</button>
+  <div class="practice"><div class="label">Solo practice length</div><div class="seg" id="pTime" role="radiogroup" aria-label="Practice length"></div><button class="btn ghost" id="bPractice">Solo practice</button></div>
   <p class="err" id="err"></p>
   <div class="hint"><span>Up to 40 players</span><span>3 rounds</span><span>Number keys or numpad</span></div>
 </div></section>
@@ -328,12 +333,23 @@ requestAnimationFrame(loop);
 // ============================================================
 //  PRACTICE (offline)
 // ============================================================
-$("bPractice").onclick=()=>{ myName(); Net.close(); beginRound({ n:1, of:1, seed:(Math.random()*2**31)|0, inMs:3000, dur:30000, practice:true }); };
+// practice length selector (remembered on this device)
+const P_OPTS=[[15,"15s"],[30,"30s"],[60,"1 min"],[90,"90s"],[120,"2 min"]];
+let pSecs=+store.get("mr_practice"); if (!P_OPTS.some(o=>o[0]===pSecs)) pSecs=60;
+function renderPTime(){
+  $("pTime").innerHTML=P_OPTS.map(([s,l])=>`<button type="button" role="radio" aria-checked="${s===pSecs}" class="${s===pSecs?"on":""}" data-s="${s}">${l}</button>`).join("");
+  $("bPractice").textContent=`Solo practice · ${P_OPTS.find(o=>o[0]===pSecs)[1]}`;
+}
+$("pTime").addEventListener("click",e=>{ const b=e.target.closest("button[data-s]"); if (!b) return; pSecs=+b.dataset.s; store.set("mr_practice",pSecs); renderPTime(); });
+renderPTime();
+$("bPractice").onclick=()=>{ myName(); Net.close(); beginRound({ n:1, of:1, seed:(Math.random()*2**31)|0, inMs:3000, dur:pSecs*1000, practice:true }); };
 function practiceDone(){
-  const best=Math.max(+(store.get("mr_best")||0),R.score); store.set("mr_best",best);
-  $("rTitle").textContent="Practice results";
+  const secs=Math.round(R.dur/1000), key="mr_best_"+secs;            // personal best per practice length
+  const best=Math.max(+(store.get(key)||0),R.score); store.set(key,best);
+  const len=(P_OPTS.find(o=>o[0]===secs)||[0,secs+"s"])[1];
+  $("rTitle").textContent=`Practice results · ${len}`;
   $("rBoard").innerHTML=line(1,{ name:myName(), score:R.score },true,R.score||1,0);
-  $("rYou").innerHTML=`<span>Personal best</span><b style="font-family:var(--mono)">${best}</b>`;
+  $("rYou").innerHTML=`<span>Personal best (${len})</span><b style="font-family:var(--mono)">${best}</b>`;
   $("rNext").innerHTML=`<div class="row" style="margin-top:6px"><button class="btn" id="bPAgain">Go again</button><button class="btn ghost" id="bPMenu">Menu</button></div>`;
   show("results");
   $("bPAgain").onclick=()=>$("bPractice").click();

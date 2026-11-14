@@ -1,4 +1,4 @@
-// Math Race room: up to 40 players, ROUNDS × 30 s rounds.
+// Math Race room: up to 40 players, ROUNDS × 1 min rounds.
 // The server never sees questions or answers. Each round it sends a seed; every client
 // generates the same questions locally, checks answers locally, and reports one number
 // (how many it got right) when its timer ends. The server just ranks those numbers.
@@ -10,7 +10,7 @@ const MAX_PLAYERS=40;
 const ROUNDS=3;
 const env=(k,d)=>+process.env[k]||d;   // overridable for tests
 const COUNTDOWN_MS=env("MATH_COUNTDOWN_MS",3000);     // 3-2-1 before each round
-const ROUND_MS=env("MATH_ROUND_MS",30000);        // answering time
+const ROUND_MS=env("MATH_ROUND_MS",60000);        // answering time
 const GRACE_MS=env("MATH_GRACE_MS",2500);         // wait for late score reports
 const RESULTS_MS=env("MATH_RESULTS_MS",9000);       // round leaderboard on screen
 const AUTO_START_MS=30000;   // any lobby starts on its own 30 s after a 2nd player joins (host can start sooner)
