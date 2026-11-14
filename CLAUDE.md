@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) and **Bear Attack!** (up to 40, top-down ice survival).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) and **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -48,6 +48,11 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Bear: wakes (5 s first round, 3 s later), then 3 straight dashes per round to a random point between a minimum length and the ice edge; red path blinks 3× for the warning time (2.0 s, −0.3 s per round, min 0.6 s), then charges and shoves anyone in front of it. Slide off the ice = FROZEN! (kid-friendly, no "eliminated" wording on screen).
 - After 3 dashes: ice shrinks to 84 % (min radius 5) while players are herded inward (nobody falls during a shrink) and the bear walks back to the middle. Last player on the ice wins; ranking = time on the ice.
 - Server-authoritative: `shared/bear.js` (Game + bots) runs in `server/bearroom.js` at 40 Hz physics / 20 Hz snapshots; clients send only `in{x,y}`. Solo mode runs the same Game in the browser vs 7 bots. Pacing (bots): ~70 s (4 players) to ~95 s (40).
+
+## Hurdle Dash rules
+- Up to 40, one lane each (lane = colour index + 1), straight 100 m school track, side view (canvas 2D; your lane in front, 4 nearest lanes behind). Tap Left/Right in turn to run (same key twice = stumble, held keys ignored); touch = two big buttons.
+- 5 hurdles. At each: 3 Math Race questions (same generator, checked on last digit, no Enter; same questions for everyone via race seed). All right → jump. One wrong → trip, 3 s on the ground, then run on.
+- `shared/hurdle.js` = rules + bots (served at /hurdle.js). Server = `server/hurdleroom.js`, a subclass of the generic race room (`RushRoom` with KIND/DIST statics): relays pos{d, x=state 0 run/1 quiz/2 trip/3 jump}, finish{time, extra=clean jumps}. Races ~30–60 s.
 
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.

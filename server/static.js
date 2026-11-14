@@ -23,6 +23,7 @@ function serveStatic(req,res){
   if (p==="/sim.js") file=path.join(ROOT,"shared","sim.js");
   else if (p==="/rush.js") file=path.join(ROOT,"shared","rush.js");
   else if (p==="/bear.js") file=path.join(ROOT,"shared","bear.js");
+  else if (p==="/hurdle.js") file=path.join(ROOT,"shared","hurdle.js");
   else {
     if (p.endsWith("/")) p+="index.html";
     file=path.normalize(path.join(PUBLIC,p));

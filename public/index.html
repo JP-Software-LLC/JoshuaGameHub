@@ -177,6 +177,7 @@
   @keyframes fbar{to{width:100%}}
   .ftab .dot[hidden]{display:none}
   .ftab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-left:7px;vertical-align:1px;box-shadow:0 0 8px var(--green)}
+  .demo-hud[hidden],.demo-pop[hidden],.fprev[hidden]{display:none}      /* [hidden] must win over display:flex */
   .fprev{position:absolute;inset:0;overflow:hidden;background:#000}
   .fprev>*{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kb 12s ease-in-out infinite alternate}
   @keyframes kb{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.12) translate(-2%,-2%)}}
@@ -252,7 +253,7 @@
   <section class="hero wrap">
     <span class="eyebrow rise d1"><i></i>BROWSER · MULTIPLAYER · FREE</span>
     <h1 class="rise d2">Small games.<br><span class="g">Big rivalries.</span></h1>
-    <p class="lede rise d3">Five quick-fire multiplayer games for up to 40 players, right in your browser. No downloads, no accounts. Pick a name, grab some friends, and play.</p>
+    <p class="lede rise d3">Six quick-fire multiplayer games for up to 40 players, right in your browser. No downloads, no accounts. Pick a name, grab some friends, and play.</p>
     <form class="joinbox rise d4" id="joinForm" autocomplete="off"><span>Have a room code?</span><input id="joinCode" maxlength="4" placeholder="ABCD" aria-label="Room code"><button class="btn" type="submit">JOIN</button></form>
     <span class="joinerr" id="joinErr" role="status"></span>
   </section>
@@ -322,6 +323,7 @@ const GAMES=[
   { id:"splat", kind:"splat", cat:"Party", title:"SPLAT!", path:"/splat/", blurb:"Hide behind a barrel. Dodge the water balloon!", tags:["2–6 players","Online","Party"], thumb:"splat" },
   { id:"rush-hour", kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
+  { id:"hurdle-dash", kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve 3 sums to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
 ];
 
 // ------------------------------------------------------------
@@ -384,20 +386,63 @@ function splatThumb(){
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
   return img;
 }
-// Rush Hour thumbnail: road vanishing into the distance, traffic, a boost strip
+// Rush Hour thumbnail: city street vanishing into the distance, buildings both sides, traffic, a boost strip
 function rushThumb(){
   const car=(x,y,s,c,top)=>`<g transform="translate(${x},${y}) scale(${s})"><rect x="-24" y="-14" width="48" height="26" rx="5" fill="${c}"/><rect x="-18" y="-30" width="36" height="18" rx="4" fill="${top||c}"/><rect x="-15" y="-27" width="30" height="10" rx="2" fill="#223047"/><rect x="-20" y="-6" width="10" height="5" fill="#ff3b3b"/><rect x="10" y="-6" width="10" height="5" fill="#ff3b3b"/><rect x="-26" y="10" width="10" height="8" rx="2" fill="#1d1f24"/><rect x="16" y="10" width="10" height="8" rx="2" fill="#1d1f24"/></g>`;
+  // buildings: big near the edges, shrinking toward the vanishing point (270,150)
+  const fac=["#c8d3e0","#e8d6b9","#d9c3c3","#b9c9d9","#d2d8c4","#9fb6cc"];
+  let city="";
+  for (const side of [-1,1]) for (let i=0;i<6;i++){
+    const k=Math.pow(0.66,i), w=110*k, h=(170+((i*53)%60))*k, gx=270+side*(150*k+12)-(side<0?w:0), gy=150+60*k-h;
+    city+=`<rect x="${gx.toFixed(1)}" y="${gy.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${fac[(i*2+(side>0))%fac.length]}"/>`;
+    const cols=3, rows=Math.max(2,Math.round(h/(26*k))), ww=w/(cols*1.9), wh=h/(rows*1.8);
+    for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){ const lit=((r*7+c*3+i)%5)===0;
+      city+=`<rect x="${(gx+w*0.12+c*(w*0.76/cols)).toFixed(1)}" y="${(gy+h*0.08+r*(h*0.88/rows)).toFixed(1)}" width="${ww.toFixed(1)}" height="${wh.toFixed(1)}" fill="${lit?"#ffe9a8":"#4c6480"}"/>`; }
+  }
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
-    <rect width="540" height="380" fill="#9fd6f5"/><circle cx="440" cy="70" r="30" fill="#ffd23f"/>
-    <rect y="170" width="540" height="210" fill="#6cc24a"/>
-    <polygon points="250,170 290,170 470,380 70,380" fill="#3a3f4a"/>
-    <polygon points="250,170 254,170 120,380 104,380" fill="#f5f5f0"/><polygon points="286,170 290,170 436,380 420,380" fill="#f5f5f0"/>
-    <g fill="#ffd23f"><polygon points="262,190 264,190 220,270 212,270"/><polygon points="276,190 278,190 316,270 308,270"/><polygon points="205,290 210,290 192,340 183,340"/><polygon points="320,290 325,290 349,340 340,340"/></g>
-    <polygon points="292,262 330,262 350,300 300,300" fill="#38e1ff" opacity=".9"/><path d="M308,292 l12,-14 l12,14" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    ${car(228,214,0.7,"#e63946")}<g transform="translate(296,206)"><rect x="-18" y="-34" width="36" height="40" rx="4" fill="#3b82f6"/><rect x="-14" y="2" width="8" height="6" fill="#1d1f24"/><rect x="6" y="2" width="8" height="6" fill="#1d1f24"/></g>
-    ${car(270,330,1.5,"#ff7a1a","#e8590c")}
-    <g opacity=".35">${car(176,300,1.15,"#8b5cf6")}</g>
-    <text x="270" y="60" text-anchor="middle" font-family="Russo One, Arial Black, sans-serif" font-style="italic" font-size="52" fill="#ff7a1a" stroke="#fff" stroke-width="7" paint-order="stroke">RUSH HOUR</text>
+    <rect width="540" height="380" fill="#9fd6f5"/><circle cx="270" cy="120" r="26" fill="#fff3b0"/>
+    ${city}
+    <polygon points="258,150 282,150 540,380 0,380" fill="#c9ced6"/>
+    <polygon points="262,150 278,150 470,380 70,380" fill="#3a3f4a"/>
+    <polygon points="262,150 264,150 112,380 96,380" fill="#f5f5f0"/><polygon points="276,150 278,150 444,380 428,380" fill="#f5f5f0"/>
+    <g fill="#ffd23f"><polygon points="266,165 267,165 238,220 233,220"/><polygon points="273,165 274,165 302,220 297,220"/><polygon points="222,245 227,245 204,300 196,300"/><polygon points="314,245 319,245 342,300 334,300"/></g>
+    <polygon points="296,252 336,252 360,292 306,292" fill="#38e1ff" opacity=".92"/><path d="M318,284 l12,-14 l12,14" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(286,182)"><rect x="-10" y="-30" width="20" height="34" rx="2" fill="#f3f5f8"/><rect x="-10" y="-30" width="20" height="4" fill="#94a3b8"/><rect x="-8" y="2" width="5" height="4" fill="#1d1f24"/><rect x="3" y="2" width="5" height="4" fill="#1d1f24"/></g>
+    ${car(240,206,0.55,"#e63946")}
+    <g transform="translate(300,214)"><rect x="-15" y="-30" width="30" height="34" rx="3" fill="#3b82f6"/><rect x="-11" y="2" width="7" height="5" fill="#1d1f24"/><rect x="4" y="2" width="7" height="5" fill="#1d1f24"/></g>
+    <g opacity=".35">${car(178,300,1.1,"#8b5cf6")}</g>
+    ${car(272,336,1.55,"#ff7a1a","#e8590c")}
+    <text x="270" y="62" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-style="italic" font-weight="900" font-size="50" fill="#ff7a1a" stroke="#fff" stroke-width="7" paint-order="stroke">RUSH HOUR</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Hurdle Dash thumbnail: school track, a runner leaping a hurdle, a sum bubble
+function hurdleThumb(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <rect width="540" height="380" fill="#8fd0f3"/><circle cx="470" cy="60" r="28" fill="#fff3b0"/>
+    <rect x="20" y="92" width="300" height="88" fill="#b45309"/><rect x="20" y="92" width="300" height="6" fill="#9a3412"/>
+    ${Array.from({length:7},(_,i)=>`<rect x="${36+i*40}" y="108" width="20" height="22" fill="#e0f2fe"/><rect x="${36+i*40}" y="142" width="20" height="22" fill="#e0f2fe"/>`).join("")}
+    <rect x="120" y="70" width="100" height="20" fill="#fef3c7"/><text x="170" y="85" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="13" fill="#7c2d12">SCHOOL</text>
+    <rect x="340" y="130" width="160" height="50" fill="#d97706"/><polygon points="330,132 420,104 510,132" fill="#92400e"/>
+    <rect y="180" width="540" height="14" fill="#86efac"/>
+    <g>${Array.from({length:22},(_,i)=>`<circle cx="${14+i*25}" cy="${200+(i%2)*6}" r="7" fill="${["#ef4444","#3b82f6","#f59e0b","#10b981","#8b5cf6","#ec4899"][i%6]}"/>`).join("")}</g>
+    <rect y="212" width="540" height="168" fill="#c9553c"/>
+    <g fill="#fff" opacity=".9"><rect y="250" width="540" height="3"/><rect y="292" width="540" height="3"/><rect y="338" width="540" height="3"/></g>
+    <g><rect x="300" y="300" width="5" height="40" fill="#334155"/><rect x="352" y="300" width="5" height="40" fill="#334155"/>${Array.from({length:5},(_,i)=>`<rect x="${300+i*11.4}" y="296" width="11.4" height="9" fill="${i%2?"#111":"#fff"}"/>`).join("")}</g>
+    <g transform="translate(320,262) rotate(-12)" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M0,-8 L-22,6 L-40,0" stroke="#f2c39b" stroke-width="9"/><path d="M0,-8 L24,-2 L30,18" stroke="#f2c39b" stroke-width="9"/>
+      <rect x="-14" y="-44" width="26" height="36" rx="8" fill="#2563eb" stroke="none"/><rect x="-9" y="-36" width="15" height="11" rx="2" fill="#fff" stroke="none"/>
+      <path d="M8,-38 L26,-52" stroke="#f2c39b" stroke-width="7"/><path d="M-10,-38 L-28,-26" stroke="#f2c39b" stroke-width="7"/>
+      <circle cx="2" cy="-58" r="14" fill="#f2c39b" stroke="none"/><path d="M-12,-62 a14,14 0 0 1 28,0 z" fill="#1f2937" stroke="none"/><rect x="-13" y="-66" width="28" height="4" fill="#ffcf33" stroke="none"/>
+    </g>
+    <g transform="translate(120,262)"><rect x="-62" y="-40" width="124" height="80" rx="16" fill="#16181d"/>
+      <text x="22" y="-8" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">47</text>
+      <text x="22" y="20" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">38</text>
+      <text x="-38" y="20" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#3a78e6">+</text>
+      <rect x="-40" y="27" width="64" height="3" fill="#3a78e6"/><polygon points="40,40 56,40 48,54" fill="#16181d"/></g>
+    <text x="270" y="374" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="40" fill="#ffcf33" stroke="#9a3412" stroke-width="7" paint-order="stroke">HURDLE DASH</text>
   </svg>`;
   const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
@@ -437,6 +482,7 @@ for (const g of GAMES){
   if (g.thumb==="splat") el.querySelector(".thumb").prepend(splatThumb());
   if (g.thumb==="rush") el.querySelector(".thumb").prepend(rushThumb());
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
+  if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
   lib.appendChild(el);
 }
 const live=GAMES.filter(g=>!g.soon).length;
@@ -579,16 +625,20 @@ const FEATURES={
     roles:[["<span class=ico>🛢️</span>","HIDE","#3fa9f5","Pick a barrel ← ↑ →"],["<span class=ico>🎈</span>","THROW","#ff5d73","Everyone gets a turn."],["<span class=ico>🌞</span>","STAY DRY","#ffb627","Points for every dodge."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE PARTY","private"]], meta:["⌨ Arrow keys","📱 Tap a barrel","⏱ ~40 s per turn"] },
   "rush-hour":{ acc:"#ff7a1a", chips:["Up to 40","Online + bots","Racing"], logo:"RUSH HOUR", sub:"WEAVE · BOOST · WIN", tag:"80-SECOND RACES",
-    desc:"Race up to 40 friends down a busy city highway. Change lanes to slip past cars, trucks and semis, hit the glowing strips for a boost, and stay close all the way to the finish line.",
-    roles:[["<span class=ico>🚗</span>","WEAVE","#ff7a1a","◀ ▶ change lanes."],["<span class=ico>⚡</span>","BOOST","#38e1ff","Hit the glowing strips."],["<span class=ico>🏁</span>","FINISH","#ffd23f","Everyone stays close."]],
+    desc:"Race up to 40 friends down a busy city highway. Change lanes to slip past cars, trucks and semis, hit the glowing strips for a boost, and be first across the finish line!",
+    roles:[["<span class=ico>🚗</span>","WEAVE","#ff7a1a","◀ ▶ change lanes."],["<span class=ico>⚡</span>","BOOST","#38e1ff","Hit the glowing strips."],["<span class=ico>🏁</span>","FINISH","#ffd23f","Be first across the finish line!"]],
     cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrows · ▼ brake","📱 Buttons + swipes","⏱ ~80 s races"] },
   "bear-attack":{ acc:"#ef4444", chips:["Up to 40","Online + bots","Party"], logo:"BEAR ATTACK!", sub:"LAST ONE ON THE ICE WINS", tag:"UP TO 40 PLAYERS",
     desc:"Skate around a slippery ice sheet while a grumpy bear naps in the middle. When the red path lights up, get out of the way, because he's about to charge! Slide off the edge and you're FROZEN.",
     roles:[["<span class=ico>⛸️</span>","SKATE","#7fd3ff","It's slippery!"],["<span class=ico>🐻</span>","DODGE","#ef4444","Watch the red path."],["<span class=ico>🧊</span>","SURVIVE","#cfeaff","The ice keeps shrinking."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrows / WASD","📱 Thumb joystick","⏱ ~1–2 min games"] },
+  "hurdle-dash":{ acc:"#f97316", chips:["Up to 40","Online + bots","Racing"], logo:"HURDLE DASH", sub:"RUN · THINK · JUMP", tag:"100 M · 5 HURDLES",
+    desc:"Sprint down the school track by tapping Left and Right in turn. At every hurdle, answer 3 quick sums to leap it. Get one wrong and you trip, so stay sharp all the way to the line!",
+    roles:[["<span class=ico>🏃</span>","SPRINT","#f97316","Tap ← → in turn."],["<span class=ico>🧮</span>","THINK","#5b9bff","3 sums per hurdle."],["<span class=ico>💫</span>","DON'T TRIP","#facc15","Wrong = 3 s on the ground."]],
+    cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ ← → + number keys","📱 Big tap buttons","⏱ ~30–60 s races"] },
 };
 const ROT_MS=9000; let rotTimer=0, userPicked=false;
-const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb })[g.thumb]();
+const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb })[g.thumb]();
 function renderTabs(){
   $("ftabs").innerHTML=GAMES.filter(g=>!g.soon).map(g=>`<button class="ftab" role="tab" data-id="${g.id}" data-kind="${g.kind}" aria-selected="${g.id===featured}" style="--acc:${FEATURES[g.id].acc};--rot:${ROT_MS}ms">${g.title}<span class="dot" hidden></span><span class="bar"></span></button>`).join("");
 }

@@ -1,0 +1,108 @@
+// Hurdle Dash — shared rules (browser: window.HURDLE, Node: require).
+// Run by tapping Left / Right in turn. At each of 5 hurdles a 3-question addition quiz pops up
+// (Math Race rules: answer is checked the moment it has enough digits, no Enter).
+// All 3 right → jump it. One wrong → trip, 3 s on the ground, then run on.
+// Every racer gets the same questions at each hurdle (seeded per race).
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.HURDLE = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+"use strict";
+
+const T = {
+  dist: 100,                          // metres, straight track
+  hurdles: [16, 33, 50, 67, 84],      // 5 hurdles before the finish
+  gain: 1.25,                         // m/s added per good (alternating) stride
+  decay: 1.5,                         // speed fades this fast when you stop tapping (per second, exponential)
+  vmax: 9.5,
+  stumble: 0.6,                       // same key twice → keep 60 % of your speed
+  questions: 3,
+  tripT: 3.0,                         // seconds on the ground after a wrong answer
+  jumpT: 0.55, jumpV: 4.5,            // clearing a hurdle: short hop, carry a little speed
+  stopBefore: 0.9,                    // runners stop this far in front of a hurdle for the quiz
+};
+
+function rng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+// Same generator as Math Race: 1–2 digit addition, answers always 2 or 3 digits.
+function questionStream(seed){
+  const r=rng(seed), num=()=>r()<0.3 ? 1+(r()*9|0) : 10+(r()*90|0);
+  let prev=null;
+  return ()=>{ for(;;){ const a=num(), b=num(), s=a+b;
+    if (s<10) continue;
+    if (prev && prev.a===a && prev.b===b) continue;
+    return prev={ a, b, s, len:String(s).length }; } };
+}
+
+// states: run · quiz · trip · jump · done
+function newRunner(seed){ return { seed, d:0, v:0, t:0, state:"run", last:"", strides:0, stumbles:0, h:0, qi:0, q:null, typed:"", stream:null,
+  left:0, clean:0, trips:0, finishT:0, wrong:null }; }
+
+// a stride. side: "L" | "R". Returns "stride" | "stumble" | "".
+function tap(r, side){
+  if (r.state!=="run") return "";
+  if (side===r.last){ r.v*=T.stumble; r.stumbles++; return "stumble"; }
+  r.last=side; r.strides++; r.v=Math.min(T.vmax, r.v+T.gain);
+  return "stride";
+}
+// a digit while the quiz is up. Returns "" | "right" | "cleared" | "wrong".
+function answer(r, digit){
+  if (r.state!=="quiz") return "";
+  r.typed+=digit;
+  if (r.typed.length<r.q.len) return "";
+  if (+r.typed===r.q.s){
+    r.qi++; r.typed="";
+    if (r.qi>=T.questions){ r.state="jump"; r.left=T.jumpT; r.clean++; return "cleared"; }
+    r.q=r.stream(); return "right";
+  }
+  r.wrong={ q:r.q, typed:r.typed }; r.typed="";
+  r.state="trip"; r.left=T.tripT; r.trips++; r.v=0;
+  return "wrong";
+}
+// advance time. Returns an event string or "".
+function step(r, dt){
+  if (r.state==="done") return "";
+  r.t+=dt;
+  let ev="";
+  if (r.state==="run"){
+    r.v*=Math.exp(-T.decay*dt);
+    if (r.v<0.05) r.v=0;
+    const next=T.hurdles[r.h];
+    r.d+=r.v*dt;
+    if (next!=null && r.d>=next-T.stopBefore){                      // reached a hurdle → quiz
+      r.d=next-T.stopBefore; r.v=0; r.state="quiz"; r.qi=0; r.typed=""; r.wrong=null;
+      r.stream=questionStream(r.seed*31+r.h*7919+1); r.q=r.stream(); ev="hurdle";
+    }
+  } else if (r.state==="trip" || r.state==="jump"){
+    r.left-=dt;
+    const hx=T.hurdles[r.h];
+    if (r.state==="jump") r.d=hx-T.stopBefore+(T.stopBefore*2)*(1-Math.max(0,r.left)/T.jumpT);   // hop over it
+    if (r.left<=0){
+      r.d=hx+T.stopBefore; r.v=r.state==="jump"?T.jumpV:0; r.state="run"; r.h++; r.last=""; ev="go";
+    }
+  }
+  if (r.d>=T.dist){ r.finishT=r.t-(r.d-T.dist)/Math.max(0.5,r.v); r.d=T.dist; r.state="done"; ev="finish"; }
+  return ev;
+}
+
+// ------------------------------------------------------------
+//  BOTS (solo mode + balance check): tap rate, mistakes, quiz speed/accuracy vary with skill
+// ------------------------------------------------------------
+function makeBot(seed, skill){
+  const r=rng(seed);
+  return { r, skill, rate:5.5+5*skill, slip:0.06*(1-skill), think:2.6-1.6*skill, acc:0.82+0.16*skill, wait:0, side:"L" };
+}
+function botStep(bot, run, dt){
+  bot.wait-=dt; if (bot.wait>0) return;
+  if (run.state==="run"){
+    bot.wait=1/bot.rate*(0.8+bot.r()*0.4);
+    tap(run, bot.r()<bot.slip ? run.last||"L" : (run.last==="L"?"R":"L"));
+  } else if (run.state==="quiz"){
+    bot.wait=bot.think*(0.6+bot.r()*0.8);
+    const want=String(run.q.s), right=bot.r()<bot.acc;
+    const s=right?want:String(run.q.s+1+(bot.r()*3|0)).padStart(want.length,"1").slice(-want.length);
+    for (const c of s) answer(run,c);
+  }
+}
+
+return { T, rng, questionStream, newRunner, tap, answer, step, makeBot, botStep };
+});

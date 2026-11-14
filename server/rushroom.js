@@ -17,7 +17,8 @@ const DIST=env("RUSH_DIST",RUSH.T.dist);
 
 class RushRoom extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
-    super(code, isPublic, bus, instanceId, onClose, "rush", MAX_PLAYERS);
+    super(code, isPublic, bus, instanceId, onClose, new.target.KIND, MAX_PLAYERS);
+    this.dist=new.target.DIST;
     this.players=new Map();   // pid -> {pid,cid,name,token,connected,color,d,x,fin}
     this.nextPid=1; this.host=0; this.autoAt=0; this.relay=null; this.endTimer=null;
   }
@@ -30,7 +31,7 @@ class RushRoom extends RoomBase {
   roster(){ return [...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, connected:p.connected })); }
 
   lobby(){
-    return this.send({ t:"lobby", game:"rush", code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
+    return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
       host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
   }
   handle(msg){
@@ -40,12 +41,12 @@ class RushRoom extends RoomBase {
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startRace(); return;
       case "pos":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(DIST,msg.d));
+        if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(this.dist,msg.d));
         if (Number.isFinite(msg.x)) p.x=Math.max(-6,Math.min(6,msg.x));
         return;
       case "finish":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=DIST;      // trust the client (by design)
+        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0));      // trust the client (by design)
         this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
         if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),AFTER_FIRST_MS);
         this.checkAllDone(); return;
@@ -71,7 +72,7 @@ class RushRoom extends RoomBase {
     }
     if (!this.host || !this.players.get(this.host)?.connected) this.host=p.pid;
     this.emptySince=0; this.saveSession(token);
-    this.send({ t:"joined", code:this.code, game:"rush", pid:p.pid },cid);
+    this.send({ t:"joined", code:this.code, game:this.kind, pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
     if (this.state==="playing") this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
   }
@@ -81,7 +82,7 @@ class RushRoom extends RoomBase {
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startRace(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
   }
-  goMsg(){ return { t:"go", seed:this.seed, dist:DIST, players:this.roster() }; }
+  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, players:this.roster() }; }
   startRace(){
     if (this.state!=="lobby" || this.connectedCount()<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
@@ -100,13 +101,15 @@ class RushRoom extends RoomBase {
   finish(){
     if (this.state!=="playing") return;
     clearInterval(this.relay); clearTimeout(this.endTimer); clearTimeout(this.capTimer); this.endTimer=null;
-    const rank=[...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d }))
+    const rank=[...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d, extra:p.extra??null }))
       .sort((a,b)=>(a.time==null)-(b.time==null) || (a.time!=null ? a.time-b.time : b.d-a.d));
-    this.send({ t:"results", rank, dist:DIST });
+    this.send({ t:"results", rank, dist:this.dist });
     this.state="lobby";
     for (const [pid,p] of this.players) if (!p.connected) this.players.delete(pid);
     if (!this.players.get(this.host)) this.pickHost();
     this.register(); this.lobby(); this.scheduleAuto();
   }
 }
+// Rush Hour. Other client-driven races subclass this with their own KIND and DIST.
+RushRoom.KIND="rush"; RushRoom.DIST=DIST;
 module.exports={ RushRoom, MAX_PLAYERS };
