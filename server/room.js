@@ -1,35 +1,21 @@
-// A room is owned by exactly one game-server instance, which runs the authoritative sim.
-// It listens on  cg:room:<CODE>:in   (joins, ready, inputs, drops from any instance)
-// and publishes  cg:room:<CODE>:out  (lobby state, floors, snapshots; `to` = one connection).
+// Clean Getaway room: up to 4 humans (bots fill the rest), authoritative sim at 30 Hz.
 "use strict";
 const CG=require("../shared/sim.js");
+const { RoomBase }=require("./roombase");
 
 const TICK_HZ=30;                 // sim + snapshot rate
-const ROOM_TTL=60;                // registry key expiry, refreshed while the room lives
-const EMPTY_GRACE_MS=45000;       // keep a room with no connected humans this long (reconnects)
-const K={ room:c=>`cg:room:${c}`, open:"cg:open", in:c=>`cg:room:${c}:in`, out:c=>`cg:room:${c}:out`, sess:t=>`cg:sess:${t}` };
 
-class Room {
+class Room extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
-    Object.assign(this,{ code, isPublic, bus, instanceId, onClose });
+    super(code, isPublic, bus, instanceId, onClose, "cg", 4);
     this.slots=[null,null,null,null];   // {cid,name,token,ready,connected}
-    this.state="lobby"; this.game=null; this.timer=null; this.emptySince=Date.now();
-    this.onIn=m=>this.handle(m);
-  }
-  async open(){
-    await this.bus.subscribe(K.in(this.code), this.onIn);
-    await this.register();
-    this.keepAlive=setInterval(()=>{ this.register(); this.checkEmpty(); }, 5000);
+    this.game=null; this.timer=null;
   }
   humans(){ return this.slots.filter(Boolean); }
   connected(){ return this.slots.filter(s=>s&&s.connected); }
-  async register(){
-    const humans=this.humans().length;
-    await this.bus.set(K.room(this.code),{ owner:this.instanceId, pub:this.isPublic, state:this.state, humans }, ROOM_TTL);
-    if (this.isPublic && this.state==="lobby" && humans<4) await this.bus.sadd(K.open,this.code);
-    else await this.bus.srem(K.open,this.code);
-  }
-  send(m,to){ return this.bus.publish(K.out(this.code), to?{to,m}:{m}); }
+  humanCount(){ return this.humans().length; }
+  connectedCount(){ return this.connected().length; }
+  cleanup(){ clearInterval(this.timer); }
   lobby(){
     return this.send({ t:"lobby", code:this.code, pub:this.isPublic, state:this.state,
       slots:this.slots.map(s=>s&&{ name:s.name, ready:s.ready, connected:s.connected }) });
@@ -63,8 +49,8 @@ class Room {
       this.slots[slot]={ cid,name,token,ready:false,connected:true };
     } else Object.assign(this.slots[slot],{ cid,name,connected:true });
     this.emptySince=0;
-    if (token) this.bus.set(K.sess(token),{ code:this.code },3*3600);
-    this.send({ t:"joined", code:this.code, slot },cid);
+    this.saveSession(token);
+    this.send({ t:"joined", code:this.code, game:"cg", slot },cid);
     if (this.state==="playing"){
       this.game.players[slot].bot=false;
       this.game.players[slot].name=name;
@@ -104,17 +90,5 @@ class Room {
     this.slots=this.slots.map(s=>s&&s.connected?Object.assign(s,{ready:false}):null); // disconnected players are released
     this.register(); this.lobby();
   }
-  checkEmpty(){
-    if (this.connected().length){ this.emptySince=0; return; }
-    if (!this.emptySince) this.emptySince=Date.now();
-    if (this.state==="lobby"||Date.now()-this.emptySince>EMPTY_GRACE_MS) this.close();
-  }
-  async close(){
-    if (this.closed) return; this.closed=true;
-    clearInterval(this.timer); clearInterval(this.keepAlive);
-    await this.bus.unsubscribe(K.in(this.code),this.onIn);
-    await this.bus.srem(K.open,this.code); await this.bus.del(K.room(this.code));
-    this.onClose(this.code);
-  }
 }
-module.exports={ Room, K, TICK_HZ };
+module.exports={ Room, TICK_HZ };

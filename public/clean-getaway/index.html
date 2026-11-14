@@ -199,7 +199,9 @@ const Net = {
 function onNet(m){
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
-    case "joined": Net.slot=m.slot; Net.code=m.code; ONLINE=true; if (MODE!=="game"&&MODE!=="results") setMode("lobby"); break;
+    case "joined":
+      if (m.game && m.game!=="cg"){ Net.leave(); Net.want=false; if (Net.ws) Net.ws.close(); setMode("menu"); menuErr("That code is for a different game."); break; }
+      Net.slot=m.slot; Net.code=m.code; ONLINE=true; if (MODE!=="game"&&MODE!=="results") setMode("lobby"); break;
     case "lobby": Net.lobby=m; if (MODE==="lobby") renderLobby(); break;
     case "start":
       ONLINE=true; LOCAL=Net.slot; V=new NetView(m.players); feedClear(); hudKey=""; livesKey="";

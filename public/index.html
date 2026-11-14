@@ -11,7 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' rx='3' fill='%2307080c'/%3E%3Crect x='3' y='5' width='10' height='6' fill='%2358c27d'/%3E%3Crect x='3' y='7' width='10' height='1' fill='%232f7d4a'/%3E%3Crect x='7' y='6' width='2' height='4' fill='%23f2c94c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#07080c; --bg2:#0d1018; --glass:rgba(22,27,38,.62); --glass2:rgba(30,37,52,.7);
@@ -276,7 +276,7 @@ $("yr").textContent=new Date().getFullYear();
 // ------------------------------------------------------------
 const GAMES=[
   { id:"clean-getaway", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, three guards, one very full bank.", tags:["1–4 players","Online","Chase"], badge:"NEW", thumb:"cg" },
-  { soon:true, title:"IN THE WORKSHOP", blurb:"Something with cards. Probably chaos.", tags:["2–4 players"] },
+  { id:"math-race", title:"MATH RACE", path:"/math-race/", blurb:"30 seconds. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Speed"], badge:"NEW", thumb:"math" },
   { soon:true, title:"IN THE WORKSHOP", blurb:"A party game for the group chat.", tags:["Party"] },
 ];
 
@@ -300,6 +300,24 @@ function thumbCanvas(){
   f.spawns.guards.forEach((g,i)=>put("guard0",g.x,g.y-(i===1?2:0)));
   return c;
 }
+// Math Race thumbnail in its own two-colour look (dark grey + blues; red = held key)
+function mathThumb(){
+  const c=document.createElement("canvas"), w=540, h=380; c.width=w; c.height=h;
+  const x=c.getContext("2d"), mono='"JetBrains Mono", ui-monospace, monospace';
+  x.fillStyle="#121316"; x.fillRect(0,0,w,h);
+  const g=x.createRadialGradient(w*0.3,h*0.45,10,w*0.3,h*0.45,320); g.addColorStop(0,"rgba(58,120,230,.22)"); g.addColorStop(1,"rgba(58,120,230,0)");
+  x.fillStyle=g; x.fillRect(0,0,w,h);
+  x.font="800 92px "+mono; x.textAlign="right"; x.textBaseline="alphabetic";
+  x.fillStyle="#cfe1ff"; x.fillText("47",300,128); x.fillText("38",300,224);
+  x.fillStyle="#3a78e6"; x.textAlign="left"; x.fillText("+",70,224); x.fillRect(70,246,236,7);
+  x.fillStyle="#5b9bff"; x.textAlign="right"; x.fillText("85",300,338);
+  x.font="700 26px "+mono; x.textAlign="center"; x.textBaseline="middle"; x.lineWidth=2;
+  const key=(kx,ky,kw,label,hot)=>{ x.fillStyle=hot?"#e5484d":"#1c1e23"; x.strokeStyle=hot?"#e5484d":"#15233d";
+    x.beginPath(); x.roundRect(kx,ky,kw,50,10); x.fill(); x.stroke(); x.fillStyle=hot?"#fff":"#8fb9ff"; x.fillText(label,kx+kw/2,ky+26); };
+  ["7","8","9","4","5","6","1","2","3"].forEach((k,i)=>key(348+(i%3)*60,72+(i/3|0)*60,50,k,k==="5"));
+  key(348,252,110,"0",false);
+  return c;
+}
 const lib=$("lib");
 for (const g of GAMES){
   const el=document.createElement(g.soon?"div":"a");
@@ -308,6 +326,7 @@ for (const g of GAMES){
   el.innerHTML=`<div class="thumb">${g.soon?'<span class="lock">?</span><span class="badge wip">SOON</span>':`<span class="badge">${g.badge||""}</span><span class="play-ic" aria-hidden="true">▶</span>`}</div>
     <div class="cbody"><h3>${g.title}</h3><p>${g.blurb}</p><div class="cmeta">${g.tags.map(t=>`<span>${t}</span>`).join("")}</div></div>`;
   if (g.thumb==="cg") el.querySelector(".thumb").prepend(thumbCanvas());
+  if (g.thumb==="math") el.querySelector(".thumb").prepend(mathThumb());
   lib.appendChild(el);
 }
 const live=GAMES.filter(g=>!g.soon).length;

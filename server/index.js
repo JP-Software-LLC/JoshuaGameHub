@@ -1,14 +1,18 @@
 // Game server entry (Railway "game"): WebSocket gateway + room host.
 // Also serves the client at / so `npm run dev` is a complete one-process setup.
 //
-// Client → server:  hello{name,token?} quick{} create{} join{code} ready{v} input{d} leave{}
+// Client → server:  hello{name,token?} quick{game} create{game} join{code} leave{}
+//   Clean Getaway:   ready{v} input{d}        Math Race: start{} score{round,n}
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
 //                   floor{grid,theme} s{s:snapshot,e:events} error{code,msg}
 "use strict";
 const http=require("http"), crypto=require("crypto");
 const { WebSocketServer }=require("ws");
 const { createBus }=require("./bus");
-const { Room, K }=require("./room");
+const { Room }=require("./room");
+const { MathRoom }=require("./mathroom");
+const { K }=require("./roombase");
+const KINDS={ cg:Room, math:MathRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -24,20 +28,21 @@ const CODE_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ";
 const cleanName=s=>String(s||"").replace(/[^\p{L}\p{N} _.\-!?']/gu,"").trim().slice(0,14)||"Player";
 const cleanCode=s=>String(s||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
 
-async function createRoom(isPublic){
+async function createRoom(isPublic,kind){
+  const Cls=KINDS[kind]||Room;
   let code;
   for (let i=0;i<20;i++){ code=Array.from({length:4},()=>CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(""); if (!await bus.get(K.room(code))) break; }
-  const r=new Room(code,isPublic,bus,INSTANCE,c=>rooms.delete(c));
+  const r=new Cls(code,isPublic,bus,INSTANCE,c=>rooms.delete(c));
   rooms.set(code,r); await r.open();
   return code;
 }
-async function findPublic(){
-  for (const code of await bus.smembers(K.open)){
+async function findPublic(kind){
+  for (const code of await bus.smembers(K.open(kind))){
     const r=await bus.get(K.room(code));
-    if (!r){ await bus.srem(K.open,code); continue; }
-    if (r.state==="lobby" && r.humans<4) return code;
+    if (!r){ await bus.srem(K.open(kind),code); continue; }
+    if (r.state==="lobby" && r.humans<(r.max||4)) return code;
   }
-  return createRoom(true);
+  return createRoom(true,kind);
 }
 
 // ---- relay: one out-channel subscription per room per instance, fanned out to local sockets
@@ -64,6 +69,7 @@ async function joinRoom(c,code){
   await attach(c,code);
   await bus.publish(K.in(code),{ t:"join", cid:c.id, name:c.name, token:c.token });
 }
+const gameOf=m=>KINDS[m.game]?m.game:"cg";
 const toRoom=(c,m)=>c.code&&bus.publish(K.in(c.code),Object.assign(m,{cid:c.id}));
 
 async function onMessage(c,m){
@@ -76,11 +82,13 @@ async function onMessage(c,m){
       if (sess && await bus.get(K.room(sess.code))) await joinRoom(c,sess.code);
       return;
     }
-    case "quick":  if (!c.name) return; await leave(c); return joinRoom(c,await findPublic());
-    case "create": if (!c.name) return; await leave(c); return joinRoom(c,await createRoom(false));
+    case "quick":  if (!c.name) return; await leave(c); return joinRoom(c,await findPublic(gameOf(m)));
+    case "create": if (!c.name) return; await leave(c); return joinRoom(c,await createRoom(false,gameOf(m)));
     case "join":   if (!c.name) return; await leave(c); return joinRoom(c,m.code);
     case "ready":  return toRoom(c,{ t:"ready", v:!!m.v });
     case "input":  return toRoom(c,{ t:"input", d:String(m.d) });
+    case "start":  return toRoom(c,{ t:"start" });
+    case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:m.n|0 });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
   }
