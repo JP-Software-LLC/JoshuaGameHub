@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Bear Attack! · Joshua Game Hub</title>
+<meta name="theme-color" content="#0b4f7a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#10324a; --ink2:#4d6b82; --ice:#e9f7ff; --ice2:#bfe6fa; --sea:#0b4f7a; --sea2:#08385a; --red:#ef4444; --bear:#8a5a3b; --gold:#ffc83d; --f:"Baloo 2",system-ui,sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--sea);color:var(--ink);font-family:var(--f);-webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
+  button,input{font-family:inherit}
+  #cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;overflow:auto;z-index:5}
+  .screen.on{display:flex}
+  .card{width:100%;max-width:520px;background:linear-gradient(#ffffff,#eef9ff);border-radius:26px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative;
+    box-shadow:0 8px 0 #9fd3ef,0 30px 60px -20px rgba(0,30,60,.6);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.9);opacity:0}}
+  .logo{margin:0;text-align:center;font-weight:800;font-size:58px;line-height:.95;color:#fff;letter-spacing:1px;
+    -webkit-text-stroke:3px var(--bear);paint-order:stroke fill;text-shadow:0 6px 0 #5c3a24}
+  .logo span{color:var(--red);-webkit-text-stroke-color:#7f1d1d;text-shadow:0 6px 0 #7f1d1d}
+  .tag{text-align:center;margin:-4px 0 0;color:var(--ink2);font-size:17px;font-weight:600}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .how div{background:#e3f4fd;border-radius:16px;padding:10px;text-align:center;font-size:14px;color:var(--ink2);line-height:1.25;font-weight:600}
+  .how b{display:block;font-size:26px}
+  .lbl{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink2)}
+  input.f{width:100%;border:3px solid #cde9f8;border-radius:16px;padding:11px 16px;font-size:19px;font-weight:600;color:var(--ink);outline:none;background:#fff}
+  input.f:focus{border-color:#38bdf8}
+  .btn{appearance:none;border:0;border-radius:18px;padding:13px 18px;font-size:19px;font-weight:800;cursor:pointer;color:#fff;background:var(--bear);box-shadow:0 5px 0 #5c3a24;transition:transform .08s,box-shadow .08s,filter .15s}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 #5c3a24}
+  .btn.ice{background:#0ea5e9;box-shadow:0 5px 0 #0369a1}
+  .btn.alt{background:#fff;color:var(--ink);box-shadow:0 5px 0 #b6dcf0;border:3px solid #cde9f8}
+  .btn:disabled{opacity:.45;cursor:default}
+  .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+  .err{min-height:1.2em;margin:0;color:var(--red);text-align:center;font-weight:700}
+  a.back{position:absolute;top:14px;left:20px;color:var(--ink2);font-weight:700;text-decoration:none;font-size:15px}
+  a.back:hover{color:#0ea5e9}
+  .code{font-size:54px;font-weight:800;letter-spacing:10px;text-align:center;color:var(--ink);line-height:1}
+  .count{text-align:center;color:var(--ink2);font-weight:700}
+  .grid{display:flex;flex-wrap:wrap;gap:7px;max-height:36vh;overflow:auto}
+  .chip{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 5px;border-radius:999px;background:#e3f4fd;font-weight:700;font-size:15px}
+  .chip i{width:20px;height:20px;border-radius:50%;display:block;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+  .chip.me{box-shadow:inset 0 0 0 3px #0ea5e9}
+  .chip.away{opacity:.45}
+  .note{text-align:center;color:var(--ink2);margin:0;font-weight:600}
+
+  /* HUD */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:3;display:none}
+  #hud.on{display:block}
+  .pill{position:absolute;background:rgba(255,255,255,.93);border-radius:999px;padding:6px 16px;font-weight:800;box-shadow:0 4px 0 rgba(0,30,60,.25)}
+  #alive{top:12px;left:12px;font-size:18px}
+  #alive b{font-size:24px;color:#0ea5e9}
+  #rnd{top:12px;right:52px;font-size:17px}
+  #banner{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:8px 22px;font-weight:800;font-size:clamp(17px,2.6vw,26px);
+    box-shadow:0 5px 0 rgba(0,30,60,.25);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+  #banner.warn{background:var(--red);color:#fff;box-shadow:0 5px 0 #7f1d1d;animation:shk .25s infinite}
+  @keyframes shk{50%{transform:translateX(-50%) rotate(-1.5deg)}}
+  #big{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-weight:800;font-size:min(18vw,140px);color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;opacity:0;white-space:nowrap;text-align:center;line-height:1}
+  #big small{display:block;font-size:.28em;-webkit-text-stroke:3px var(--ink)}
+  #big.show{animation:bigp 1.3s ease-out forwards}
+  @keyframes bigp{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
+  #spect{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(16,50,74,.85);color:#fff;border-radius:999px;padding:8px 20px;font-weight:700;display:none;white-space:nowrap}
+  #spect.on{display:block}
+  #stick{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.55);display:none}
+  #stick i{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.85)}
+  #stick.on{display:block}
+
+  /* results */
+  #results .card{max-width:600px;text-align:center}
+  .champ{display:flex;flex-direction:column;align-items:center}
+  .champ canvas{width:110px;height:110px}
+  .champ .t{font-weight:800;letter-spacing:3px;color:#0ea5e9;text-transform:uppercase;font-size:15px}
+  .champ h2{margin:0;font-size:40px;line-height:1.05}
+  .board{display:flex;flex-direction:column;gap:7px;text-align:left}
+  .line{display:grid;grid-template-columns:36px 22px 1fr auto auto;align-items:center;gap:10px;padding:8px 14px;border-radius:14px;background:#e3f4fd;font-weight:700;animation:pop .4s cubic-bezier(.2,1.4,.4,1) backwards}
+  .line .pos{font-weight:800;font-size:21px;color:var(--ink2)}
+  .line i{width:22px;height:22px;border-radius:50%;display:block;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+  .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .line .st{color:var(--ink2);font-size:14px}
+  .line .tm{font-weight:800;min-width:56px;text-align:right}
+  .line.p1{background:#fff4cf;box-shadow:inset 0 0 0 3px var(--gold)}
+  .line.me{box-shadow:inset 0 0 0 3px #0ea5e9}
+  .you{display:flex;justify-content:space-between;font-weight:700;color:var(--ink2);padding:0 6px}
+  #snow{position:fixed;inset:0;pointer-events:none;z-index:8}
+  #exitBtn{position:fixed;top:12px;right:12px;z-index:9;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff;border:0;color:var(--ink2);box-shadow:0 3px 0 rgba(0,30,60,.3);cursor:pointer}
+  #exitBtn:hover,#exitBtn:focus-visible{color:var(--red);outline:none}
+  @media (max-width:620px){ .logo{font-size:46px} .how{grid-template-columns:1fr} .card{padding:20px} #rnd{top:56px;left:12px;right:auto;font-size:15px} #banner{top:100px} }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+<div id="hud">
+  <div class="pill" id="alive">On the ice <b>0</b></div>
+  <div class="pill" id="rnd">Round 1</div>
+  <div id="banner">Get ready!</div>
+  <div id="big"></div>
+  <div id="spect">🧊 You're FROZEN! Watching the rest…</div>
+  <div id="stick"><i></i></div>
+</div>
+
+<!-- MENU -->
+<section class="screen on" id="menu"><div class="card">
+  <a class="back" href="../">← Game hub</a>
+  <h1 class="logo">BEAR <span>ATTACK!</span></h1>
+  <p class="tag">Stay on the ice. Dodge the bear. Last one standing wins!</p>
+  <div class="how">
+    <div><b>⛸️</b>Arrow keys to skate. It's slippery!</div>
+    <div><b>🐻</b>Get out of the red path before he charges</div>
+    <div><b>🧊</b>Slide off the ice and you're FROZEN!</div>
+  </div>
+  <div><div class="lbl" style="margin-bottom:5px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
+  <div class="row"><button class="btn" id="bPublic">Play online</button><button class="btn ice" id="bPrivate">Private game</button></div>
+  <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bSolo">Solo vs bots</button>
+  <p class="err" id="err"></p>
+</div></section>
+
+<!-- LOBBY -->
+<section class="screen" id="lobby"><div class="card">
+  <div class="lbl" id="lKind" style="text-align:center">Private game</div>
+  <div class="code" id="lCode">----</div>
+  <div class="count" id="lCount">1 / 40 players</div>
+  <div class="grid" id="lGrid"></div>
+  <p class="note" id="lNote"></p>
+  <div class="row"><button class="btn" id="bStart">Start!</button><button class="btn alt" id="bLeave" style="flex:0 0 auto">Leave</button></div>
+</div></section>
+
+<!-- RESULTS -->
+<section class="screen" id="results"><div class="card">
+  <div class="champ" id="champ"></div>
+  <div class="board" id="rBoard"></div>
+  <div class="you" id="rYou"></div>
+  <div class="row"><button class="btn" id="bAgain">Back to lobby</button><a class="btn alt" href="../" style="text-align:center;text-decoration:none;flex:0 0 auto">Game hub</a></div>
+</div></section>
+<canvas id="snow"></canvas>
+
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../bear.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
+const { T }=BEAR;
+const pcol=i=>`hsl(${(i*137.508+190)%360},80%,${i%2?58:52}%)`;
+const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${Math.floor(t%60).toString().padStart(2,"0")}`;
+const isTouch=matchMedia("(pointer:coarse)").matches;
+
+// ============================================================
+//  STATE
+// ============================================================
+const G={ mode:"", me:0, players:new Map(), view:null, snaps:[], startAt:0, local:null, bots:[], fx:[], frozenAt:new Map(), hitAt:new Map(), over:false };
+let screen="menu";
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); screen=id;
+  $("hud").classList.toggle("on",id==="game");
+  const t=id==="menu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t);
+}
+const err=t=>$("err").textContent=t||"";
+$("nameIn").value=store.get("cg_name")||"";
+const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store.set("cg_name",n); return n; };
+function big(html){ const b=$("big"); b.innerHTML=html; b.classList.remove("show"); void b.offsetWidth; b.classList.add("show"); }
+const colorOf=id=>pcol(G.players.get(id)?.color??id);
+const nameOf=id=>G.players.get(id)?.name??"?";
+
+// ============================================================
+//  INPUT — arrows / WASD (8 directions), or a touch joystick (any direction, any strength)
+// ============================================================
+const held=new Set();
+const KEYS={ ArrowUp:[0,-1], KeyW:[0,-1], ArrowDown:[0,1], KeyS:[0,1], ArrowLeft:[-1,0], KeyA:[-1,0], ArrowRight:[1,0], KeyD:[1,0] };
+let stick={ x:0, y:0 }, sent={ x:9, y:9, at:0 };
+function keyStick(){ let x=0,y=0; for (const k of held){ x+=KEYS[k][0]; y+=KEYS[k][1]; } const m=Math.hypot(x,y); return m?{ x:x/m, y:y/m }:{ x:0, y:0 }; }
+addEventListener("keydown",e=>{ if (e.target.tagName==="INPUT") return; if (e.key==="Escape"&&screen!=="menu") return exitGame(); if (KEYS[e.code]&&screen==="game"){ e.preventDefault(); held.add(e.code); stick=keyStick(); } });
+addEventListener("keyup",e=>{ if (KEYS[e.code]){ held.delete(e.code); stick=keyStick(); } });
+addEventListener("blur",()=>{ held.clear(); stick={ x:0, y:0 }; });
+let touchId=null, touchO=null;
+$("cv").addEventListener("pointerdown",e=>{ if (screen!=="game"||e.pointerType==="mouse") return; touchId=e.pointerId; touchO={ x:e.clientX, y:e.clientY };
+  const s=$("stick"); s.style.left=e.clientX+"px"; s.style.top=e.clientY+"px"; s.classList.add("on"); s.firstElementChild.style.transform=""; });
+addEventListener("pointermove",e=>{ if (e.pointerId!==touchId) return; let dx=e.clientX-touchO.x, dy=e.clientY-touchO.y; const m=Math.hypot(dx,dy), R=55;
+  if (m>R){ dx*=R/m; dy*=R/m; } $("stick").firstElementChild.style.transform=`translate(${dx}px,${dy}px)`;
+  const k=Math.min(1,m/R); stick=m<8?{ x:0, y:0 }:{ x:dx/R*(k<1?1:1), y:dy/R }; });
+addEventListener("pointerup",e=>{ if (e.pointerId!==touchId) return; touchId=null; stick={ x:0, y:0 }; $("stick").classList.remove("on"); });
+function pushInput(now){
+  const x=Math.round(stick.x*100)/100, y=Math.round(stick.y*100)/100;
+  if (G.mode==="solo"){ G.local.setInput(G.me,x,y); return; }
+  if ((x!==sent.x||y!==sent.y) && now-sent.at>50){ sent={ x, y, at:now }; Net.send({ t:"in", x, y }); }
+}
+
+// ============================================================
+//  RENDER — top-down: sea, ice sheet, skaters, bear
+// ============================================================
+const cv=$("cv"), cx=cv.getContext("2d");
+let W=0,H=0,DPR=1,S=1;
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener("resize",resize); resize();
+// pre-made ice texture (scratches) so the sheet isn't flat
+const iceTex=(()=>{ const c=document.createElement("canvas"); c.width=c.height=512; const x=c.getContext("2d"); const r=BEAR.rng(42);
+  x.strokeStyle="rgba(140,190,220,.35)"; x.lineCap="round";
+  for (let i=0;i<70;i++){ x.lineWidth=0.6+r()*1.6; x.beginPath(); const a=r()*6.28, cxp=r()*512, cyp=r()*512, L=30+r()*120; x.moveTo(cxp,cyp); x.quadraticCurveTo(cxp+Math.cos(a+0.6)*L*0.6,cyp+Math.sin(a+0.6)*L*0.6,cxp+Math.cos(a)*L,cyp+Math.sin(a)*L); x.stroke(); }
+  x.fillStyle="rgba(255,255,255,.5)"; for (let i=0;i<140;i++){ x.beginPath(); x.arc(r()*512,r()*512,0.6+r()*1.8,0,7); x.fill(); }
+  return c; })();
+const floes=Array.from({length:14},(_,i)=>({ a:i/14*6.28+Math.random(), d:1.25+Math.random()*0.6, r:0.6+Math.random()*1.6, s:(Math.random()-0.5)*0.02, rot:Math.random()*6 }));
+
+function drawSea(t){
+  const g=cx.createRadialGradient(W/2,H/2,10,W/2,H/2,Math.max(W,H)*0.75); g.addColorStop(0,"#0e6aa0"); g.addColorStop(1,"#062c48");
+  cx.fillStyle=g; cx.fillRect(0,0,W,H);
+  cx.strokeStyle="rgba(255,255,255,.07)"; cx.lineWidth=2;
+  for (let y=-40;y<H+40;y+=38){ cx.beginPath(); for (let x=0;x<=W;x+=20){ const yy=y+Math.sin(x*0.018+t*1.1+y)*5; x?cx.lineTo(x,yy):cx.moveTo(x,yy); } cx.stroke(); }
+}
+function w2s(x,y){ return [W/2+x*S, H/2+y*S]; }
+function drawIce(R,t){
+  const [ox,oy]=w2s(0,0), r=R*S;
+  // floating floes around the sheet
+  for (const f of floes){ f.a+=f.s*0.016; const d=Math.max(R+2.5,f.d*R), [fx,fy]=w2s(Math.cos(f.a)*d,Math.sin(f.a)*d);
+    cx.save(); cx.translate(fx,fy); cx.rotate(f.rot); cx.fillStyle="rgba(220,240,255,.85)"; cx.beginPath();
+    for (let k=0;k<6;k++){ const aa=k/6*6.28, rr=f.r*S*(0.75+((k*37)%5)/10); k?cx.lineTo(Math.cos(aa)*rr,Math.sin(aa)*rr):cx.moveTo(Math.cos(aa)*rr,Math.sin(aa)*rr); } cx.closePath(); cx.fill(); cx.restore(); }
+  // shadow + side of the ice slab
+  cx.fillStyle="rgba(0,20,40,.35)"; cx.beginPath(); cx.ellipse(ox+6,oy+14,r*1.02,r*1.02,0,0,7); cx.fill();
+  cx.fillStyle="#8fd0ef"; cx.beginPath(); cx.arc(ox,oy+7,r,0,7); cx.fill();
+  // top
+  const g=cx.createRadialGradient(ox-r*0.3,oy-r*0.35,r*0.05,ox,oy,r); g.addColorStop(0,"#ffffff"); g.addColorStop(0.7,"#e3f5ff"); g.addColorStop(1,"#c3e7fa");
+  cx.fillStyle=g; cx.beginPath(); cx.arc(ox,oy,r,0,7); cx.fill();
+  cx.save(); cx.beginPath(); cx.arc(ox,oy,r,0,7); cx.clip(); cx.globalAlpha=0.8; cx.drawImage(iceTex,ox-r,oy-r,r*2,r*2); cx.restore();
+  cx.strokeStyle="rgba(255,255,255,.95)"; cx.lineWidth=Math.max(2,S*0.18); cx.beginPath(); cx.arc(ox,oy,r-1,0,7); cx.stroke();
+  cx.strokeStyle="rgba(90,160,200,.5)"; cx.lineWidth=1.5; cx.setLineDash([6,8]); cx.beginPath(); cx.arc(ox,oy,r*0.35,0,7); cx.stroke(); cx.setLineDash([]);
+}
+function drawWarn(v,t){
+  if (!v.w) return;
+  const [sx,sy,tx,ty]=v.w, [ax,ay]=w2s(sx,sy), [bx,by]=w2s(tx,ty), w=T.bearR*2*S;
+  let on=true;
+  if (v.ph==="warn"){ const k=1-Math.max(0,v.tm)/(v.pd||1); on=Math.floor(k*6)%2===0; }       // 3 blinks
+  const ang=Math.atan2(by-ay,bx-ax), L=Math.hypot(bx-ax,by-ay);
+  cx.save(); cx.translate(ax,ay); cx.rotate(ang);
+  cx.globalAlpha=v.ph==="dash"?0.25:(on?0.55:0.14);
+  cx.fillStyle="#ef4444"; cx.beginPath(); cx.roundRect(-w/2,-w/2,L+w,w,w/2); cx.fill();
+  cx.globalAlpha=v.ph==="dash"?0.3:(on?0.95:0.3);
+  cx.fillStyle="#fff";
+  for (let s=w*0.9;s<L;s+=w*1.1){ cx.beginPath(); cx.moveTo(s,-w*0.22); cx.lineTo(s+w*0.3,0); cx.lineTo(s,w*0.22); cx.lineTo(s+w*0.12,0); cx.closePath(); cx.fill(); }
+  cx.strokeStyle="#b91c1c"; cx.lineWidth=3; cx.globalAlpha=on?0.9:0.3; cx.beginPath(); cx.roundRect(-w/2,-w/2,L+w,w,w/2); cx.stroke();
+  cx.restore();
+}
+function drawBear(v,t){
+  const [x,y]=w2s(v.b[0],v.b[1]), r=T.bearR*S, face=v.b[2];
+  const asleep=v.ph==="wake"&&v.tm>1.2, waking=v.ph==="wake"&&v.tm<=1.2, dashing=v.ph==="dash";
+  cx.save(); cx.translate(x,y);
+  if (waking) cx.translate(Math.sin(t*60)*r*0.05,0);
+  cx.fillStyle="rgba(0,30,60,.25)"; cx.beginPath(); cx.ellipse(r*0.12,r*0.2,r*1.15,r*1.05,0,0,7); cx.fill();
+  cx.rotate(face+Math.PI/2);
+  // body
+  cx.fillStyle="#8a5a3b"; cx.beginPath(); cx.ellipse(0,r*0.25,r*0.95,r*1.08,0,0,7); cx.fill();
+  cx.fillStyle="#7a4e33"; for (const sx of [-1,1]){ cx.beginPath(); cx.ellipse(sx*r*0.75,-r*0.15,r*0.3,r*0.38,0,0,7); cx.fill(); cx.beginPath(); cx.ellipse(sx*r*0.7,r*0.95,r*0.3,r*0.34,0,0,7); cx.fill(); }
+  // head
+  cx.fillStyle="#9a6646"; cx.beginPath(); cx.arc(0,-r*0.72,r*0.6,0,7); cx.fill();
+  cx.fillStyle="#7a4e33"; for (const sx of [-1,1]){ cx.beginPath(); cx.arc(sx*r*0.44,-r*1.1,r*0.2,0,7); cx.fill(); }
+  cx.fillStyle="#d9b38c"; cx.beginPath(); cx.ellipse(0,-r*1.08,r*0.26,r*0.2,0,0,7); cx.fill();
+  cx.fillStyle="#2b1a10"; cx.beginPath(); cx.arc(0,-r*1.2,r*0.09,0,7); cx.fill();
+  if (asleep){ cx.strokeStyle="#2b1a10"; cx.lineWidth=Math.max(1.5,r*0.07); for (const sx of [-1,1]){ cx.beginPath(); cx.arc(sx*r*0.22,-r*0.78,r*0.1,0.2,Math.PI-0.2); cx.stroke(); } }
+  else { for (const sx of [-1,1]){ cx.fillStyle="#fff"; cx.beginPath(); cx.arc(sx*r*0.22,-r*0.82,r*0.13,0,7); cx.fill(); cx.fillStyle=dashing||v.ph==="warn"?"#b91c1c":"#2b1a10"; cx.beginPath(); cx.arc(sx*r*0.22,-r*0.86,r*0.07,0,7); cx.fill(); }
+    if (dashing||v.ph==="warn"){ cx.strokeStyle="#2b1a10"; cx.lineWidth=Math.max(1.5,r*0.07); for (const sx of [-1,1]){ cx.beginPath(); cx.moveTo(sx*r*0.38,-r*1.0); cx.lineTo(sx*r*0.08,-r*0.92); cx.stroke(); } } }
+  cx.restore();
+  if (asleep){ cx.fillStyle="#fff"; cx.font=`800 ${Math.max(14,r*0.7)}px Baloo 2`; for (let i=0;i<3;i++){ const k=((t*0.6+i/3)%1); cx.globalAlpha=1-k; cx.fillText("z",x+r*0.8+k*r*0.9,y-r*0.9-k*r*1.6); } cx.globalAlpha=1; }
+}
+function drawSkater(id,x,y,alive,hit,t,vx,vy){
+  if (!alive) return;
+  const [sx,sy]=w2s(x,y), r=Math.max(7,T.pR*S), col=colorOf(id), me=id===G.me;
+  cx.fillStyle="rgba(0,30,60,.25)"; cx.beginPath(); cx.ellipse(sx+r*0.15,sy+r*0.35,r,r*0.8,0,0,7); cx.fill();
+  if (me){ cx.strokeStyle="#fff"; cx.lineWidth=3; cx.beginPath(); cx.arc(sx,sy,r+5+Math.sin(t*5)*1.5,0,7); cx.stroke(); }
+  cx.fillStyle=col; cx.beginPath(); cx.arc(sx,sy,r,0,7); cx.fill();
+  cx.fillStyle="rgba(255,255,255,.45)"; cx.beginPath(); cx.ellipse(sx-r*0.32,sy-r*0.38,r*0.32,r*0.2,-0.5,0,7); cx.fill();
+  const m=Math.hypot(vx,vy), lx=m>0.3?vx/m:0, ly=m>0.3?vy/m:0.2;     // eyes look where you slide
+  for (const s of [-1,1]){ const ex=sx+(-ly*s)*r*0.34+lx*r*0.25, ey=sy+(lx*s)*r*0.34+ly*r*0.25;
+    cx.fillStyle="#fff"; cx.beginPath(); cx.arc(ex,ey,r*0.24,0,7); cx.fill(); cx.fillStyle="#10324a"; cx.beginPath(); cx.arc(ex+lx*r*0.09,ey+ly*r*0.09,r*0.12,0,7); cx.fill(); }
+  if (hit){ cx.fillStyle="#ffc83d"; for (let i=0;i<3;i++){ const a=t*8+i*2.1; cx.beginPath(); cx.arc(sx+Math.cos(a)*r*1.2,sy-r*0.9+Math.sin(a)*r*0.4,r*0.18,0,7); cx.fill(); } }
+  if (me || G.players.size<=12){ cx.font=`700 ${me?14:11}px Baloo 2`; cx.textAlign="center"; cx.lineWidth=3; cx.lineJoin="round"; cx.strokeStyle="rgba(16,50,74,.75)"; cx.strokeText(nameOf(id),sx,sy-r-7); cx.fillStyle="#fff"; cx.fillText(nameOf(id),sx,sy-r-7); }
+}
+function drawFx(t){
+  G.fx=G.fx.filter(f=>t-f.t0<f.life);
+  for (const f of G.fx){
+    const k=Math.max(0,Math.min(1,(t-f.t0)/f.life)), [x,y]=w2s(f.x,f.y);   // effects can be stamped a few ms "in the future"
+    if (f.kind==="splash"){ cx.strokeStyle=`rgba(255,255,255,${1-k})`; cx.lineWidth=3; for (const s of [1,1.6]){ cx.beginPath(); cx.arc(x,y,(6+k*30*s)*S/10,0,7); cx.stroke(); } }
+    if (f.kind==="cube"){ const s=Math.max(10,T.pR*S*1.6)*(k<0.15?k/0.15:1), bob=Math.sin(t*2+f.x)*2;
+      cx.save(); cx.translate(x,y+bob); cx.rotate(0.2+Math.sin(t+f.y)*0.08); cx.globalAlpha=k>0.85?(1-k)/0.15:1;
+      cx.fillStyle=f.col; cx.beginPath(); cx.arc(0,0,s*0.38,0,7); cx.fill();
+      cx.fillStyle="rgba(200,235,255,.6)"; cx.strokeStyle="rgba(255,255,255,.95)"; cx.lineWidth=2; cx.beginPath(); cx.roundRect(-s/2,-s/2,s,s,s*0.18); cx.fill(); cx.stroke();
+      cx.fillStyle="rgba(255,255,255,.8)"; cx.fillRect(-s*0.35,-s*0.38,s*0.25,s*0.08); cx.restore(); }
+    if (f.kind==="spray"){ cx.fillStyle=`rgba(255,255,255,${0.8*(1-k)})`; for (let i=0;i<5;i++){ const a=f.a+i*1.25; cx.beginPath(); cx.arc(x+Math.cos(a)*k*S*1.5,y+Math.sin(a)*k*S*1.5,S*0.12*(1-k),0,7); cx.fill(); } }
+  }
+}
+function render(v,now){
+  const t=now/1000;
+  S=Math.min(W,H-(isTouch?60:90))/(2*(Math.max(v.R,8)+1.8));
+  drawSea(t); drawIce(v.R,t);
+  drawWarn(v,t);
+  drawFx(t);
+  for (const p of v.p) drawSkater(p[0],p[1],p[2],p[3],p[4],t,p[5]||0,p[6]||0);
+  if (v.ph==="dash" && Math.random()<0.7) G.fx.push({ kind:"spray", x:v.b[0], y:v.b[1], a:Math.random()*6, t0:t, life:0.5 });
+  drawBear(v,t);
+}
+
+// ============================================================
+//  VIEW (online: interpolated snapshots; solo: the local game)
+// ============================================================
+function viewOnline(now){
+  const Sn=G.snaps; if (!Sn.length) return null;
+  const rt=now-100; let a=Sn[0], b=Sn[0];
+  for (let i=Sn.length-1;i>=0;i--) if (Sn[i].t<=rt){ a=Sn[i]; b=Sn[i+1]||Sn[i]; break; }
+  const k=b.t>a.t?Math.min(1,(rt-a.t)/(b.t-a.t)):1, A=a.s, B=b.s, L=(p,q)=>p+(q-p)*k;
+  return { ...B, R:L(A.R,B.R), b:[L(A.b[0],B.b[0]),L(A.b[1],B.b[1]),B.b[2]],
+    p:B.p.map(q=>{ const o=A.p.find(z=>z[0]===q[0])||q; return [q[0],L(o[1],q[1]),L(o[2],q[2]),q[3],q[4],(q[1]-o[1])*20,(q[2]-o[2])*20]; }) };
+}
+function viewSolo(){ const s=G.local.snapshot(); s.p=s.p.map(q=>{ const gp=G.local.players.find(p=>p.id===q[0]); return [...q,gp.vx,gp.vy]; }); return s; }
+
+let lastBanner="";
+function hud(v,now){
+  const alive=v.p.filter(p=>p[3]).length;
+  $("alive").innerHTML=`On the ice <b>${alive}</b> / ${v.p.length}`;
+  $("rnd").textContent=`Round ${v.rd} · Charge ${Math.min(3,v.dn+(v.ph==="warn"||v.ph==="dash"?1:0))}/3`;
+  let msg="", warn=false;
+  if (now<G.startAt) msg=`Get ready… ${Math.ceil((G.startAt-now)/1000)}`;
+  else if (v.ph==="wake") msg=v.tm>1.2?`🐻 The bear is sleeping… ${Math.ceil(v.tm)}`:"🐻 He's waking up!";
+  else if (v.ph==="warn"){ msg="WATCH OUT! Get off the red path!"; warn=true; }
+  else if (v.ph==="dash") { msg="🐻 CHARGE!"; warn=true; }
+  else if (v.ph==="pause") msg="🐻 He's picking a new direction…";
+  else if (v.ph==="shrink") msg="🧊 The ice is shrinking!";
+  if (msg!==lastBanner){ lastBanner=msg; $("banner").textContent=msg; }
+  $("banner").classList.toggle("warn",warn);
+  const me=v.p.find(p=>p[0]===G.me);
+  $("spect").classList.toggle("on",!!me&&!me[3]&&!G.over);
+}
+function onEvents(evs,v){
+  const t=performance.now()/1000;
+  for (const e of evs){
+    if (e.type==="frozen"){ const p=v.p.find(q=>q[0]===e.id); if (p){ G.fx.push({ kind:"splash", x:p[1], y:p[2], t0:t, life:0.9 }); G.fx.push({ kind:"cube", x:p[1], y:p[2], col:colorOf(e.id), t0:t, life:6 }); }
+      if (e.id===G.me) big("FROZEN! 🧊<small>You slid off the ice</small>"); }
+    if (e.type==="round") big(`ROUND ${e.n}<small>Faster bear!</small>`);
+    if (e.type==="dash" && navigator.vibrate && isTouch) navigator.vibrate(40);
+    if (e.type==="hit" && e.id===G.me && navigator.vibrate) navigator.vibrate(120);
+    if (e.type==="over"){ G.over=true; }
+  }
+}
+
+// ============================================================
+//  LOOP
+// ============================================================
+let last=performance.now(), acc=0;
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if (screen==="game"){
+    let v=null;
+    if (G.mode==="solo"){
+      if (now>=G.startAt && G.local.phase!=="over"){
+        pushInput(now); acc+=dt;
+        while (acc>=1/40){ acc-=1/40; G.local.players.forEach((p,i)=>{ if (p.alive && G.bots[i]) BEAR.botThink(G.local,p,G.bots[i]); }); G.local.step(1/40); }
+        v=viewSolo(); onEvents(G.local.drainEvents(),v);
+        if (G.local.phase==="over" && !G.overAt) G.overAt=now;
+      } else v=viewSolo();
+      if (G.overAt && now-G.overAt>2200 && screen==="game") soloResults();
+    } else { pushInput(now); v=viewOnline(now); }
+    if (v){ G.view=v; render(v,now); hud(v,now); }
+  } else {
+    // menu backdrop: a sleepy bear on the ice
+    const t=now/1000; S=Math.min(W,H)/(2*(T.R0+6)); drawSea(t); drawIce(T.R0,t); drawBear({ b:[0,0,-Math.PI/2], ph:"wake", tm:9 },t);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function beginGame({ players, me, inMs, mode }){
+  Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), snaps:[], fx:[], over:false, overAt:0, startAt:performance.now()+inMs });
+  held.clear(); stick={ x:0, y:0 }; sent={ x:9, y:9, at:0 }; lastBanner="";
+  show("game");
+  if (inMs>500) setTimeout(()=>big("GO!"),inMs);
+}
+
+// ============================================================
+//  SOLO vs bots
+// ============================================================
+$("bSolo").onclick=()=>{
+  const name=myName(); Net.close();
+  const names=["Pip","Maple","Frost","Biscuit","Pebble","Sunny","Waffle"];
+  const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
+  G.local=new BEAR.Game(players.map(p=>({ id:p.pid, name:p.name })));
+  G.bots=G.local.players.map((p,i)=>i?BEAR.makeBot(0.25+0.6*(i-1)/6):null);
+  beginGame({ players, me:1, inMs:3000, mode:"solo" });
+};
+function soloResults(){ const rank=G.local.ranking().map(r=>({ ...r, pid:r.id, color:G.players.get(r.id).color })); showResults(rank); }
+
+// ============================================================
+//  RESULTS — top 3 or top 15 % (whichever is more) + your place
+// ============================================================
+const topCount=n=>Math.min(n,Math.max(3,Math.ceil(n*0.15)));
+function showResults(rank){
+  const w=rank[0], n=topCount(rank.length);
+  const c=document.createElement("canvas"); c.width=c.height=220; const x=c.getContext("2d");
+  x.translate(110,120); x.fillStyle=pcol(w.color); x.beginPath(); x.arc(0,0,60,0,7); x.fill(); x.fillStyle="rgba(255,255,255,.45)"; x.beginPath(); x.ellipse(-20,-24,18,11,-0.5,0,7); x.fill();
+  for (const s of [-1,1]){ x.fillStyle="#fff"; x.beginPath(); x.arc(s*20,-4,13,0,7); x.fill(); x.fillStyle="#10324a"; x.beginPath(); x.arc(s*20,-2,6,0,7); x.fill(); }
+  x.strokeStyle="#10324a"; x.lineWidth=5; x.lineCap="round"; x.beginPath(); x.arc(0,14,18,0.2,Math.PI-0.2); x.stroke();
+  x.fillStyle="#ffc83d"; x.strokeStyle="#c98a00"; x.lineWidth=4; x.beginPath(); x.moveTo(-38,-58); x.lineTo(-44,-96); x.lineTo(-20,-76); x.lineTo(0,-104); x.lineTo(20,-76); x.lineTo(44,-96); x.lineTo(38,-58); x.closePath(); x.fill(); x.stroke();
+  $("champ").innerHTML=""; $("champ").appendChild(c);
+  const head=document.createElement("div"); head.innerHTML=`<div class="t">${w.pid===G.me?"You stayed on the ice!":"Last one on the ice!"}</div><h2>${esc(w.name)}</h2>`; $("champ").appendChild(head);
+  const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}"></i>
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="st">${e.alive?"🏆 still standing":`${e.rounds} round${e.rounds===1?"":"s"} survived`}</span><span class="tm">${fmt(e.time)}</span></div>`;
+  $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
+  const mi=rank.findIndex(e=>e.pid===G.me);
+  $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].rounds} round${rank[mi].rounds===1?"":"s"} · ${fmt(rank[mi].time)} on the ice</span>`:"";
+  $("bAgain").textContent=G.mode==="solo"?"Play again":"Back to lobby";
+  show("results"); snowfall();
+}
+$("bAgain").onclick=()=>{ if (G.mode==="solo") $("bSolo").click(); else { show("lobby"); renderLobby(); } };
+function snowfall(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=$("snow"), x=c.getContext("2d"); c.width=innerWidth; c.height=innerHeight;
+  const P=Array.from({length:150},(_,i)=>({ x:Math.random()*innerWidth, y:-20-Math.random()*innerHeight*0.6, v:1.5+Math.random()*3, s:2+Math.random()*5, w:Math.random()*6, gold:i%5===0 }));
+  const t0=performance.now();
+  (function f(now){ const age=(now-t0)/1000; x.clearRect(0,0,c.width,c.height);
+    for (const p of P){ p.y+=p.v; p.w+=0.04; x.globalAlpha=Math.max(0,1-Math.max(0,age-3)/1.5); x.fillStyle=p.gold?"#ffc83d":"#fff"; x.beginPath(); x.arc(p.x+Math.sin(p.w)*16,p.y,p.s,0,7); x.fill(); }
+    if (age<4.5) requestAnimationFrame(f); else x.clearRect(0,0,c.width,c.height); })(t0);
+}
+
+// ============================================================
+//  NETWORK
+// ============================================================
+const Net={
+  ws:null, want:false, retry:0, queue:[], pid:0, code:null, lobby:null, token:store.get("cg_token"),
+  url(){ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; if (s) return s; if (!location.host) return null; return (location.protocol==="https:"?"wss://":"ws://")+location.host; },
+  open(){
+    this.want=true; if (this.ws&&this.ws.readyState<=1) return;
+    const url=this.url(); if (!url) return err("Online play needs the game server.");
+    const ws=this.ws=new WebSocket(url);
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
+    ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
+  },
+  send(m){ if (this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify(m)); else if (this.want){ this.queue.push(m); this.open(); } },
+  close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
+};
+function onNet(m){
+  switch (m.t){
+    case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
+    case "joined":
+      if (m.game!=="bear"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
+      Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
+    case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
+    case "start": beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online" }); break;
+    case "s": if (G.mode==="online"){ G.snaps.push({ t:performance.now(), s:m.s }); if (G.snaps.length>30) G.snaps.shift(); if (m.e.length) onEvents(m.e,m.s); } break;
+    case "results": if (G.mode==="online") setTimeout(()=>showResults(m.rank),1800); break;
+    case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
+  }
+}
+let lobbyTimer=0;
+function renderLobby(){
+  const L=Net.lobby; if (!L) return;
+  $("lKind").textContent=L.pub?"Online game":"Private game";
+  $("lCode").textContent=L.code;
+  $("lCount").textContent=`${L.players.length} / ${L.max} players`;
+  $("lGrid").innerHTML=L.players.map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}"></i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
+  const host=L.host===Net.pid;
+  $("bStart").style.display=host?"":"none";
+  clearInterval(lobbyTimer);
+  const note=()=>{
+    let t=L.state==="playing"?"A game is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
+    if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
+    $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t;
+  };
+  note(); lobbyTimer=setInterval(note,500);
+}
+function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
+$("bPublic").onclick=()=>goOnline({ t:"quick", game:"bear" });
+$("bPrivate").onclick=()=>goOnline({ t:"create", game:"bear" });
+$("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Game codes are 4 letters."); goOnline({ t:"join", code:c }); };
+$("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
+$("bStart").onclick=()=>Net.send({ t:"start" });
+$("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+function exitGame(){
+  if (screen==="menu"){ location.href="../"; return; }
+  if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
+  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); G.mode=""; G.local=null;
+  show("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.search).get("play"); if (!q) return; history.replaceState(null,"",location.pathname);
+  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="solo") $("bSolo").click(); });
+</script>
+</body>
+</html>

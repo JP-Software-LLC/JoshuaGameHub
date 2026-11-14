@@ -5,6 +5,7 @@
 //   Clean Getaway:   ready{v} input{d}        Math Race: start{} score{round,n}
 //   SPLAT!:          start{} pick{b} throw{b}   (b = 0 left, 1 middle, 2 right)
 //   Rush Hour:       start{} pos{d,x} (~10/s) finish{time}
+//   Bear Attack!:    start{} in{x,y} (stick direction, on change)
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
 //                   floor{grid,theme} s{s:snapshot,e:events} error{code,msg}
 "use strict";
@@ -15,8 +16,9 @@ const { Room }=require("./room");
 const { MathRoom }=require("./mathroom");
 const { SplatRoom }=require("./splatroom");
 const { RushRoom }=require("./rushroom");
+const { BearRoom }=require("./bearroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -97,6 +99,7 @@ async function onMessage(c,m){
     case "throw":  return toRoom(c,{ t:"throw", b:m.b|0 });
     case "pos":    return toRoom(c,{ t:"pos", d:+m.d, x:+m.x });
     case "finish": return toRoom(c,{ t:"finish", time:+m.time });
+    case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
   }

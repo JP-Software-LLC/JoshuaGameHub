@@ -10,7 +10,7 @@
     "start:game": "node server/index.js",
     "start:web": "node server/web.js",
     "build:static": "node scripts/build-static.js",
-    "test": "node scripts/sim-test.js && node scripts/smoke.js && node scripts/math-test.js && node scripts/cleanup-test.js && node scripts/splat-test.js && node scripts/rush-test.js"
+    "test": "node scripts/sim-test.js && node scripts/smoke.js && node scripts/math-test.js && node scripts/cleanup-test.js && node scripts/splat-test.js && node scripts/rush-test.js && node scripts/bear-test.js"
   },
   "dependencies": {
     "ioredis": "^5.4.1",

@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) and **Rush Hour** (up to 40, lane racing).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) and **Bear Attack!** (up to 40, top-down ice survival).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -42,6 +42,12 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - `shared/rush.js` holds ALL tuning + physics + traffic + bot AI (used by browser, bots and `scripts/rush-balance.js`). Traffic comes from the race seed; a vehicle you are stuck behind pulls over onto the shoulder (per racer).
 - Catch-up is a smooth function of METRES BEHIND THE LEADER (never of place): more top speed/accel, softer bumps, and stuck vehicles pull over sooner. Balance (run `node scripts/rush-balance.js`): 3,100 m ≈ 80 s median; first→last spread median ~6–8 s, worst ~13 s (target ≤ ~25 s).
 - Server (`server/rushroom.js`) only relays positions (~10/s) and ranks finish times (unfinished → by distance); race closes 45 s after the winner. Results: top max(3, 15 %) + your place.
+
+## Bear Attack! rules
+- Up to 40 players on a round ice sheet (top-down canvas 2D), bear sleeps in the middle. Arrows/WASD (8 directions) or touch joystick (analog). Ice physics: speed eases toward the stick (slow take-off), long glide when released. Players bump each other (soft collisions).
+- Bear: wakes (5 s first round, 3 s later), then 3 straight dashes per round to a random point between a minimum length and the ice edge; red path blinks 3× for the warning time (2.0 s, −0.3 s per round, min 0.6 s), then charges and shoves anyone in front of it. Slide off the ice = FROZEN! (kid-friendly, no "eliminated" wording on screen).
+- After 3 dashes: ice shrinks to 84 % (min radius 5) while players are herded inward (nobody falls during a shrink) and the bear walks back to the middle. Last player on the ice wins; ranking = time on the ice.
+- Server-authoritative: `shared/bear.js` (Game + bots) runs in `server/bearroom.js` at 40 Hz physics / 20 Hz snapshots; clients send only `in{x,y}`. Solo mode runs the same Game in the browser vs 7 bots. Pacing (bots): ~70 s (4 players) to ~95 s (40).
 
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.
