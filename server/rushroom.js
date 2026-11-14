@@ -4,6 +4,8 @@
 "use strict";
 const crypto=require("crypto");
 const { RoomBase }=require("./roombase");
+const cleanLog=l=>{ if (!Array.isArray(l)) return []; const out=l.slice(0,400).map(x=>{ const o={}; for (const [k,v] of Object.entries(x||{}).slice(0,8)) if (["string","number","boolean"].includes(typeof v)) o[k.slice(0,12)]=typeof v==="string"?v.slice(0,40):v; return o; }); return JSON.stringify(out).length<60000?out:[]; };
+
 const RUSH=require("../shared/rush.js");
 
 const env=(k,d)=>+process.env[k]||d;
@@ -39,7 +41,8 @@ class RushRoom extends RoomBase {
     switch (msg.t){
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startRace(); return;
-      case "teacher": return this.makeTeacher(p);
+      case "teacher": return this.makeTeacher(p,msg.acct);
+      case "iam": return this.handleIam(p,msg);
       case "pos":
         if (!p || this.state!=="playing" || p.fin!=null) return;
         if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(this.dist,msg.d));
@@ -47,7 +50,7 @@ class RushRoom extends RoomBase {
         return;
       case "finish":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0));      // trust the client (by design)
+        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
         this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
         if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),AFTER_FIRST_MS);
         this.checkAllDone(); return;
@@ -76,6 +79,7 @@ class RushRoom extends RoomBase {
     this.emptySince=0; this.saveSession(token);
     this.send({ t:"joined", code:this.code, game:this.kind, pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
+    if (this.teacher && p.pid!==this.teacher) this.askIdentity(p);
     if (this.state==="playing") this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
   }
   racers(){ return [...this.players.values()].filter(p=>p.pid!==this.teacher); }
@@ -107,6 +111,8 @@ class RushRoom extends RoomBase {
     const rank=this.racers().map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d, extra:p.extra??null }))
       .sort((a,b)=>(a.time==null)-(b.time==null) || (a.time!=null ? a.time-b.time : b.d-a.d));
     this.send({ t:"results", rank, dist:this.dist });
+    this.recordSession(null,rank.map((e,i)=>({ pid:e.pid, place:i+1, score:e.time, stats:{ finished:e.time!=null, time:e.time, percent:Math.round(100*(e.d||0)/this.dist), extra:e.extra },
+      log:this.players.get(e.pid)?.log||[] })),{ dist:this.dist });
     this.state="lobby";
     for (const [pid,p] of this.players) if (!p.connected) this.players.delete(pid);
     if (!this.players.get(this.host)) this.pickHost();

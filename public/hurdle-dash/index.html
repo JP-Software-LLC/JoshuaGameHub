@@ -191,6 +191,7 @@
 <canvas id="confetti"></canvas>
 
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
 <script src="../hurdle.js"></script>
 <script>
 "use strict";
@@ -264,7 +265,9 @@ function renderQuiz(extra){
 }
 function digit(d){
   const r=G.run; if (!r||r.state!=="quiz") return;
+  const q0=r.q, typed=r.typed+d, h0=r.h;
   const ev=HURDLE.answer(r,d);
+  if ((ev==="right"||ev==="cleared"||ev==="wrong") && G.qlog && G.qlog.length<50) G.qlog.push({ h:h0+1, q:`${q0.a} + ${q0.b}`, a:q0.s, g:typed, ok:ev!=="wrong" });
   if (ev==="right"){ const c=$("qcard"); c.classList.remove("goodflash"); void c.offsetWidth; c.classList.add("goodflash"); renderQuiz(); }
   else if (ev==="cleared"){ renderQuiz(); $("quiz").classList.remove("on"); flash("JUMP!"); }
   else if (ev==="wrong"){
@@ -473,14 +476,14 @@ requestAnimationFrame(frame);
 
 function beginRace({ seed, players, me, inMs, mode }){
   Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), run:HURDLE.newRunner(seed), startAt:performance.now()+inMs, snaps:[], others:new Map(),
-    finished:new Map(), bots:[], done:false, resultShown:false, sentAt:0, acc:0, trippedAt:new Set() });
+    finished:new Map(), bots:[], done:false, resultShown:false, sentAt:0, acc:0, trippedAt:new Set(), qlog:[] });
   countShown=-1; $("done").classList.remove("on"); $("quiz").classList.remove("on");
   $("hzs").innerHTML=T.hurdles.map(h=>`<i class="hz" style="left:calc((100% - 22px) * ${h/T.dist})"></i>`).join("");
   show("race");
 }
 function onFinish(){
   G.done=true; $("quiz").classList.remove("on");
-  if (G.mode==="online") Net.send({ t:"finish", time:G.run.finishT, extra:G.run.clean });
+  if (G.mode==="online") Net.send({ t:"finish", time:G.run.finishT, extra:G.run.clean, log:G.qlog });
   $("dTime").textContent=fmt(G.run.finishT);
   $("dNote").textContent=`${G.run.clean}/${T.hurdles.length} clean jumps · `+(G.mode==="solo"?"nice running!":"waiting for the others…");
   $("done").classList.add("on"); flash("FINISH!");
@@ -543,7 +546,7 @@ const Net={
     this.want=true; if (this.ws&&this.ws.readyState<=1) return;
     const url=this.url(); if (!url) return err("Online play needs the game server.");
     const ws=this.ws=new WebSocket(url);
-    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
     ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
     ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
   },
@@ -551,6 +554,7 @@ const Net={
   close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
 };
 function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
   if (teacherIntercept(m)) return;
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
@@ -603,10 +607,10 @@ function teacherLobby(L){
   $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
 }
 function teacherIntercept(m){
-  if (m.t==="joined" && Net.wantTeacher && m.game==="hurdle"){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+  if (m.t==="joined" && Net.wantTeacher && m.game==="hurdle"){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
   return teacherView(m);
 }
-$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"hurdle" }); };
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"hurdle" }); });
 
 const CV={ on:false, players:new Map(), dist:100, fin:new Map(), el:null };
 function classView(m){

@@ -178,6 +178,7 @@
 <canvas id="confetti"></canvas>
 
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -326,7 +327,7 @@ const Net={
     this.want=true; if (this.ws&&this.ws.readyState<=1) return;
     const url=this.url(); if (!url) return err("Online play needs the game server.");
     const ws=this.ws=new WebSocket(url);
-    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
     ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
     ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
   },
@@ -334,6 +335,7 @@ const Net={
   close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
 };
 function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
   if (teacherIntercept(m)) return;
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
@@ -382,10 +384,10 @@ function teacherLobby(L){
   $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
 }
 function teacherIntercept(m){
-  if (m.t==="joined" && Net.wantTeacher && m.game==="arrows"){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+  if (m.t==="joined" && Net.wantTeacher && m.game==="arrows"){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
   return teacherView(m);
 }
-$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"arrows" }); };
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"arrows" }); });
 function teacherView(m){
   if (m.t==="round" && Net.lobby && Net.lobby.teacher===Net.pid){
     const until=performance.now()+m.in+m.dur; clearInterval(window.__tw);

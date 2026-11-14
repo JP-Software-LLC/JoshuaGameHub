@@ -234,6 +234,7 @@
 <canvas id="confetti"></canvas>
 
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -304,6 +305,7 @@ addEventListener("blur",()=>Object.values(KEYS).forEach(k=>k.classList.remove("d
 // ============================================================
 const R={ mode:"add", active:false, n:0, of:3, startAt:0, endAt:0, score:0, q:null, next:null, typed:"", lockUntil:0, practice:false, sent:false };
 function beginRound({ n, of, seed, inMs, dur, practice, mode }){
+  R.log=[];
   Object.assign(R,{ mode:mode||"add", active:false, n, of, practice, score:0, typed:"", lockUntil:0, sent:false,
     next:questionStream(seed, mode||"add"), startAt:performance.now()+inMs });
   R.endAt=R.startAt+dur; R.dur=dur;
@@ -313,7 +315,7 @@ function beginRound({ n, of, seed, inMs, dur, practice, mode }){
   show("play"); $("count").classList.add("on");
 }
 function newQuestion(){
-  R.q=R.next(); R.typed="";
+  R.q=R.next(); R.typed=""; R.qAt=performance.now();
   $("qa").textContent=R.q.top; $("qb").textContent=R.q.bottom; $("qop").textContent=R.q.op;
   const w=Math.max(String(R.q.top).length,String(R.q.bottom).length,R.q.money?R.q.len+2:R.q.len);
   $("prob").style.gridTemplateColumns=`auto ${Math.max(3.2,w+0.2)}ch`;
@@ -328,6 +330,8 @@ function typeDigit(d){
   if (!R.active || R.lockUntil) return;
   R.typed+=d; renderAns();
   if (R.typed.length<R.q.len) return;               // 3-digit answers wait for the 3rd digit
+  const qtxt=`${R.q.top} ${R.q.op} ${R.q.bottom}`, ms=Math.round(performance.now()-(R.qAt||performance.now()));
+  if (R.log.length<300) R.log.push({ q:qtxt, a:R.q.s, g:R.typed, ok:+R.typed===R.q.s, ms });
   if (+R.typed===R.q.s){                            // correct: no Enter needed
     R.score++; $("hScore").textContent=R.score;
     newQuestion(); flash($("arena"));                // next question immediately: no input is ever lost
@@ -342,7 +346,7 @@ const shake=el=>retrigger(el,"shake"), flash=el=>retrigger(el,"flash");
 function endRound(){
   R.active=false; R.lockUntil=0; renderAns();
   if (R.practice) return practiceDone();
-  if (!R.sent){ R.sent=true; Net.send({ t:"score", round:R.n, n:R.score }); }   // the only thing we send
+  if (!R.sent){ R.sent=true; Net.send({ t:"score", round:R.n, n:R.score, log:R.log }); }   // the only thing we send
   showWaiting();
 }
 function loop(now){
@@ -474,7 +478,7 @@ const Net={
     this.want=true; if (this.ws&&this.ws.readyState<=1) return;
     const url=this.url(); if (!url) return err("Online play needs the game server.");
     const ws=this.ws=new WebSocket(url);
-    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
     ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
     ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
   },
@@ -482,12 +486,13 @@ const Net={
   close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
 };
 function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
     case "joined":
       if (m.game!=="math"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
       Net.pid=m.pid; Net.code=m.code;
-      if (Net.wantTeacher){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+      if (Net.wantTeacher){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
       if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby();
       if (screen==="menu" && m.state==="playing"){ show("results"); $("rTitle").textContent="Race in progress"; $("rBoard").innerHTML=`<div class="next">You'll join at the next round.</div>`; $("rYou").innerHTML=$("rNext").innerHTML=""; }
@@ -528,7 +533,7 @@ function renderLobby(){
 }
 function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
 $("lMode").addEventListener("click",e=>{ const b=e.target.closest("button[data-m]"); const L=Net.lobby; if (!b||!L||L.host!==Net.pid||L.state!=="lobby") return; Net.send({ t:"mode", mode:b.dataset.m }); });
-$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"math" }); };
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"math" }); });
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:"math" });
 $("bPrivate").onclick=()=>goOnline({ t:"create", game:"math" });
 $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Room codes are 4 letters."); goOnline({ t:"join", code:c }); };

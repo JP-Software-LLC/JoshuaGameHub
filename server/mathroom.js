@@ -5,6 +5,8 @@
 "use strict";
 const crypto=require("crypto");
 const { RoomBase }=require("./roombase");
+const cleanLog=l=>{ if (!Array.isArray(l)) return []; const out=l.slice(0,400).map(x=>{ const o={}; for (const [k,v] of Object.entries(x||{}).slice(0,8)) if (["string","number","boolean"].includes(typeof v)) o[k.slice(0,12)]=typeof v==="string"?v.slice(0,40):v; return o; }); return JSON.stringify(out).length<60000?out:[]; };
+
 
 const MAX_PLAYERS=40;
 const ROUNDS=3;
@@ -43,12 +45,12 @@ class MathRoom extends RoomBase {
       case "mode":
         if (p && p.pid===this.host && this.state==="lobby" && this.constructor.MODES.includes(msg.mode)){ this.mode=msg.mode; this.lobby(); }
         return;
-      case "teacher":                    // private rooms only: the host runs the room and does not play
-        return this.makeTeacher(p);
+      case "teacher": return this.makeTeacher(p,msg.acct);
+      case "iam": return this.handleIam(p,msg);
       case "score":
         // trust the client (by design): just keep it sane
         if (p && this.state==="playing" && msg.round===this.round && p.scores[this.round-1]==null)
-          p.scores[this.round-1]=Math.max(0,Math.min(this.maxScore,msg.n|0));
+          { p.scores[this.round-1]=Math.max(0,Math.min(this.maxScore,msg.n|0)); (p.logs||(p.logs=[]))[this.round-1]=cleanLog(msg.log); }
         return;
       case "leave": case "drop":
         if (!p) return;
@@ -74,6 +76,7 @@ class MathRoom extends RoomBase {
     this.saveSession(token);
     this.send({ t:"joined", code:this.code, game:this.kind, pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
+    if (this.teacher && p.pid!==this.teacher) this.askIdentity(p);
   }
   // start automatically AUTO_START_MS after the 2nd player arrives (public and private)
   scheduleAuto(){
@@ -110,6 +113,8 @@ class MathRoom extends RoomBase {
     const rank=this.ranking(p=>p.scores.reduce((a,b)=>a+(b||0),0))
       .map(e=>({ ...e, rounds:this.players.get(e.pid).scores.map(s=>s||0) }));
     this.send({ t:"final", rank });
+    let pl=0; this.recordSession(this.mode,rank.map((e,i)=>({ pid:e.pid, place:(i&&e.score===rank[i-1].score)?pl:(pl=i+1), score:e.score, stats:{ rounds:e.rounds },
+      log:(this.players.get(e.pid).logs||[]).flatMap((l,ri)=>(l||[]).map(x=>({ r:ri+1, ...x }))) })),{ rounds:this.rounds });
     this.state="lobby"; this.round=0;
     for (const [pid,p] of this.players) if (!p.connected) this.players.delete(pid);   // release no-shows
     if (!this.players.get(this.host)) this.pickHost();

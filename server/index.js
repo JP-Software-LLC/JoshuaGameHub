@@ -37,7 +37,11 @@ const relays=new Map();          // code -> {conns:Set, fn}  (out-channel subscr
 const conns=new Set();
 
 const id=n=>crypto.randomBytes(n).toString("base64url");
-const { CODE_CHARS, codeOK }=require("./codes");      // kid-safe room codes
+const { CODE_CHARS, codeOK }=require("./codes");
+const { makeApi }=require("./api");
+const AUTH=require("./auth");
+const CD=require("./classdata");
+const DB=require("./db");      // kid-safe room codes
 const cleanName=s=>String(s||"").replace(/[^\p{L}\p{N} _.\-!?']/gu,"").trim().slice(0,14)||"Player";
 const cleanCode=s=>String(s||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
 
@@ -88,6 +92,8 @@ const toRoom=(c,m)=>c.code&&bus.publish(K.in(c.code),Object.assign(m,{cid:c.id})
 async function onMessage(c,m){
   switch (m.t){
     case "hello": {
+      c.teacherId=null;
+      if (typeof m.auth==="string" && m.auth){ try{ const t=await AUTH.teacherFromToken(m.auth); if (t) c.teacherId=+t.id; }catch(e){ console.error("[auth]",e.message); } }
       c.name=cleanName(m.name);
       c.token=typeof m.token==="string"&&m.token.length<40?m.token:id(16);
       c.send(JSON.stringify({ t:"welcome", token:c.token, name:c.name }));
@@ -102,13 +108,18 @@ async function onMessage(c,m){
     case "input":  return toRoom(c,{ t:"input", d:String(m.d) });
     case "start":  return toRoom(c,{ t:"start" });
     case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
-    case "teacher":return toRoom(c,{ t:"teacher" });
+    case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
+      let acct=null;
+      if (c.teacherId){ acct={ teacherId:c.teacherId, classId:null };
+        if (m.classId && await CD.roleIn(c.teacherId,m.classId)) acct.classId=+m.classId; }
+      return toRoom(c,{ t:"teacher", acct }); }
+    case "iam":    return toRoom(c,{ t:"iam", first:String(m.first||"").slice(0,30), last:String(m.last||"").slice(0,5), nick:String(m.nick||"").slice(0,20) });
     case "tile":   return toRoom(c,{ t:"tile", dx:m.dx|0, dy:m.dy|0 });
-    case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
+    case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)), log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "pick":   return toRoom(c,{ t:"pick", b:m.b|0 });
     case "throw":  return toRoom(c,{ t:"throw", b:m.b|0 });
     case "pos":    return toRoom(c,{ t:"pos", d:+m.d, x:+m.x });
-    case "finish": return toRoom(c,{ t:"finish", time:+m.time, extra:m.extra|0 });
+    case "finish": return toRoom(c,{ t:"finish", time:+m.time, extra:m.extra|0, log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
@@ -122,7 +133,10 @@ async function leave(c){
 }
 
 // ---- HTTP + WebSocket
+const api=makeApi(bus);
+if (process.env.DATABASE_URL) DB.connect().catch(e=>console.error("[db] connect failed:",e.message));   // real Postgres: connect now. PGlite (dev) starts lazily on first use so it never stalls a game
 const server=http.createServer(async (req,res)=>{
+  if (req.url.startsWith("/api/")) return api.handle(req,res);
   if (req.url==="/health"){
     let redis=true; try{ redis=await bus.ping(); }catch{ redis=false; }
     res.writeHead(redis?200:503,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"}); // hub reads the online count
@@ -139,7 +153,7 @@ const server=http.createServer(async (req,res)=>{
   }
   serveStatic(req,res);
 });
-const wss=new WebSocketServer({ server, maxPayload:4096 });
+const wss=new WebSocketServer({ server, maxPayload:64*1024 });   // score/finish messages may carry a per-question log
 wss.on("connection",ws=>{
   if (conns.size>=MAX_CONN){ ws.close(1013,"server full"); return; }
   const c={ id:id(9), ws, name:null, token:null, code:null, alive:true,

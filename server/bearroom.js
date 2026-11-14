@@ -33,7 +33,8 @@ class BearRoom extends RoomBase {
     switch (msg.t){
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startGame(); return;
-      case "teacher": return this.makeTeacher(p);
+      case "teacher": return this.makeTeacher(p,msg.acct);
+      case "iam": return this.handleIam(p,msg);
       case "in": if (p && this.game) this.game.setInput(p.pid, +msg.x||0, +msg.y||0); return;
       case "leave": case "drop":
         if (!p) return;
@@ -62,6 +63,7 @@ class BearRoom extends RoomBase {
     this.emptySince=0; this.saveSession(token);
     this.send({ t:"joined", code:this.code, game:"bear", pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
+    if (this.teacher && p.pid!==this.teacher) this.askIdentity(p);
     if (this.state==="playing" && this.game) this.send({ t:"start", players:this.roster().filter(q=>q.pid!==this.teacher), teacher:this.teacher, in:0 },cid);   // rejoin mid-game
   }
   scheduleAuto(){
@@ -90,6 +92,7 @@ class BearRoom extends RoomBase {
     clearInterval(this.timer); this.timer=null;
     const rank=this.game.ranking().map(r=>({ ...r, pid:r.id, color:this.players.get(r.id)?.color??0 }));
     this.send({ t:"results", rank });
+    this.recordSession(null,rank.map((e,i)=>({ pid:e.pid, place:i+1, score:Math.round(e.time||0), stats:{ stillOn:e.alive, rounds:e.rounds, hits:e.hits, seconds:Math.round(e.time||0) } })));
     this.game=null; this.state="lobby";
     for (const [pid,p] of this.players) if (!p.connected) this.players.delete(pid);
     if (!this.players.get(this.host)) this.pickHost();

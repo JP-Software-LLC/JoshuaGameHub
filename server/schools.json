@@ -1,0 +1,7 @@
+{
+  "_readme": "Schools teachers can pick from. Add entries by hand: id must be unique and never change (it is stored on teacher accounts). state = 2-letter code.",
+  "schools": [
+    { "id": "example-tx-1", "name": "Example Elementary School", "state": "TX" },
+    { "id": "example-ca-1", "name": "Sample Middle School", "state": "CA" }
+  ]
+}
