@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) and **SPLAT!** (2–6 player kids party game).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -29,6 +29,12 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - `server/index.js`: game server (WebSocket gateway + room hosting, also serves the client; `KINDS` maps game id → room class). `server/roombase.js`: shared room plumbing (registry, bus channels, empty-room cleanup). `server/room.js`: Clean Getaway room, authoritative sim at 30 Hz. `server/mathroom.js`: Math Race room (seeds, score collection, rankings; timings overridable via MATH_*_MS env for tests). `server/bus.js`: Redis pub/sub + keys, with an in-memory fallback when `REDIS_URL` is unset. `server/web.js`: static-only frontend service.
 - Railway project `intuitive-rebirth` (services `game`, `web`, `Redis`). Settings live in the Railway service config, not in repo files. Full guide: `docs/DEPLOY.md`.
 - `npm run dev` (one process, localhost:8080) · `npm test` (headless bot match, Clean Getaway end-to-end, Math Race end-to-end, room cleanup).
+
+## SPLAT! rules (kids game: no "killed/eliminated/soaked" wording — use SPLAT!/splatted/dodged)
+- 2–6 players, host start or auto-start 30 s after a 2nd player. Everyone throws once (random order).
+- Turn: up to 3 throws. Hiders pick barrel Left/Up/Right behind a sheet (10 s, 5 s, 3 s; changeable; random if none). Sheet lifts; thrower picks (4 s, random after). Hit hiders sit out the rest of the turn. Turn ends early if all are hit. ≈30–40 s per turn.
+- Points: +10 per throw dodged, +20 per player splatted (balanced: equal expected points throwing vs hiding at any lobby size).
+- Server-authoritative; hiding spots are never sent to the thrower. `server/splatroom.js`, `public/splat/index.html`, timings overridable via SPLAT_*_MS.
 
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.

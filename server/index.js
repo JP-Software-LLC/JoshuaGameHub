@@ -3,6 +3,7 @@
 //
 // Client → server:  hello{name,token?} quick{game} create{game} join{code} leave{}
 //   Clean Getaway:   ready{v} input{d}        Math Race: start{} score{round,n}
+//   SPLAT!:          start{} pick{b} throw{b}   (b = 0 left, 1 middle, 2 right)
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
 //                   floor{grid,theme} s{s:snapshot,e:events} error{code,msg}
 "use strict";
@@ -11,8 +12,9 @@ const { WebSocketServer }=require("ws");
 const { createBus }=require("./bus");
 const { Room }=require("./room");
 const { MathRoom }=require("./mathroom");
+const { SplatRoom }=require("./splatroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -89,6 +91,8 @@ async function onMessage(c,m){
     case "input":  return toRoom(c,{ t:"input", d:String(m.d) });
     case "start":  return toRoom(c,{ t:"start" });
     case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:m.n|0 });
+    case "pick":   return toRoom(c,{ t:"pick", b:m.b|0 });
+    case "throw":  return toRoom(c,{ t:"throw", b:m.b|0 });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
   }
