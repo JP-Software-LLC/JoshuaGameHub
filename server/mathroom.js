@@ -17,7 +17,8 @@ const AUTO_START_MS=30000;   // any lobby starts on its own 30 s after a 2nd pla
 
 class MathRoom extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
-    super(code, isPublic, bus, instanceId, onClose, "math", MAX_PLAYERS);
+    super(code, isPublic, bus, instanceId, onClose, new.target.KIND, MAX_PLAYERS);
+    this.rounds=new.target.ROUNDS; this.roundMs=new.target.ROUND_MS; this.maxScore=new.target.MAX_SCORE;
     this.players=new Map();   // pid -> {pid,cid,name,token,connected,scores:[]}
     this.nextPid=1; this.host=0; this.round=0; this.timer=null; this.autoAt=0;
   }
@@ -28,7 +29,7 @@ class MathRoom extends RoomBase {
   byCid(cid){ for (const p of this.players.values()) if (p.cid===cid) return p; return null; }
 
   lobby(){
-    return this.send({ t:"lobby", game:"math", code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS, rounds:ROUNDS,
+    return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS, rounds:this.rounds,
       host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0,
       players:[...this.players.values()].map(p=>({ pid:p.pid, name:p.name, connected:p.connected })) });
   }
@@ -40,7 +41,7 @@ class MathRoom extends RoomBase {
       case "score":
         // trust the client (by design): just keep it sane
         if (p && this.state==="playing" && msg.round===this.round && p.scores[this.round-1]==null)
-          p.scores[this.round-1]=Math.max(0,Math.min(300,msg.n|0));
+          p.scores[this.round-1]=Math.max(0,Math.min(this.maxScore,msg.n|0));
         return;
       case "leave": case "drop":
         if (!p) return;
@@ -63,7 +64,7 @@ class MathRoom extends RoomBase {
     if (!this.host || !this.players.get(this.host)?.connected) this.host=p.pid;
     this.emptySince=0;
     this.saveSession(token);
-    this.send({ t:"joined", code:this.code, game:"math", pid:p.pid },cid);
+    this.send({ t:"joined", code:this.code, game:this.kind, pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
   }
   // start automatically AUTO_START_MS after the 2nd player arrives (public and private)
@@ -83,8 +84,8 @@ class MathRoom extends RoomBase {
   nextRound(){
     this.round++;
     const seed=crypto.randomInt(1,2**31-1);
-    this.send({ t:"round", n:this.round, of:ROUNDS, seed, in:COUNTDOWN_MS, dur:ROUND_MS });
-    this.timer=setTimeout(()=>this.endRound(), COUNTDOWN_MS+ROUND_MS+GRACE_MS);
+    this.send({ t:"round", n:this.round, of:this.rounds, seed, in:COUNTDOWN_MS, dur:this.roundMs });
+    this.timer=setTimeout(()=>this.endRound(), COUNTDOWN_MS+this.roundMs+GRACE_MS);
   }
   ranking(score){
     return [...this.players.values()].map(p=>({ pid:p.pid, name:p.name, score:score(p) })).sort((a,b)=>b.score-a.score);
@@ -92,8 +93,9 @@ class MathRoom extends RoomBase {
   endRound(){
     const r=this.round-1;
     const rank=this.ranking(p=>p.scores[r]||0);
-    const last=this.round>=ROUNDS;
-    this.send({ t:"results", n:this.round, of:ROUNDS, rank, next:RESULTS_MS, last });
+    const last=this.round>=this.rounds;
+    if (last && this.rounds===1) return this.finish();                 // single-round games go straight to the final board
+    this.send({ t:"results", n:this.round, of:this.rounds, rank, next:RESULTS_MS, last });
     this.timer=setTimeout(()=>last?this.finish():this.nextRound(), RESULTS_MS);
   }
   finish(){
@@ -106,4 +108,6 @@ class MathRoom extends RoomBase {
     this.register(); this.lobby(); this.scheduleAuto();
   }
 }
+// Math Race. Other "everyone plays locally, report one score" games subclass this.
+MathRoom.KIND="math"; MathRoom.ROUNDS=ROUNDS; MathRoom.ROUND_MS=ROUND_MS; MathRoom.MAX_SCORE=300;
 module.exports={ MathRoom, MAX_PLAYERS, ROUNDS };

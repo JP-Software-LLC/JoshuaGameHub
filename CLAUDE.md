@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) and **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) and **Arrow Blitz** (up to 40, 1-minute arrow sequences).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -53,6 +53,11 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Up to 40, one lane each (lane = colour index + 1), straight 100 m school track, side view (canvas 2D; your lane in front, 4 nearest lanes behind). Tap Left/Right in turn to run (same key twice = stumble, held keys ignored); touch = two big buttons.
 - 5 hurdles. At each: 3 Math Race questions (same generator, checked on last digit, no Enter; same questions for everyone via race seed). All right → jump. One wrong → trip, 3 s on the ground, then run on.
 - `shared/hurdle.js` = rules + bots (served at /hurdle.js). Server = `server/hurdleroom.js`, a subclass of the generic race room (`RushRoom` with KIND/DIST statics): relays pos{d, x=state 0 run/1 quiz/2 trip/3 jump}, finish{time, extra=clean jumps}. Races ~30–60 s.
+
+## Arrow Blitz rules
+- One 1-minute round, up to 40. Type the shown arrow sequence (arrow keys/WASD; touch d-pad). Starts at 3 arrows, +1 after every completed sequence. Wrong key = shake + restart that sequence (length unchanged). Typed arrows turn solid yellow; Math Race dark grey background.
+- Score: 10 per arrow of a completed sequence; +50% bonus on each sequence once the flawless streak (completed with no slip) is ≥ 3; any slip resets the streak. Arrows only for now (a 2nd mode may come later).
+- Client-side play from a shared seed; server = `server/arrowroom.js`, a 1-round subclass of the Math Race room (MathRoom KIND/ROUNDS/ROUND_MS/MAX_SCORE statics; single-round rooms skip straight to `final`).
 
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.
