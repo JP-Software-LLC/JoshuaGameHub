@@ -15,6 +15,7 @@ class RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose, kind, max){
     Object.assign(this,{ code, isPublic, bus, instanceId, onClose, kind, max });
     this.state="lobby"; this.emptySince=Date.now(); this.closed=false;
+    this.teacher=0;          // Teacher Mode: pid of a private room's host who runs it without playing
     this.onIn=m=>{ try{ this.handle(m); }catch(e){ console.error(`[${kind}:${code}]`,e); } };
   }
   // subclasses implement: handle(msg), humanCount(), connectedCount(), canReconnect(), cleanup()
@@ -29,6 +30,12 @@ class RoomBase {
     await this.bus.set(K.room(this.code),{ owner:this.instanceId, kind:this.kind, pub:this.isPublic, state:this.state, humans, max:this.max }, ROOM_TTL);
     if (this.isPublic && this.state==="lobby" && humans<this.max) await this.bus.sadd(K.open(this.kind),this.code);
     else await this.bus.srem(K.open(this.kind),this.code);
+  }
+  // Teacher Mode (all 40-player games): the host of a private room can run it without playing.
+  // The teacher is left out of the game, the rankings and the player counts, and auto-start is off.
+  makeTeacher(p){
+    if (!p || p.pid!==this.host || this.state!=="lobby" || this.isPublic) return;
+    this.teacher=p.pid; clearTimeout(this.autoTimer); this.autoAt=0; this.lobby();
   }
   send(m,to){ return this.bus.publish(K.out(this.code), to?{to,m}:{m}); }
   saveSession(token){ if (token) this.bus.set(K.sess(token),{ code:this.code },3*3600); }

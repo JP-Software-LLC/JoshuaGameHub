@@ -44,8 +44,7 @@ class MathRoom extends RoomBase {
         if (p && p.pid===this.host && this.state==="lobby" && this.constructor.MODES.includes(msg.mode)){ this.mode=msg.mode; this.lobby(); }
         return;
       case "teacher":                    // private rooms only: the host runs the room and does not play
-        if (p && p.pid===this.host && this.state==="lobby" && !this.isPublic){ this.teacher=p.pid; clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
-        return;
+        return this.makeTeacher(p);
       case "score":
         // trust the client (by design): just keep it sane
         if (p && this.state==="playing" && msg.round===this.round && p.scores[this.round-1]==null)

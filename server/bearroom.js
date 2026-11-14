@@ -26,13 +26,14 @@ class BearRoom extends RoomBase {
 
   lobby(){
     return this.send({ t:"lobby", game:"bear", code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
-      host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
+      host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
   }
   handle(msg){
     const p=this.byCid(msg.cid);
     switch (msg.t){
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startGame(); return;
+      case "teacher": return this.makeTeacher(p);
       case "in": if (p && this.game) this.game.setInput(p.pid, +msg.x||0, +msg.y||0); return;
       case "leave": case "drop":
         if (!p) return;
@@ -42,6 +43,7 @@ class BearRoom extends RoomBase {
           this.players.delete(p.pid);
           if (this.game){ const gp=this.game.players.find(q=>q.id===p.pid); if (gp && gp.alive){ gp.alive=false; gp.outT=this.game.time; gp.outRound=this.game.round; } }
         }
+        if (p.pid===this.teacher && msg.t==="leave") this.teacher=0;
         if (p.pid===this.host) this.pickHost();
         this.register(); this.lobby(); this.scheduleAuto(); this.checkEmpty(); return;
     }
@@ -60,20 +62,20 @@ class BearRoom extends RoomBase {
     this.emptySince=0; this.saveSession(token);
     this.send({ t:"joined", code:this.code, game:"bear", pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
-    if (this.state==="playing" && this.game) this.send({ t:"start", players:this.roster(), in:0 },cid);   // rejoin mid-game
+    if (this.state==="playing" && this.game) this.send({ t:"start", players:this.roster().filter(q=>q.pid!==this.teacher), teacher:this.teacher, in:0 },cid);   // rejoin mid-game
   }
   scheduleAuto(){
-    if (this.state!=="lobby") return;
+    if (this.state!=="lobby" || this.teacher) return;
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startGame(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
   }
   startGame(){
-    if (this.state!=="lobby" || this.connectedCount()<MIN_PLAYERS) return;
+    if (this.state!=="lobby" || this.connectedCount()-(this.teacher?1:0)<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
     this.state="playing"; this.register(); this.lobby();
-    this.game=new BEAR.Game([...this.players.values()].map(p=>({ id:p.pid, name:p.name })));
-    this.send({ t:"start", players:this.roster(), in:COUNTDOWN_MS });
+    this.game=new BEAR.Game([...this.players.values()].filter(p=>p.pid!==this.teacher).map(p=>({ id:p.pid, name:p.name })));
+    this.send({ t:"start", players:this.roster().filter(p=>p.pid!==this.teacher), teacher:this.teacher, in:COUNTDOWN_MS });
     this.send({ t:"s", s:this.game.snapshot(), e:[] });                         // show the spawn during the countdown
     this.goTimer=setTimeout(()=>{ this.timer=setInterval(()=>this.tick(),TICK_MS); },COUNTDOWN_MS);
   }

@@ -37,14 +37,14 @@ const relays=new Map();          // code -> {conns:Set, fn}  (out-channel subscr
 const conns=new Set();
 
 const id=n=>crypto.randomBytes(n).toString("base64url");
-const CODE_CHARS="ABCDEFGHJKLMNPQRSTUVWXYZ";
+const { CODE_CHARS, codeOK }=require("./codes");      // kid-safe room codes
 const cleanName=s=>String(s||"").replace(/[^\p{L}\p{N} _.\-!?']/gu,"").trim().slice(0,14)||"Player";
 const cleanCode=s=>String(s||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
 
 async function createRoom(isPublic,kind){
   const Cls=KINDS[kind]||Room;
   let code;
-  for (let i=0;i<20;i++){ code=Array.from({length:4},()=>CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(""); if (!await bus.get(K.room(code))) break; }
+  for (let i=0;i<200;i++){ code=Array.from({length:4},()=>CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(""); if (codeOK(code) && !await bus.get(K.room(code))) break; }
   const r=new Cls(code,isPublic,bus,INSTANCE,c=>rooms.delete(c));
   rooms.set(code,r); await r.open();
   return code;

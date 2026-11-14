@@ -124,6 +124,7 @@
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Play online</button><button class="btn pink" id="bPrivate">Private game</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a game for your class</button>
   <button class="btn alt" id="bSolo">Solo vs bots</button>
   <p class="err" id="err"></p>
 </div></section>
@@ -230,7 +231,7 @@ function onEvent(e){
       tileEls.forEach((t,i)=>{ t.classList.toggle("hit",G.tiles[i]===e.target); t.classList.toggle("miss",G.tiles[i]!==e.target); });
       showCrowds(e.pos,e.out); tileEls.forEach(t=>t.classList.remove("me"));
       G.aliveSet=new Set(e.pos.filter(q=>q[3]).map(q=>q[0]));
-      const wasIn=G.alive; G.alive=G.aliveSet.has(G.me);
+      const wasIn=G.alive; G.alive=!G.teacherView&&G.aliveSet.has(G.me);
       if (wasIn && !G.alive) msg("OUT!<small>Not a match this time</small>");
       else if (wasIn) msg(e.out.length?"SAFE! ✓":"PHEW!<small>Nobody found it, so everyone stays in</small>");
       setPhase("result",T.resultT,e.out.length?`${e.out.length} out · ${G.aliveSet.size} left`:"Nobody out this round!");
@@ -238,7 +239,7 @@ function onEvent(e){
       break; }
   }
 }
-function updateAlive(){ $("hAlive").innerHTML=`In: <b>${G.aliveSet.size}</b> / ${G.players.size}`; $("spect").textContent=G.alive?"":"You're out. Watching the rest of the game…"; }
+function updateAlive(){ $("hAlive").innerHTML=`In: <b>${G.aliveSet.size}</b> / ${G.players.size}`; $("spect").textContent=G.teacherView?"🍎 Teacher view · watching your class":G.alive?"":"You're out. Watching the rest of the game…"; }
 
 // ============================================================
 //  INPUT — arrows / WASD move one tile; only while choosing
@@ -276,6 +277,7 @@ let last=performance.now();
 })(last);
 
 function beginGame({ players, me, inMs, mode }){
+  G.teacherView=false;
   Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), alive:true, aliveSet:new Set(players.map(p=>p.pid)), phase:"idle", round:0, tiles:Array(N*N).fill(-1) });
   setTiles(false); clearCrowds(); markMe(); $("target").classList.add("off"); $("tPic").textContent="❔";
   $("hRound").textContent="Round 1"; setPhase("idle",inMs/1000,"Get ready…"); updateAlive();
@@ -342,6 +344,7 @@ const Net={
   close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
 };
 function onNet(m){
+  if (teacherIntercept(m)) return;
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
     case "joined":
@@ -360,13 +363,13 @@ function renderLobby(){
   const L=Net.lobby; if (!L) return;
   $("lKind").textContent=L.pub?"Online game":"Private game";
   $("lCode").textContent=L.code; $("lCount").textContent=`${L.players.length} / ${L.max} players`;
-  $("lGrid").innerHTML=L.players.map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${esc(p.name[0]||"?").toUpperCase()}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
+  $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${esc(p.name[0]||"?").toUpperCase()}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
   const host=L.host===Net.pid; $("bStart").style.display=host?"":"none";
   clearInterval(lobbyTimer);
   const note=()=>{ let t=L.state==="playing"?"A game is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
     if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
     $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t; };
-  note(); lobbyTimer=setInterval(note,500);
+  const note2=()=>{ note(); teacherLobby(L); }; note2(); lobbyTimer=setInterval(note2,500);
 }
 function goOnline(m){ err(""); myName(); Net.open(); Net.send(m); }
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:"memory" });
@@ -375,6 +378,29 @@ $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.l
 $("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
 $("bStart").onclick=()=>Net.send({ t:"start" });
 $("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+
+// ============================================================
+//  TEACHER MODE — the teacher runs a private room without playing
+// ============================================================
+function teacherLobby(L){
+  if (!L || !L.teacher) return;
+  const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), t=L.players.find(p=>p.pid===L.teacher);
+  const cnt=$("lCount"); if (cnt) cnt.textContent=`${kids.length} / ${L.max-1} students`;
+  $("lKind").textContent="🍎 Teacher mode · private game";
+  $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
+}
+function teacherIntercept(m){
+  if (m.t==="joined" && Net.wantTeacher && m.game==="memory"){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+  return teacherView(m);
+}
+$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"memory" }); };
+function teacherView(m){
+  if (m.t==="start" && m.teacher && m.teacher===Net.pid){
+    beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online" });
+    G.alive=false; G.teacherView=true; clearCrowds(); markMe(); updateAlive(); return true; }
+  return false;
+}
 function exitGame(){
   if (screen==="menu"){ location.href="../"; return; }
   if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
@@ -383,7 +409,7 @@ function exitGame(){
 $("exitBtn").onclick=exitGame;
 addEventListener("DOMContentLoaded",()=>{ const p=new URLSearchParams(location.search), q=p.get("play"), j=p.get("join"); if (!q&&!j) return; history.replaceState(null,"",location.pathname);
   if (j){ $("codeIn").value=j.toUpperCase(); $("bJoin").click(); }
-  else if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="solo") $("bSolo").click(); });
+  else if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
 </script>
 </body>
 </html>

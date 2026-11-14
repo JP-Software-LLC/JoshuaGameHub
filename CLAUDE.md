@@ -65,6 +65,14 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Up to 40 on a 5×5 board of black tiles. Each round: all tiles show pictures (5 s, −0.4 s per round, min 1.6 s) → flip back → target picture shown → 5 s (constant) to move with arrows (only during this phase) onto a matching tile. Not on a match = OUT; if nobody matched, nobody is out. Round 1 has 2 different pictures, +1 per round (max 10). Last one standing wins; ranking by rounds survived.
 - Server-authoritative (`shared/memory.js` Game in `server/memoryroom.js`); each player's position is sent ONLY to them (`me{x,y}`) until the round's `result`, which reveals everyone (avatars laid out in a mini-grid per tile, never stacked). Solo mode vs 7 bots runs the same Game in the browser.
 
+## Teacher Mode (all six 40-player games: math, arrows, rush, hurdle, bear, memory)
+- A private room's host sends `teacher{}` (menu button "🍎 Teacher mode", or `?play=teacher`). Shared core is `RoomBase.makeTeacher()`: the teacher never plays, isn't ranked or counted, auto-start is off, only the teacher can start; public rooms refuse it. Lobby/start/go messages carry `teacher`.
+- Teacher views: Math/Arrow = class timer then boards · Rush/Hurdle = live standings board (`classView`; only the top max(3, 15 %) are named, everyone else is a "+N more still racing" count so nobody is singled out) · Bear/Memory = watch the whole game. Tested by `scripts/teacher-test.js`.
+- Home page has a "For teachers" section (3 steps + one card per whole-class game with "Start as teacher") and a "🍎 Whole class" library filter.
+
+## Room codes
+- `server/codes.js`: 4 letters from consonants only (BCDFGHJKLMNPQRSTVWXZ: no vowels, so no words) + a blocklist of rude vowel-less abbreviations + no triple letters. `scripts/codes-test.js` checks all 160,000 codes (~142k allowed).
+
 ## Shared UI / rooms
 - Both games: tiny ✕ circle fixed top-right (and Esc). On the game menu → hub; anywhere else → leave match/room and return to that game's menu.
 - Rooms close immediately when every player has LEFT (lobby or mid-game). A mid-game room only waits (45 s) if someone DROPPED and may reconnect (`canReconnect()`).

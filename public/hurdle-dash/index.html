@@ -166,6 +166,7 @@
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Race online</button><button class="btn orange" id="bPrivate">Private race</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a race for your class</button>
   <button class="btn alt" id="bSolo">Solo race vs bots</button>
   <p class="err" id="err"></p>
 </div></section>
@@ -550,6 +551,7 @@ const Net={
   close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
 };
 function onNet(m){
+  if (teacherIntercept(m)) return;
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
     case "joined":
@@ -570,7 +572,7 @@ function renderLobby(){
   $("lKind").textContent=L.pub?"Online race":"Private race";
   $("lCode").textContent=L.code;
   $("lCount").textContent=`${L.players.length} / ${L.max} runners`;
-  $("lGrid").innerHTML=L.players.map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
+  $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
   const host=L.host===Net.pid;
   $("bStart").style.display=host?"":"none";
   clearInterval(lobbyTimer);
@@ -579,7 +581,7 @@ function renderLobby(){
     if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
     $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t;
   };
-  note(); lobbyTimer=setInterval(note,500);
+  const note2=()=>{ note(); teacherLobby(L); }; note2(); lobbyTimer=setInterval(note2,500);
 }
 function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:"hurdle" });
@@ -588,6 +590,60 @@ $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.l
 $("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
 $("bStart").onclick=()=>Net.send({ t:"start" });
 $("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+
+// ============================================================
+//  TEACHER MODE — the teacher runs a private room without playing
+// ============================================================
+function teacherLobby(L){
+  if (!L || !L.teacher) return;
+  const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), t=L.players.find(p=>p.pid===L.teacher);
+  const cnt=$("lCount"); if (cnt) cnt.textContent=`${kids.length} / ${L.max-1} students`;
+  $("lKind").textContent="🍎 Teacher mode · private game";
+  $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
+}
+function teacherIntercept(m){
+  if (m.t==="joined" && Net.wantTeacher && m.game==="hurdle"){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+  return teacherView(m);
+}
+$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"hurdle" }); };
+
+const CV={ on:false, players:new Map(), dist:100, fin:new Map(), el:null };
+function classView(m){
+  CV.on=true; CV.players=new Map(m.players.map(p=>[p.pid,p])); CV.dist=T.dist; CV.fin=new Map();
+  G.mode="online"; G.me=Net.pid; G.players=CV.players; if (typeof G.track!=="undefined") G.track={ dist:CV.dist };
+  if (!CV.el){ CV.el=document.createElement("div"); CV.el.id="classView";
+    CV.el.style.cssText="position:fixed;inset:0;z-index:6;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto;background:rgba(15,20,30,.82);backdrop-filter:blur(4px)";
+    document.body.appendChild(CV.el); }
+  document.querySelectorAll(".screen").forEach(x=>x.classList.remove("on")); screen="class";
+  CV.el.style.display="flex"; CV.start=performance.now()+m.in; renderCV([]);
+}
+function renderCV(rows){
+  if (!CV.on) return;
+  const all=[...CV.players.values()].map(p=>{ const q=rows.find(r=>r[0]===p.pid); return { p, d:q?q[1]:0, done:q?!!q[3]:false, t:CV.fin.get(p.pid) }; })
+    .sort((a,b)=>(b.done-a.done)||(a.done&&b.done?a.t-b.t:b.d-a.d));
+  const secs=Math.max(0,(performance.now()-CV.start)/1000), pre=performance.now()<CV.start;
+  const shown=Math.min(all.length,Math.max(3,Math.ceil(all.length*0.15))), rest=all.length-shown, restDone=all.slice(shown).filter(a=>a.done).length;
+  CV.el.innerHTML=`<div style="width:min(900px,100%);background:#fff;border-radius:22px;padding:22px 24px;box-shadow:0 30px 70px -20px #000;font-family:inherit;color:#1b2a3a">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div><div style="font-weight:900;letter-spacing:2px;font-size:13px;color:#ea580c">🍎 CLASS VIEW · LIVE STANDINGS</div><div style="font-size:30px;font-weight:900">${pre?"Get ready…":all.every(a=>a.done)?"Everyone finished!":"Race in progress"}</div></div>
+      <div style="font-size:34px;font-weight:900;font-variant-numeric:tabular-nums">${pre?Math.ceil((CV.start-performance.now())/1000):fmt(secs)}</div></div>
+    <div style="font-weight:900;letter-spacing:1px;font-size:12px;color:#5a6b7e;margin:-4px 0 8px">TOP ${shown} OF ${all.length}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${all.slice(0,shown).map((a,i)=>`<div style="display:grid;grid-template-columns:34px minmax(90px,180px) 1fr 78px;gap:10px;align-items:center;font-weight:800">
+      <span style="font-size:18px;color:#5a6b7e">${i+1}</span><span style="display:flex;align-items:center;gap:8px;min-width:0"><i style="width:14px;height:14px;border-radius:4px;flex:none;background:${pcol(a.p.color)}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.p.name)}</span></span>
+      <span style="height:14px;border-radius:8px;background:#e8eef5;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,100*a.d/CV.dist)}%;background:${a.done?"#16a34a":pcol(a.p.color)};border-radius:8px"></i></span>
+      <span style="text-align:right;font-variant-numeric:tabular-nums">${a.done&&a.t!=null?fmt(a.t):Math.round(100*a.d/CV.dist)+"%"}</span></div>`).join("")}</div>
+    ${rest?`<div style="margin-top:14px;padding:12px 14px;border-radius:14px;background:#f1f6fb;font-weight:800;color:#5a6b7e;text-align:center">+ ${rest} more student${rest===1?"":"s"} ${restDone===rest?"finished":"still racing"}. Keep going! 💪</div>`:""}</div>`;
+}
+function endCV(){ CV.on=false; if (CV.el) CV.el.style.display="none"; }
+function teacherView(m){
+  if (m.t==="go" && m.teacher && m.teacher===Net.pid){ classView(m); return true; }
+  if (CV.on && m.t==="ps"){ CV.rows=m.p; renderCV(m.p); return true; }
+  if (CV.on && m.t==="fin"){ CV.fin.set(m.pid,m.time); renderCV(CV.rows||[]); return true; }
+  if (CV.on && m.t==="results"){ endCV(); showResults(m.rank); return true; }
+  if (m.t==="lobby" && CV.on){ Net.lobby=m; m.at=performance.now(); return true; }
+  return false;
+}
 function exitGame(){
   if (screen==="menu"){ location.href="../"; return; }
   if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
@@ -596,7 +652,7 @@ function exitGame(){
 }
 $("exitBtn").onclick=exitGame;
 addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.search).get("play"); if (!q) return; history.replaceState(null,"",location.pathname);
-  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="solo") $("bSolo").click(); });
+  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
 // hub "Have a code?" deep link: ?join=CODE
 addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
   $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });

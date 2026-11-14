@@ -132,6 +132,7 @@
   <div><div class="label" style="margin-bottom:8px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Public game</button><button class="btn ghost" id="bPrivate">Private game</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="ROOM CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;font-family:var(--mono)"><button class="btn ghost" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn ghost" id="bTeacher">🍎 Teacher mode <span style="color:var(--b5);font-weight:500">· run a game for your class</span></button>
   <button class="btn ghost" id="bPractice">Solo practice · 1 min</button>
   <p class="err" id="err"></p>
   <div class="hint"><span>Up to 40 players</span><span>1 minute</span><span>← ↑ → ↓ keys</span></div>
@@ -333,6 +334,7 @@ const Net={
   close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
 };
 function onNet(m){
+  if (teacherIntercept(m)) return;
   switch (m.t){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
     case "joined":
@@ -349,7 +351,7 @@ function renderLobby(){
   const L=Net.lobby; if (!L) return;
   $("lKind").textContent=L.pub?"Public game":"Private game";
   $("lCode").textContent=L.code; $("lCount").textContent=`${L.players.length} / ${L.max}`;
-  $("lPeople").innerHTML=L.players.map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.pid===L.host?"host":""} ${p.connected?"":"away"}">${esc(p.name)}</span>`).join("");
+  $("lPeople").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.pid===L.host?"host":""} ${p.connected?"":"away"}">${esc(p.name)}</span>`).join("");
   const host=L.host===Net.pid; $("bStart").style.display=host?"":"none";
   clearInterval(lobbyTimer);
   const note=()=>{
@@ -358,7 +360,7 @@ function renderLobby(){
     else if (L.state==="lobby") t="Auto-starts 30 s after a 2nd player joins."+(host?" Or start now.":"");
     $("lNote").textContent=(L.pub?"":"Share the code so friends can join. ")+t;
   };
-  note(); lobbyTimer=setInterval(note,500);
+  const note2=()=>{ note(); teacherLobby(L); }; note2(); lobbyTimer=setInterval(note2,500);
 }
 function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:"arrows" });
@@ -367,6 +369,32 @@ $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.l
 $("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
 $("bStart").onclick=()=>Net.send({ t:"start" });
 $("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+
+// ============================================================
+//  TEACHER MODE — the teacher runs a private room without playing
+// ============================================================
+function teacherLobby(L){
+  if (!L || !L.teacher) return;
+  const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), t=L.players.find(p=>p.pid===L.teacher);
+  const cnt=$("lCount"); if (cnt) cnt.textContent=`${kids.length} / ${L.max-1} students`;
+  $("lKind").textContent="🍎 Teacher mode · private game";
+  $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
+}
+function teacherIntercept(m){
+  if (m.t==="joined" && Net.wantTeacher && m.game==="arrows"){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+  return teacherView(m);
+}
+$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"arrows" }); };
+function teacherView(m){
+  if (m.t==="round" && Net.lobby && Net.lobby.teacher===Net.pid){
+    const until=performance.now()+m.in+m.dur; clearInterval(window.__tw);
+    const tick=()=>{ const left=Math.max(0,Math.ceil((until-performance.now())/1000)), dur=Math.round(m.dur/1000);
+      $("wScore").textContent=Math.min(left,dur)+"s"; $("wNote").textContent=left>dur?"🍎 Get ready… your class starts in a moment":"🍎 Your class is playing! Scores appear when the minute is up."; $("wRow").style.display="none"; };
+    tick(); window.__tw=setInterval(tick,250); show("wait"); return true; }
+  if (m.t==="final") clearInterval(window.__tw);
+  return false;
+}
 function exitGame(){
   if (screen==="menu"){ location.href="../"; return; }
   R.active=false; R.sent=true; $("count").classList.remove("on"); clearInterval(lobbyTimer);
@@ -376,7 +404,7 @@ function exitGame(){
 $("exitBtn").onclick=exitGame;
 addEventListener("DOMContentLoaded",()=>{ const p=new URLSearchParams(location.search), q=p.get("play"), j=p.get("join"); if (!q&&!j) return; history.replaceState(null,"",location.pathname);
   if (j){ $("codeIn").value=j.toUpperCase(); $("bJoin").click(); }
-  else if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="practice") $("bPractice").click(); });
+  else if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="practice") $("bPractice").click(); });
 </script>
 </body>
 </html>

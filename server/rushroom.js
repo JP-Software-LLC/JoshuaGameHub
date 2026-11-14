@@ -32,13 +32,14 @@ class RushRoom extends RoomBase {
 
   lobby(){
     return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
-      host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
+      host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
   }
   handle(msg){
     const p=this.byCid(msg.cid);
     switch (msg.t){
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startRace(); return;
+      case "teacher": return this.makeTeacher(p);
       case "pos":
         if (!p || this.state!=="playing" || p.fin!=null) return;
         if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(this.dist,msg.d));
@@ -54,6 +55,7 @@ class RushRoom extends RoomBase {
         if (!p) return;
         if (this.state==="playing" && msg.t==="drop") p.connected=false;
         else this.players.delete(p.pid);
+        if (p.pid===this.teacher && msg.t==="leave") this.teacher=0;
         if (p.pid===this.host) this.pickHost();
         this.register(); this.lobby(); this.scheduleAuto(); this.checkEmpty();
         if (this.state==="playing") this.checkAllDone();
@@ -76,32 +78,33 @@ class RushRoom extends RoomBase {
     this.register(); this.lobby(); this.scheduleAuto();
     if (this.state==="playing") this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
   }
+  racers(){ return [...this.players.values()].filter(p=>p.pid!==this.teacher); }
   scheduleAuto(){
-    if (this.state!=="lobby") return;
+    if (this.state!=="lobby" || this.teacher) return;
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startRace(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
   }
-  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, players:this.roster() }; }
+  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, teacher:this.teacher, players:this.roster().filter(p=>p.pid!==this.teacher) }; }
   startRace(){
-    if (this.state!=="lobby" || this.connectedCount()<MIN_PLAYERS) return;
+    if (this.state!=="lobby" || this.racers().filter(p=>p.connected).length<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
     for (const p of this.players.values()) Object.assign(p,{ d:0, x:0, fin:null });
     this.seed=crypto.randomInt(1,2**31-1); this.startAt=Date.now()+COUNTDOWN_MS;
     this.state="playing"; this.register(); this.lobby();
     this.send({ ...this.goMsg(), in:COUNTDOWN_MS });
-    this.relay=setInterval(()=>this.send({ t:"ps", p:[...this.players.values()].map(q=>[q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]) }),RELAY_MS);
+    this.relay=setInterval(()=>this.send({ t:"ps", p:this.racers().map(q=>[q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]) }),RELAY_MS);
     this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+MAX_RACE_MS);
   }
   checkAllDone(){
-    const racing=[...this.players.values()].filter(p=>p.connected&&p.fin==null);
-    if (!racing.length && [...this.players.values()].some(p=>p.fin!=null)) this.finish();
-    else if (!this.players.size) this.finish();
+    const racing=this.racers().filter(p=>p.connected&&p.fin==null);
+    if (!racing.length && this.racers().some(p=>p.fin!=null)) this.finish();
+    else if (!this.racers().length) this.finish();
   }
   finish(){
     if (this.state!=="playing") return;
     clearInterval(this.relay); clearTimeout(this.endTimer); clearTimeout(this.capTimer); this.endTimer=null;
-    const rank=[...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d, extra:p.extra??null }))
+    const rank=this.racers().map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d, extra:p.extra??null }))
       .sort((a,b)=>(a.time==null)-(b.time==null) || (a.time!=null ? a.time-b.time : b.d-a.d));
     this.send({ t:"results", rank, dist:this.dist });
     this.state="lobby";

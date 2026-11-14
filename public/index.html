@@ -191,6 +191,40 @@
   .filters button:hover{color:var(--ink)}
   .filters button.on{background:var(--ink);color:#0b0d12;border-color:transparent}
   .card.hide{display:none}
+  .tbadge{background:rgba(255,92,92,.12)!important;color:#ffb3b3!important;border:1px solid rgba(255,120,120,.3)}
+  /* ---------- teachers ---------- */
+  .tlink{color:#ffb3b3!important;font-weight:600;white-space:nowrap}
+  .teachcta{display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:10px 16px;border-radius:999px;border:1px solid rgba(255,120,120,.35);background:rgba(255,92,92,.08);
+    color:#ffd5d5;text-decoration:none;font-weight:600;font-size:15px;transition:background .2s,transform .2s}
+  .teachcta:hover{background:rgba(255,92,92,.16);transform:translateY(-1px)}
+  .teach .kicker{display:block;font-family:var(--px);font-size:9px;letter-spacing:2px;color:#ff8f8f;margin-bottom:10px}
+  .tintro{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;margin-bottom:22px}
+  .tlead{margin:0;color:var(--dim);font-size:17px;line-height:1.6}
+  .tlead b{color:var(--ink)}
+  .tsteps{display:grid;gap:10px;counter-reset:st}
+  .tstep{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:var(--glass);border:1px solid var(--edge2)}
+  .tstep::before{counter-increment:st;content:counter(st);flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ff6b6b;color:#1a0b0b;font-weight:700;font-family:var(--sans)}
+  .tstep>div>b{display:block;color:var(--ink);font-size:16px;margin-bottom:2px}
+  .tstep span b{color:var(--ink)}
+  .tstep span{color:var(--dim);font-size:14px;line-height:1.45}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:14px}
+  .tcard{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:var(--r);background:var(--glass);border:1px solid var(--edge2);transition:border-color .2s,transform .2s}
+  .tcard:hover{border-color:rgba(255,120,120,.45);transform:translateY(-3px)}
+  .tcard .th{display:flex;align-items:center;gap:12px}
+  .tcard .ico{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:26px;background:rgba(255,255,255,.06);flex:none}
+  .tcard h3{margin:0;font-family:var(--px);font-weight:400;font-size:11px;line-height:1.5}
+  .tcard .skill{color:#ffd5d5;font-size:14px;font-weight:600}
+  .tcard p{margin:0;color:var(--dim);font-size:14px;line-height:1.5}
+  .tcard .tm{display:flex;gap:8px;flex-wrap:wrap}
+  .tcard .tm span{font-size:12px;font-weight:600;color:#aeb6c3;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.05)}
+  .tcard .acts{display:flex;gap:8px;margin-top:auto}
+  .tcard .acts a{flex:1;text-align:center;text-decoration:none;font-family:var(--px);font-size:9px;padding:12px 10px;border-radius:10px}
+  .tcard .go{background:#ff6b6b;color:#1a0b0b;box-shadow:0 4px 0 #a33a3a}
+  .tcard .go:hover{filter:brightness(1.08)}
+  .tcard .try{border:1px solid var(--edge2);color:var(--ink)}
+  .tfacts{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;padding:14px 18px;border-radius:14px;border:1px dashed rgba(255,120,120,.35);color:var(--dim);font-size:14px}
+  .tfacts span::before{content:"✓ ";color:#58c27d;font-weight:700}
+  @media (max-width:900px){ .tintro{grid-template-columns:1fr} }
   .liveb{position:absolute;top:12px;right:12px;z-index:2;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 9px;border-radius:999px;
     background:rgba(7,8,12,.75);border:1px solid rgba(88,194,125,.45);color:#bfe8cd}
   .liveb i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
@@ -242,6 +276,7 @@
   <div class="wrap bar">
     <a class="brand" href="/" aria-label="Joshua Game Hub home"><canvas id="mark" width="16" height="16"></canvas><b>JOSHUA <span>GAME</span> HUB</b></a>
     <nav>
+      <a href="#teachers" class="tlink">🍎 For teachers</a>
       <a href="#games" class="hide-m">Games</a>
       <a href="#how" class="hide-m">How it works</a>
       <span class="live" id="live" hidden><i></i><span id="liveN">0</span>&nbsp;online</span>
@@ -256,6 +291,7 @@
     <p class="lede rise d3">Eight quick-fire multiplayer games for up to 40 players, right in your browser. No downloads, no accounts. Pick a name, grab some friends, and play.</p>
     <form class="joinbox rise d4" id="joinForm" autocomplete="off"><span>Have a room code?</span><input id="joinCode" maxlength="4" placeholder="ABCD" aria-label="Room code"><button class="btn" type="submit">JOIN</button></form>
     <span class="joinerr" id="joinErr" role="status"></span>
+    <a class="teachcta rise d4" href="#teachers">🍎 Teacher? Run a game for your whole class →</a>
   </section>
 
   <section class="wrap feature rise d4" aria-label="Featured games" id="feature">
@@ -286,6 +322,20 @@
         <div class="meta" id="fMeta"><span>⌨ Arrows / WASD</span><span>📱 Swipe on mobile</span><span>⏱ ~6 min matches</span></div>
       </div>
     </div>
+  </section>
+
+  <section class="wrap sec teach" id="teachers" aria-label="For teachers">
+    <div class="sechead"><div><span class="kicker">🍎 FOR TEACHERS</span><h2>WHOLE-CLASS GAMES</h2></div><p>Up to 40 students · free · nothing to install</p></div>
+    <div class="tintro">
+      <p class="tlead">Six of our games have a <b>Teacher mode</b>. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
+      <div class="tsteps">
+        <div class="tstep"><div><b>Pick a game below</b><span>Press <b>🍎 Start as teacher</b>. You get a 4-letter room code.</span></div></div>
+        <div class="tstep"><div><b>Put the code on the board</b><span>Students open <b>joshuagamehub.website</b>, type a name, and enter the code in "Have a room code?".</span></div></div>
+        <div class="tstep"><div><b>Press "Start for the class"</b><span>Nothing starts until you say so. You watch, they play, and the winners' board appears at the end.</span></div></div>
+      </div>
+    </div>
+    <div class="tgrid" id="tgrid"></div>
+    <div class="tfacts"><span>No accounts or emails: students just type a first name</span><span>Room codes are consonants only, so they never spell words</span><span>Kid-friendly games and wording</span><span>Works on Chromebooks, tablets and phones</span><span>Up to 40 students per room</span></div>
   </section>
 
   <section class="wrap sec" id="games">
@@ -319,13 +369,13 @@ $("yr").textContent=new Date().getFullYear();
 // ------------------------------------------------------------
 const GAMES=[
   { id:"clean-getaway", kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, three guards, one very full bank.", tags:["1–4 players","Online","Chase"], thumb:"cg" },
-  { id:"math-race", kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
+  { id:"math-race", teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
   { id:"splat", kind:"splat", cat:"Party", title:"SPLAT!", path:"/splat/", blurb:"Hide behind a barrel. Dodge the water balloon!", tags:["2–6 players","Online","Party"], thumb:"splat" },
-  { id:"rush-hour", kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
-  { id:"bear-attack", kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
-  { id:"hurdle-dash", kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
-  { id:"arrow-blitz", kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
-  { id:"memory-tiles", kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
+  { id:"rush-hour", teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
+  { id:"bear-attack", teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
+  { id:"hurdle-dash", teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
+  { id:"arrow-blitz", teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
+  { id:"memory-tiles", teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
 ];
 
 // ------------------------------------------------------------
@@ -512,8 +562,8 @@ for (const g of GAMES){
   el.className="card"+(g.soon?" soon":"");
   if (!g.soon) el.href=g.path;
   el.innerHTML=`<div class="thumb">${g.soon?'<span class="lock">?</span><span class="badge wip">SOON</span>':`${g.badge?`<span class="badge">${g.badge}</span>`:""}<span class="play-ic" aria-hidden="true">▶</span>`}</div>
-    <div class="cbody"><h3>${g.title}</h3><p>${g.blurb}</p><div class="cmeta">${g.tags.map(t=>`<span>${t}</span>`).join("")}</div></div>`;
-  el.dataset.cat=g.cat||""; el.dataset.kind=g.kind||"";
+    <div class="cbody"><h3>${g.title}</h3><p>${g.blurb}</p><div class="cmeta">${g.teach?'<span class="tbadge">🍎 Teacher mode</span>':""}${g.tags.map(t=>`<span>${t}</span>`).join("")}</div></div>`;
+  el.dataset.cat=g.cat||""; el.dataset.kind=g.kind||""; el.dataset.teach=g.teach?"1":"";
   if (!g.soon) el.querySelector(".thumb").insertAdjacentHTML("beforeend",'<span class="liveb" hidden><i></i><b>0</b>&nbsp;playing</span>');
   if (g.thumb==="cg") el.querySelector(".thumb").prepend(thumbCanvas());
   if (g.thumb==="math") el.querySelector(".thumb").prepend(mathThumb());
@@ -716,13 +766,31 @@ $("feature").addEventListener("pointerleave",()=>{ if (!userPicked){ $("feature"
 setFeature("clean-getaway"); arm();
 
 // ------------------------------------------------------------
+//  For teachers: one card per whole-class game, straight into Teacher mode
+// ------------------------------------------------------------
+const CLASS_GAMES=[
+  { id:"math-race", ico:"🧮", skill:"Addition · subtraction · times tables · division · money", len:"3 × 1-min rounds", view:"You pick the question type", desc:"Answers are checked as they're typed, so quick, accurate answers win. Round-by-round leaderboards keep everyone going." },
+  { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
+  { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
+  { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
+  { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
+  { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
+];
+$("tgrid").innerHTML=CLASS_GAMES.map(c=>{ const g=GAMES.find(x=>x.id===c.id); return `<div class="tcard">
+  <div class="th"><span class="ico">${c.ico}</span><div><h3>${g.title}</h3><div class="skill">${c.skill}</div></div></div>
+  <p>${c.desc}</p>
+  <div class="tm"><span>⏱ ${c.len}</span><span>👀 ${c.view}</span><span>👥 Up to 40</span></div>
+  <div class="acts"><a class="go" href="${g.path}?play=teacher">🍎 START AS TEACHER</a><a class="try" href="${g.path}">TRY IT</a></div></div>`; }).join("");
+
+// ------------------------------------------------------------
 //  Library filters
 // ------------------------------------------------------------
-const CATS=["All",...new Set(GAMES.filter(g=>!g.soon).map(g=>g.cat))];
+const CATS=["All","🍎 Whole class",...new Set(GAMES.filter(g=>!g.soon).map(g=>g.cat))];
 $("filters").innerHTML=CATS.map((c,i)=>`<button type="button" class="${i?"":"on"}" data-cat="${c}" aria-pressed="${!i}">${c}</button>`).join("");
 $("filters").addEventListener("click",e=>{ const b=e.target.closest("button"); if (!b) return;
   $("filters").querySelectorAll("button").forEach(x=>{ x.classList.toggle("on",x===b); x.setAttribute("aria-pressed",x===b); });
-  document.querySelectorAll("#lib .card").forEach(c=>c.classList.toggle("hide",b.dataset.cat!=="All"&&c.dataset.cat!==b.dataset.cat)); });
+  const cat=b.dataset.cat;
+  document.querySelectorAll("#lib .card").forEach(c=>c.classList.toggle("hide",cat==="🍎 Whole class"?!c.dataset.teach:cat!=="All"&&c.dataset.cat!==cat)); });
 
 // ------------------------------------------------------------
 //  "Have a room code?" → ask the game server which game it's for, then jump straight in

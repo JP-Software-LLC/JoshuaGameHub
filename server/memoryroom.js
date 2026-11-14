@@ -24,7 +24,7 @@ class MemoryRoom extends RoomBase {
   roster(){ return [...this.players.values()].map(p=>({ pid:p.pid, name:p.name, color:p.color, connected:p.connected })); }
   lobby(){
     return this.send({ t:"lobby", game:"memory", code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
-      host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
+      host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
   }
   meMsg(pid){ const gp=this.game&&this.game.players.find(q=>q.id===pid); return gp?{ t:"me", x:gp.x, y:gp.y, alive:gp.alive }:null; }
   handle(msg){
@@ -32,6 +32,7 @@ class MemoryRoom extends RoomBase {
     switch (msg.t){
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startGame(); return;
+      case "teacher": return this.makeTeacher(p);
       case "tile": {
         if (!p || !this.game) return;
         const at=this.game.move(p.pid, msg.dx|0, msg.dy|0);
@@ -44,6 +45,7 @@ class MemoryRoom extends RoomBase {
           this.players.delete(p.pid);
           if (this.game){ const gp=this.game.players.find(q=>q.id===p.pid); if (gp&&gp.alive){ gp.alive=false; gp.outRound=this.game.round; } }
         }
+        if (p.pid===this.teacher && msg.t==="leave") this.teacher=0;
         if (p.pid===this.host) this.pickHost();
         this.register(); this.lobby(); this.scheduleAuto(); this.checkEmpty(); return;
     }
@@ -62,20 +64,20 @@ class MemoryRoom extends RoomBase {
     this.emptySince=0; this.saveSession(token);
     this.send({ t:"joined", code:this.code, game:"memory", pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
-    if (this.state==="playing" && this.game){ this.send({ t:"start", players:this.roster(), in:0 },cid); const me=this.meMsg(p.pid); if (me) this.send(me,cid); }
+    if (this.state==="playing" && this.game){ this.send({ t:"start", players:this.roster().filter(q=>q.pid!==this.teacher), teacher:this.teacher, in:0 },cid); const me=this.meMsg(p.pid); if (me) this.send(me,cid); }
   }
   scheduleAuto(){
-    if (this.state!=="lobby") return;
+    if (this.state!=="lobby" || this.teacher) return;
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startGame(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
   }
   startGame(){
-    if (this.state!=="lobby" || !this.connectedCount()) return;
+    if (this.state!=="lobby" || this.connectedCount()-(this.teacher?1:0)<1) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
     this.state="playing"; this.register(); this.lobby();
-    this.game=new MEMORY.Game([...this.players.values()].map(p=>({ id:p.pid, name:p.name })));
-    this.send({ t:"start", players:this.roster(), in:COUNTDOWN_MS });
+    this.game=new MEMORY.Game([...this.players.values()].filter(p=>p.pid!==this.teacher).map(p=>({ id:p.pid, name:p.name })));
+    this.send({ t:"start", players:this.roster().filter(p=>p.pid!==this.teacher), teacher:this.teacher, in:COUNTDOWN_MS });
     for (const p of this.players.values()){ const me=this.meMsg(p.pid); if (me) this.send(me,p.cid); }
     this.goTimer=setTimeout(()=>{ this.game.start(); this.flush(); this.timer=setInterval(()=>this.tick(),TICK_MS); },COUNTDOWN_MS);
   }
