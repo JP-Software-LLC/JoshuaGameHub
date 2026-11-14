@@ -1,7 +1,8 @@
 // Hurdle Dash — shared rules (browser: window.HURDLE, Node: require).
-// Run by tapping Left / Right in turn. At each of 5 hurdles a 3-question addition quiz pops up
+// Run by tapping Left / Right in turn. At each of 10 hurdles one addition question pops up
 // (Math Race rules: answer is checked the moment it has enough digits, no Enter).
-// All 3 right → jump it. One wrong → trip, 3 s on the ground, then run on.
+// Right → jump it with a small speed boost. Wrong → trip, 3 s on the ground, then run on from a standstill.
+// (One question per hurdle so a deliberate miss can never beat answering: a miss costs 3 s plus the restart.)
 // Every racer gets the same questions at each hurdle (seeded per race).
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -11,14 +12,14 @@
 
 const T = {
   dist: 100,                          // metres, straight track
-  hurdles: [16, 33, 50, 67, 84],      // 5 hurdles before the finish
+  hurdles: [10, 18.5, 27, 35.5, 44, 52.5, 61, 69.5, 78, 86.5],   // 10 hurdles before the finish
   gain: 1.25,                         // m/s added per good (alternating) stride
   decay: 1.5,                         // speed fades this fast when you stop tapping (per second, exponential)
   vmax: 9.5,
   stumble: 0.6,                       // same key twice → keep 60 % of your speed
-  questions: 3,
+  questions: 1,
   tripT: 3.0,                         // seconds on the ground after a wrong answer
-  jumpT: 0.55, jumpV: 4.5,            // clearing a hurdle: short hop, carry a little speed
+  jumpT: 0.55, jumpV: 7.0,            // clearing a hurdle: short hop, land with a little speed boost
   stopBefore: 0.9,                    // runners stop this far in front of a hurdle for the quiz
 };
 

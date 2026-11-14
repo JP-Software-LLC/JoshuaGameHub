@@ -53,8 +53,8 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 
 ## Hurdle Dash rules
 - Up to 40, one lane each (lane = colour index + 1), straight 100 m school track, side view (canvas 2D; your lane in front, 4 nearest lanes behind). Tap Left/Right in turn to run (same key twice = stumble, held keys ignored); touch = two big buttons.
-- 5 hurdles. At each: 3 Math Race questions (same generator, checked on last digit, no Enter; same questions for everyone via race seed). All right → jump. One wrong → trip, 3 s on the ground, then run on.
-- `shared/hurdle.js` = rules + bots (served at /hurdle.js). Server = `server/hurdleroom.js`, a subclass of the generic race room (`RushRoom` with KIND/DIST statics): relays pos{d, x=state 0 run/1 quiz/2 trip/3 jump}, finish{time, extra=clean jumps}. Races ~30–60 s.
+- 10 hurdles, ONE Math Race question each (same generator, checked on last digit, no Enter; same questions for everyone via race seed). Right → jump + small speed boost (land at 7 m/s). Wrong → trip, 3 s on the ground, restart from 0. (Was 5×3 questions; a deliberate first-question miss beat answering, so it was changed.)
+- `shared/hurdle.js` = rules + bots (served at /hurdle.js). Server = `server/hurdleroom.js`, a subclass of the generic race room (`RushRoom` with KIND/DIST statics): relays pos{d, x=state 0 run/1 quiz/2 trip/3 jump}, finish{time, extra=clean jumps}. Races ~30–55 s.
 
 ## Arrow Blitz rules
 - One 1-minute round, up to 40. Type the shown arrow sequence (arrow keys/WASD; touch d-pad). Starts at 3 arrows, +1 after every completed sequence. Wrong key = shake + restart that sequence (length unchanged). Typed arrows turn solid yellow; Math Race dark grey background.

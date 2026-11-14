@@ -147,7 +147,7 @@
   <div id="done"><div class="card"><h2>FINISHED!</h2><b id="dTime">0:00.0</b><p id="dNote">Waiting for the others…</p></div></div>
 </div>
 <div id="quiz"><div class="card" id="qcard">
-  <div class="top"><span id="qTitle">Hurdle 1 of 5</span><span class="pips" id="pips"><i></i><i></i><i></i></span></div>
+  <div class="top"><span id="qTitle">Hurdle 1 of 5</span><span class="pips" id="pips"><i></i></span></div>
   <div class="qbody">
     <div class="prob" id="prob"><span></span><span class="n" id="qa">0</span><span class="op">+</span><span class="n" id="qb">0</span><span class="rule"></span><span class="ans" id="qans"></span></div>
     <div class="pad" id="pad"></div>
@@ -160,8 +160,8 @@
   <h1 class="logo">HURDLE DASH<small>RUN · THINK · JUMP</small></h1>
   <div class="how">
     <div><b>🏃</b>Tap <b style="display:inline;font-size:inherit">← →</b> in turn to run. Same key twice = stumble!</div>
-    <div><b>🧮</b>At each hurdle, answer 3 sums to jump it</div>
-    <div><b>💫</b>Get one wrong and you trip for 3 seconds</div>
+    <div><b>🧮</b>At each of 10 hurdles, answer a sum to jump it</div>
+    <div><b>💫</b>Get it wrong and you trip for 3 seconds</div>
   </div>
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Race online</button><button class="btn orange" id="bPrivate">Private race</button></div>
@@ -257,7 +257,7 @@ function openQuiz(){
 function renderQuiz(extra){
   const r=G.run; if (!r||!r.q) return;
   $("qTitle").textContent=`Hurdle ${r.h+1} of ${T.hurdles.length}`;
-  $("pips").innerHTML=[0,1,2].map(i=>`<i class="${i<r.qi?"ok":i===r.qi?(extra?"bad":"cur"):""}"></i>`).join("");
+  $("pips").innerHTML=Array.from({length:T.questions},(_,i)=>i).map(i=>`<i class="${i<r.qi?"ok":i===r.qi?(extra?"bad":"cur"):""}"></i>`).join("");
   $("qa").textContent=(extra?extra.q:r.q).a; $("qb").textContent=(extra?extra.q:r.q).b;
   $("qans").innerHTML=extra?`${esc(extra.typed)}<span class="fix">= ${extra.q.s}</span>`:`${esc(r.typed)}<span class="caret"></span>`;
 }
@@ -481,7 +481,7 @@ function onFinish(){
   G.done=true; $("quiz").classList.remove("on");
   if (G.mode==="online") Net.send({ t:"finish", time:G.run.finishT, extra:G.run.clean });
   $("dTime").textContent=fmt(G.run.finishT);
-  $("dNote").textContent=`${G.run.clean}/5 clean jumps · `+(G.mode==="solo"?"nice running!":"waiting for the others…");
+  $("dNote").textContent=`${G.run.clean}/${T.hurdles.length} clean jumps · `+(G.mode==="solo"?"nice running!":"waiting for the others…");
   $("done").classList.add("on"); flash("FINISH!");
   if (G.mode==="solo") setTimeout(soloResults,2500);
 }
@@ -514,7 +514,7 @@ function showResults(rank){
   const w=rank[0], n=topCount(rank.length), best=w.time;
   $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🏅</div><div class="t">${w.pid===G.me?"You won the race!":"Race champion!"}</div><h2>${esc(w.name)}</h2>`;
   const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
-    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">${e.extra!=null?`🏅 ${e.extra}/5 clean`:""}</span><span class="tm">${e.time!=null?fmt(e.time):Math.round(100*(e.d||0)/T.dist)+"%"}</span></div>`;
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">${e.extra!=null?`🏅 ${e.extra}/${T.hurdles.length} clean`:""}</span><span class="tm">${e.time!=null?fmt(e.time):Math.round(100*(e.d||0)/T.dist)+"%"}</span></div>`;
   $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
   const mi=rank.findIndex(e=>e.pid===G.me);
   $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].time!=null?fmt(rank[mi].time)+" (+"+(rank[mi].time-best).toFixed(1)+"s)":"didn't finish"}</span>`:"";

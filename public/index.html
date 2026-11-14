@@ -323,7 +323,7 @@ const GAMES=[
   { id:"splat", kind:"splat", cat:"Party", title:"SPLAT!", path:"/splat/", blurb:"Hide behind a barrel. Dodge the water balloon!", tags:["2–6 players","Online","Party"], thumb:"splat" },
   { id:"rush-hour", kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
-  { id:"hurdle-dash", kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve 3 sums to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
+  { id:"hurdle-dash", kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
 ];
 
@@ -650,9 +650,9 @@ const FEATURES={
     desc:"Skate around a slippery ice sheet while a grumpy bear naps in the middle. When the red path lights up, get out of the way, because he's about to charge! Slide off the edge and you're FROZEN.",
     roles:[["<span class=ico>⛸️</span>","SKATE","#7fd3ff","It's slippery!"],["<span class=ico>🐻</span>","DODGE","#ef4444","Watch the red path."],["<span class=ico>🧊</span>","SURVIVE","#cfeaff","The ice keeps shrinking."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrows / WASD","📱 Thumb joystick","⏱ ~1–2 min games"] },
-  "hurdle-dash":{ acc:"#f97316", chips:["Up to 40","Online + bots","Racing"], logo:"HURDLE DASH", sub:"RUN · THINK · JUMP", tag:"100 M · 5 HURDLES",
-    desc:"Sprint down the school track by tapping Left and Right in turn. At every hurdle, answer 3 quick sums to leap it. Get one wrong and you trip, so stay sharp all the way to the line!",
-    roles:[["<span class=ico>🏃</span>","SPRINT","#f97316","Tap ← → in turn."],["<span class=ico>🧮</span>","THINK","#5b9bff","3 sums per hurdle."],["<span class=ico>💫</span>","DON'T TRIP","#facc15","Wrong = 3 s on the ground."]],
+  "hurdle-dash":{ acc:"#f97316", chips:["Up to 40","Online + bots","Racing"], logo:"HURDLE DASH", sub:"RUN · THINK · JUMP", tag:"100 M · 10 HURDLES",
+    desc:"Sprint down the school track by tapping Left and Right in turn. At each of the 10 hurdles, answer a quick sum to leap it and get a burst of speed. Get it wrong and you trip, so stay sharp all the way to the line!",
+    roles:[["<span class=ico>🏃</span>","SPRINT","#f97316","Tap ← → in turn."],["<span class=ico>🧮</span>","THINK","#5b9bff","1 sum per hurdle."],["<span class=ico>💫</span>","DON'T TRIP","#facc15","Wrong = 3 s on the ground."]],
     cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ ← → + number keys","📱 Big tap buttons","⏱ ~30–60 s races"] },
   "arrow-blitz":{ acc:"#facc15", chips:["Up to 40","Online","Brainy"], logo:"ARROW BLITZ", sub:"ONE MINUTE · LONGER EVERY TIME", tag:"1-MINUTE GAMES",
     desc:"Type the arrow sequence in order with your arrow keys. Every one you finish adds another arrow. A wrong key shakes the screen and starts that sequence over. Go three in a row without a slip for bonus points!",
