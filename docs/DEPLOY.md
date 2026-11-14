@@ -1,12 +1,16 @@
 # Deploying Clean Getaway on Railway
 
-Three services in one Railway project, all deployed from this one repo:
+Railway project **intuitive-rebirth**, environment `production`. Three services, two of them deployed from this repo (`JP-Software-LLC/JoshuaGameHub`, branch `main`):
 
-| Service | What it runs | Config file | Public domain |
+| Service | Start command | Variables | Domain |
 |---|---|---|---|
-| **web** | Static client (`npm run start:web`) | `/railway.web.json` | yes, e.g. `play.yourdomain.com` |
-| **game** | WebSocket game server (`npm run start:game`) | `/railway.game.json` | yes, e.g. `game.yourdomain.com` |
-| **Redis** | Railway's Redis template | — | no (private network only) |
+| **game** | `npm run start:game` | `REDIS_URL=${{Redis.REDIS_URL}}` | https://game-production-91b09855.up.railway.app |
+| **web** | `npm run start:web` | `GAME_SERVER_URL=wss://${{game.RAILWAY_PUBLIC_DOMAIN}}` | https://web-production-a61de729.up.railway.app |
+| **Redis** | Railway Redis template | — | private network only |
+
+Both app services: healthcheck `/health` (60 s), restart on failure (10 retries), 1 replica.
+Watch paths: game = `server/**, shared/**, package.json, package-lock.json`; web = `public/**, shared/**, server/web.js, server/static.js, package.json`.
+These are set in the service settings. Railway has deprecated `railway.json` config files, so there are none in the repo.
 
 ```
  browser ──https──▶ web    (index.html, sim.js, config.js → "connect to wss://game…")
@@ -14,22 +18,13 @@ Three services in one Railway project, all deployed from this one repo:
                     game ◀──pub/sub + keys──▶ Redis (private network)
 ```
 
-## Setup (about 10 minutes)
+## Deploying changes
+Push to `main`. Each service only redeploys when its own watch paths change. A change to `shared/sim.js` redeploys both, which is correct because client and server must run the same sim.
+Check `https://<game domain>/health`. It should show `{"ok":true,"bus":"redis",…}`.
 
-1. **Push the repo to GitHub.**
-2. **Create a Railway project**, then add **+ New → Database → Redis**.
-3. **+ New → GitHub Repo →** this repo. Rename the service to `game`.
-   - Settings → *Config-as-code* → Railway config file: `/railway.game.json`
-   - Variables: `REDIS_URL` = `${{Redis.REDIS_URL}}`
-   - Settings → Networking → **Generate Domain** (or add `game.yourdomain.com`).
-4. **+ New → GitHub Repo →** the same repo again. Rename it to `web`.
-   - Config file: `/railway.web.json`
-   - Variables: `GAME_SERVER_URL` = `wss://${{game.RAILWAY_PUBLIC_DOMAIN}}`
-   - Networking → Generate Domain, or add a custom domain like `play.yourdomain.com`. Railway shows the CNAME record to add at your DNS provider and issues TLS automatically.
-5. Deploy. Check `https://<game domain>/health`. You should see `{"ok":true,"bus":"redis",…}`.
-6. Open the web domain. Try **PUBLIC MATCH** in two browsers, and **PRIVATE ROOM** with **JOIN** by code.
-
-Each service only redeploys when its own files change (`watchPatterns` in the config files). A change to `shared/sim.js` redeploys both, which is correct because client and server must run the same sim.
+## Custom domain
+On **web** → Settings → Networking → Custom Domain (e.g. `play.yourdomain.com`), then add the CNAME record Railway shows at your DNS provider. TLS is issued automatically.
+If you also give **game** a custom domain, `GAME_SERVER_URL` follows it automatically through `${{game.RAILWAY_PUBLIC_DOMAIN}}`. Redeploy `web` after the change.
 
 ### Shortcut: one service only
 The game server also serves the client. You can skip `web` and open the `game` domain directly. Keep `web` if you want the client on its own domain and redeploying separately from the game server, or if you plan to move the client to a CDN later.

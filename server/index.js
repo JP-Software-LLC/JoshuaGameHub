@@ -96,7 +96,7 @@ async function leave(c){
 const server=http.createServer(async (req,res)=>{
   if (req.url==="/health"){
     let redis=true; try{ redis=await bus.ping(); }catch{ redis=false; }
-    res.writeHead(redis?200:503,{"content-type":"application/json"});
+    res.writeHead(redis?200:503,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"}); // hub reads the online count
     return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:conns.size }));
   }
   serveStatic(req,res);

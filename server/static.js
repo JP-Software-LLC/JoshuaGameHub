@@ -26,6 +26,8 @@ function serveStatic(req,res){
     file=path.normalize(path.join(PUBLIC,p));
     if (!file.startsWith(PUBLIC)){ res.writeHead(403); return res.end(); }
   }
+  // /clean-getaway → /clean-getaway/ so the page's relative paths resolve
+  if (!path.extname(file) && fs.existsSync(path.join(file,"index.html"))){ res.writeHead(301,{ location:p+"/"+u.search }); return res.end(); }
   fs.readFile(file,(err,buf)=>{
     if (err){ res.writeHead(404,{"content-type":"text/plain"}); return res.end("not found"); }
     const ext=path.extname(file);

@@ -14,9 +14,11 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 
 ## Layout
 - `shared/sim.js`: the whole game simulation (map gen, movement, bots, rules, snapshots). UMD module: `window.CG` in the browser, `require` on the server. No DOM, no text. It emits events (`turn`, `caught`, `emp`, …) and the client turns them into UI. **Change gameplay here; client and server both use it.**
-- `public/index.html`: client. Renders a "view": the local `CG.Game` (VS BOTS mode) or a `NetView` built from server snapshots with ~60 ms interpolation. Pixel art, HUD, menus and lobby all live here. Player names are always escaped.
+- `public/index.html`: the hub landing page (game registry `GAMES`, live bot demo, online count from game `/health`).
+- `public/assets/cg-art.js`: Clean Getaway sprites + board renderer, shared by the hub demo and the game.
+- `public/clean-getaway/index.html`: the game client (deep links `?play=bots|public|private`). Renders a "view": the local `CG.Game` (VS BOTS mode) or a `NetView` built from server snapshots with ~60 ms interpolation. Pixel art, HUD, menus and lobby all live here. Player names are always escaped.
 - `server/index.js`: game server (WebSocket gateway + room hosting, also serves the client). `server/room.js`: authoritative room at 30 Hz. `server/bus.js`: Redis pub/sub + keys, with an in-memory fallback when `REDIS_URL` is unset. `server/web.js`: static-only frontend service.
-- `railway.game.json` / `railway.web.json`: config-as-code for the two Railway services. Full guide: `docs/DEPLOY.md`.
+- Railway project `intuitive-rebirth` (services `game`, `web`, `Redis`). Settings live in the Railway service config, not in repo files. Full guide: `docs/DEPLOY.md`.
 - `npm run dev` (one process, localhost:8080) · `npm test` (headless bot match + end-to-end lobby/reconnect test).
 
 ## Protocol (JSON over WebSocket)
