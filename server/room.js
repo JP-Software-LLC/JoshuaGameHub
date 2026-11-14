@@ -15,6 +15,7 @@ class Room extends RoomBase {
   connected(){ return this.slots.filter(s=>s&&s.connected); }
   humanCount(){ return this.humans().length; }
   connectedCount(){ return this.connected().length; }
+  canReconnect(){ return this.slots.some(s=>s&&!s.connected&&s.token); }   // dropped, not left
   cleanup(){ clearInterval(this.timer); }
   lobby(){
     return this.send({ t:"lobby", code:this.code, pub:this.isPublic, state:this.state,

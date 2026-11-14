@@ -137,9 +137,14 @@
   .step.s3 .blk{height:72px;background:linear-gradient(180deg,var(--b4),var(--b6));animation-delay:.1s}
   @keyframes grow{from{transform:scaleY(0)}}
   .rounds{font-family:var(--mono);font-size:12px;color:var(--b5)}
+  /* escape: tiny circle, always top-right. Menu → hub; anywhere else → leave to the menu */
+  #exitBtn{position:fixed;top:12px;right:12px;z-index:20;width:26px;height:26px;padding:0;border-radius:50%;display:grid;place-items:center;
+    background:var(--bg2);border:1px solid var(--b6);color:var(--b4);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+  #exitBtn:hover,#exitBtn:focus-visible{color:var(--b1);border-color:var(--b3);background:var(--bg3);outline:none}
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:6}
 
   @media (max-width:720px){
+    #play{padding-top:46px}
     .arena{grid-template-columns:1fr;gap:22px}
     .pad{justify-self:center;grid-template-columns:repeat(3,min(26vw,92px));grid-auto-rows:min(17vw,70px)}
     .stat b{font-size:22px}
@@ -151,6 +156,7 @@
 </style>
 </head>
 <body>
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
 <!-- MENU -->
 <section class="screen on fade" id="menu"><div class="panel">
   <a class="back" href="../">← GAME HUB</a>
@@ -247,6 +253,7 @@ function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));
   const el=$(id); el.classList.remove("fade"); void el.offsetWidth; el.classList.add("fade");
   screen=id;
+  const t=id==="menu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t);
 }
 const err=t=>$("err").textContent=t||"";
 $("nameIn").value=store.get("cg_name")||"";
@@ -470,6 +477,16 @@ $("bPublic").onclick=()=>goOnline({ t:"quick", game:"math" });
 $("bPrivate").onclick=()=>goOnline({ t:"create", game:"math" });
 $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Room codes are 4 letters."); goOnline({ t:"join", code:c }); };
 $("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
+function exitGame(){
+  if (screen==="menu"){ location.href="../"; return; }
+  R.active=false; R.sent=true; R.lockUntil=0;                       // stop the round; never report a score after leaving
+  $("count").classList.remove("on"); clearInterval(resultsTimer); clearInterval(lobbyTimer);
+  if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));   // server frees the seat; empty rooms close
+  Net.close(); Net.code=null; Net.lobby=null;
+  show("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("keydown",e=>{ if (e.key==="Escape" && screen!=="menu" && e.target.tagName!=="INPUT") exitGame(); });
 $("bStart").onclick=()=>Net.send({ t:"start" });
 $("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
 

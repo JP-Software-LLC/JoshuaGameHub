@@ -23,6 +23,7 @@ class MathRoom extends RoomBase {
   }
   humanCount(){ return this.players.size; }
   connectedCount(){ let n=0; for (const p of this.players.values()) if (p.connected) n++; return n; }
+  canReconnect(){ for (const p of this.players.values()) if (!p.connected) return true; return false; }  // leavers are removed; only drops remain
   cleanup(){ clearTimeout(this.timer); clearTimeout(this.autoTimer); }
   byCid(cid){ for (const p of this.players.values()) if (p.cid===cid) return p; return null; }
 

@@ -38,6 +38,13 @@
   @keyframes pop { from { transform:scale(.7); opacity:0; } to { transform:scale(1); opacity:1; } }
   #goal { font-family:"Press Start 2P"; font-size:9px; padding:3px 6px; border-radius:3px; margin-right:6px; }
   #state { font-family:"Press Start 2P"; font-size:10px; color:var(--gold); }
+  /* escape: tiny circle, always top-right. Menu → hub; anywhere else → leave to the menu */
+  #exitBtn { position:fixed; top:10px; right:10px; z-index:50; width:24px; height:24px; padding:0; border-radius:50%;
+             display:grid; place-items:center; background:rgba(21,26,35,.9); border:2px solid var(--edge); color:var(--dim);
+             box-shadow:0 2px 0 rgba(0,0,0,.5); cursor:pointer; transition:color .15s,border-color .15s; }
+  #exitBtn:hover, #exitBtn:focus-visible { color:var(--ink); border-color:var(--red); outline:none; }
+  @media (max-width:1040px){ #hud { padding-right:30px; } }   /* keep the 4th card clear of the exit button */
+  #exitBtn:active { transform:none; box-shadow:0 2px 0 rgba(0,0,0,.5); }
   #conn { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); font-family:"Press Start 2P"; font-size:9px; color:var(--red); background:rgba(12,15,21,.9); padding:6px 10px; border:2px solid var(--red); border-radius:4px; }
   #conn:empty { display:none; }
   /* menus */
@@ -77,6 +84,7 @@
 </style>
 </head>
 <body>
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
 <div id="wrap">
   <div id="hud"></div>
   <div id="stage">
@@ -219,6 +227,7 @@ function onNet(m){
 // ============================================================
 function setMode(m){
   MODE=m;
+  const t=m==="menu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t);
   $("menu").classList.toggle("hidden", m!=="menu");
   $("lobby").classList.toggle("hidden", m!=="lobby");
   $("results").classList.toggle("hidden", m!=="results");
@@ -240,6 +249,17 @@ function startLocal(){
   handleEvents(localGame.drainEvents());
 }
 function goOnline(msg){ menuErr(""); store.set("cg_name",$("nameIn").value.trim()); Net.open(); Net.send(msg); }
+function exitGame(){
+  if (MODE==="menu"){ location.href="../"; return; }
+  if (ONLINE){ Net.leave(); Net.want=false; if (Net.ws) Net.ws.close(); }   // server frees the seat; empty rooms close
+  ONLINE=false; localGame=null; V=null; feedClear(); bannerT=0;
+  $("banner").innerHTML=""; $("conn").textContent=""; $("hud").innerHTML=""; $("lives").innerHTML=""; $("info").textContent="—"; $("feed").innerHTML="";
+  $("prog").firstElementChild.style.width="0"; $("emp").firstElementChild.style.width="0"; hudKey=""; livesKey="";
+  ctx.clearRect(0,0,cv.width,cv.height); cv.style.borderColor="";
+  setMode("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("keydown",e=>{ if (e.key==="Escape" && MODE!=="menu" && e.target.tagName!=="INPUT") exitGame(); });
 $("btnLocal").onclick=startLocal;
 $("btnPublic").onclick=()=>goOnline({ t:"quick" });
 $("btnPrivate").onclick=()=>goOnline({ t:"create" });
@@ -278,7 +298,7 @@ const amThief=()=>LOCAL===V.thiefSlot;
 function handleEvents(evs){
   for (const e of evs){
     switch (e.type){
-      case "turn": feed(`${nameOf(e.thief)} is the thief`, COLORS[e.thief]); break;
+      case "turn": feed(e.thief===LOCAL?"You are the thief":`${nameOf(e.thief)} is the thief`, COLORS[e.thief]); break;
       case "countdown": roleBanner(); break;
       case "go": banner("GO!",null,"var(--green)"); break;
       case "empWearing": banner("EMP WEARING OFF", amThief()?"Get clear!":"Get ready", "#7fd3ff"); break;

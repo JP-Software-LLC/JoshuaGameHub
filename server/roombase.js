@@ -17,7 +17,7 @@ class RoomBase {
     this.state="lobby"; this.emptySince=Date.now(); this.closed=false;
     this.onIn=m=>{ try{ this.handle(m); }catch(e){ console.error(`[${kind}:${code}]`,e); } };
   }
-  // subclasses implement: handle(msg), humanCount(), connectedCount(), cleanup()
+  // subclasses implement: handle(msg), humanCount(), connectedCount(), canReconnect(), cleanup()
   async open(){
     await this.bus.subscribe(K.in(this.code), this.onIn);
     await this.register();
@@ -32,10 +32,12 @@ class RoomBase {
   }
   send(m,to){ return this.bus.publish(K.out(this.code), to?{to,m}:{m}); }
   saveSession(token){ if (token) this.bus.set(K.sess(token),{ code:this.code },3*3600); }
+  // Close as soon as nobody is connected, unless someone only DROPPED (lost connection) mid-game
+  // and may reconnect: then wait EMPTY_GRACE_MS. Explicit leaves never hold a room open.
   checkEmpty(){
     if (this.connectedCount()){ this.emptySince=0; return; }
     if (!this.emptySince) this.emptySince=Date.now();
-    if (this.state==="lobby"||Date.now()-this.emptySince>EMPTY_GRACE_MS) this.close();
+    if (this.state==="lobby" || !this.canReconnect() || Date.now()-this.emptySince>EMPTY_GRACE_MS) this.close();
   }
   async close(){
     if (this.closed) return; this.closed=true;
