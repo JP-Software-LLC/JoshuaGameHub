@@ -6,6 +6,7 @@
 //   SPLAT!:          start{} pick{b} throw{b}   (b = 0 left, 1 middle, 2 right)
 //   Rush Hour:       start{} pos{d,x} (~10/s) finish{time}
 //   Bear Attack!:    start{} in{x,y} (stick direction, on change)
+//   Math Race extras: mode{mode} (host, lobby) · teacher{} (private host becomes a non-playing teacher)
 //   Arrow Blitz:     start{} score{round:1,n}   (Math Race room, one round)
 //   Hurdle Dash:     start{} pos{d,x=state} finish{time,extra=clean jumps}
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
@@ -98,6 +99,8 @@ async function onMessage(c,m){
     case "ready":  return toRoom(c,{ t:"ready", v:!!m.v });
     case "input":  return toRoom(c,{ t:"input", d:String(m.d) });
     case "start":  return toRoom(c,{ t:"start" });
+    case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
+    case "teacher":return toRoom(c,{ t:"teacher" });
     case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "pick":   return toRoom(c,{ t:"pick", b:m.b|0 });
     case "throw":  return toRoom(c,{ t:"throw", b:m.b|0 });

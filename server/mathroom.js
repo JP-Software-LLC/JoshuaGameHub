@@ -21,6 +21,8 @@ class MathRoom extends RoomBase {
     this.rounds=new.target.ROUNDS; this.roundMs=new.target.ROUND_MS; this.maxScore=new.target.MAX_SCORE;
     this.players=new Map();   // pid -> {pid,cid,name,token,connected,scores:[]}
     this.nextPid=1; this.host=0; this.round=0; this.timer=null; this.autoAt=0;
+    this.mode=new.target.MODES[0];   // question type, picked by the host (Math Race: add · sub · mul · div · money)
+    this.teacher=0;                  // Teacher Mode: pid of a host who runs the room but does not play
   }
   humanCount(){ return this.players.size; }
   connectedCount(){ let n=0; for (const p of this.players.values()) if (p.connected) n++; return n; }
@@ -29,7 +31,7 @@ class MathRoom extends RoomBase {
   byCid(cid){ for (const p of this.players.values()) if (p.cid===cid) return p; return null; }
 
   lobby(){
-    return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS, rounds:this.rounds,
+    return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS, rounds:this.rounds, mode:this.mode, teacher:this.teacher,
       host:this.host, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0,
       players:[...this.players.values()].map(p=>({ pid:p.pid, name:p.name, connected:p.connected })) });
   }
@@ -38,6 +40,12 @@ class MathRoom extends RoomBase {
     switch (msg.t){
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startGame(); return;
+      case "mode":
+        if (p && p.pid===this.host && this.state==="lobby" && this.constructor.MODES.includes(msg.mode)){ this.mode=msg.mode; this.lobby(); }
+        return;
+      case "teacher":                    // private rooms only: the host runs the room and does not play
+        if (p && p.pid===this.host && this.state==="lobby" && !this.isPublic){ this.teacher=p.pid; clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
+        return;
       case "score":
         // trust the client (by design): just keep it sane
         if (p && this.state==="playing" && msg.round===this.round && p.scores[this.round-1]==null)
@@ -47,6 +55,7 @@ class MathRoom extends RoomBase {
         if (!p) return;
         if (this.state==="playing" && msg.t==="drop") p.connected=false;   // keep their scores; they can reconnect
         else this.players.delete(p.pid);
+        if (p.pid===this.teacher && msg.t==="leave") this.teacher=0;
         if (p.pid===this.host) this.pickHost();
         this.register(); this.lobby(); this.scheduleAuto(); this.checkEmpty(); return;
     }
@@ -69,13 +78,13 @@ class MathRoom extends RoomBase {
   }
   // start automatically AUTO_START_MS after the 2nd player arrives (public and private)
   scheduleAuto(){
-    if (this.state!=="lobby") return;
+    if (this.state!=="lobby" || this.teacher) return;          // in Teacher Mode the teacher decides when to start
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startGame(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
   }
   startGame(){
-    if (this.state!=="lobby" || !this.connectedCount()) return;
+    if (this.state!=="lobby" || this.connectedCount()-(this.teacher?1:0)<1) return;   // need at least one player; the teacher does not count
     clearTimeout(this.autoTimer); this.autoAt=0;
     for (const p of this.players.values()) p.scores=[];
     this.state="playing"; this.round=0; this.register(); this.lobby();
@@ -84,11 +93,11 @@ class MathRoom extends RoomBase {
   nextRound(){
     this.round++;
     const seed=crypto.randomInt(1,2**31-1);
-    this.send({ t:"round", n:this.round, of:this.rounds, seed, in:COUNTDOWN_MS, dur:this.roundMs });
+    this.send({ t:"round", n:this.round, of:this.rounds, seed, mode:this.mode, in:COUNTDOWN_MS, dur:this.roundMs });
     this.timer=setTimeout(()=>this.endRound(), COUNTDOWN_MS+this.roundMs+GRACE_MS);
   }
   ranking(score){
-    return [...this.players.values()].map(p=>({ pid:p.pid, name:p.name, score:score(p) })).sort((a,b)=>b.score-a.score);
+    return [...this.players.values()].filter(p=>p.pid!==this.teacher).map(p=>({ pid:p.pid, name:p.name, score:score(p) })).sort((a,b)=>b.score-a.score);
   }
   endRound(){
     const r=this.round-1;
@@ -110,4 +119,5 @@ class MathRoom extends RoomBase {
 }
 // Math Race. Other "everyone plays locally, report one score" games subclass this.
 MathRoom.KIND="math"; MathRoom.ROUNDS=ROUNDS; MathRoom.ROUND_MS=ROUND_MS; MathRoom.MAX_SCORE=300;
+MathRoom.MODES=["add","sub","mul","div","money"];
 module.exports={ MathRoom, MAX_PLAYERS, ROUNDS };

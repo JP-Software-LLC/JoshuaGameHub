@@ -17,6 +17,8 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Addition of 1–2 digit numbers, answers always 2–3 digits. Answer is checked the moment it has as many digits as the correct answer — no Enter, no backspace. Wrong = shake + 3 s penalty (shows the right answer), then next question.
 - **All questions and checking are client-side by design (no anti-cheat).** Server sends one seed per round (everyone gets the same questions) and receives one number per player per round.
 - Round leaderboard shows top max(3, ceil(15%)) (6 for 40). Final shows a podium + the same count, ranked by total.
+- Modes (host picks in the lobby; practice has its own picker): add · sub (answers ≥ 10) · mul (2–12 × 2–12) · div (whole answers) · money (add two prices; type the cents, shown in a $_.__ mask). Round msg carries `mode`.
+- Teacher Mode (menu button): private room where the host sends `teacher{}` → doesn't play, isn't ranked, auto-start off, sees a class view (timer) during rounds plus the normal boards.
 - Solo practice: offline, length selectable (15 s–2 min, default 1 min, remembered), personal best per length.
 - Visuals: very dark grey + shades of blue only; red only for a physically held key on the on-screen keypad (keypad is tappable on touch screens).
 

@@ -82,6 +82,14 @@
   .problem.good .ans{color:var(--b1);text-shadow:0 0 30px rgba(143,185,255,.6)}
   .problem.bad .ans{color:var(--b6);text-decoration:line-through;text-decoration-thickness:.06em}
   .problem .fix{position:absolute;right:0;top:100%;font-size:.42em;color:var(--b3);white-space:nowrap}
+  .modes{display:flex;gap:4px;background:var(--bg);border:1px solid var(--b7);border-radius:12px;padding:4px;flex-wrap:wrap}
+  .modes button{flex:1;min-width:58px;border:0;background:transparent;color:var(--b5);padding:9px 4px;border-radius:8px;font-family:var(--mono);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+  .modes button:hover{color:var(--b2)}
+  .modes button.on{background:var(--b6);color:var(--b1);box-shadow:inset 0 0 0 1px var(--b5)}
+  .modes.ro button{cursor:default}
+  .modes.ro button:not(.on){opacity:.45}
+  .chip.teach::before{content:"🍎 ";}
+  .teachbox{border:1px dashed var(--b6);border-radius:12px;padding:10px 12px;color:var(--b3);font-size:14px}
   .pen{grid-column:1/-1;height:.05em;background:var(--b7);border-radius:1em;overflow:hidden;margin-top:.5em;opacity:0}
   .pen i{display:block;height:100%;background:var(--b4)}
   .problem.bad .pen{opacity:1}
@@ -161,11 +169,12 @@
 <section class="screen on fade" id="menu"><div class="panel">
   <a class="back" href="../">← GAME HUB</a>
   <h1 class="wordmark">math<span>race</span></h1>
-  <p class="sub">One minute per round. Add the numbers and type the answer. There's no Enter key: the right answer moves you on. A wrong one costs you 3 seconds.</p>
+  <p class="sub">One minute per round. Solve each sum and type the answer. There's no Enter key: the right answer moves you on. A wrong one costs you 3 seconds.</p>
   <div><div class="label" style="margin-bottom:8px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Public race</button><button class="btn ghost" id="bPrivate">Private race</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="ROOM CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px;font-family:var(--mono)"><button class="btn ghost" id="bJoin" style="flex:0 0 auto">Join</button></div>
-  <div class="practice"><div class="label">Solo practice length</div><div class="seg" id="pTime" role="radiogroup" aria-label="Practice length"></div><button class="btn ghost" id="bPractice">Solo practice</button></div>
+  <button class="btn ghost" id="bTeacher">🍎 Teacher mode <span style="color:var(--b5);font-weight:500">· run a private race for your class</span></button>
+  <div class="practice"><div class="label">Practice mode</div><div class="modes" id="pMode" role="radiogroup" aria-label="Practice mode"></div><div class="label">Solo practice length</div><div class="seg" id="pTime" role="radiogroup" aria-label="Practice length"></div><button class="btn ghost" id="bPractice">Solo practice</button></div>
   <p class="err" id="err"></p>
   <div class="hint"><span>Up to 40 players</span><span>3 rounds</span><span>Number keys or numpad</span></div>
 </div></section>
@@ -175,6 +184,8 @@
   <div class="label" id="lKind">Private race</div>
   <div style="display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap"><div class="code" id="lCode">----</div><div class="count" id="lCount">0 / 40</div></div>
   <p class="sub" id="lNote">Share the code so friends can join.</p>
+  <div><div class="label" style="margin-bottom:6px" id="lModeLbl">Question type</div><div class="modes" id="lMode" role="radiogroup" aria-label="Question type"></div></div>
+  <div class="teachbox" id="lTeach" hidden></div>
   <div class="people" id="lPeople"></div>
   <div class="row"><button class="btn" id="bStart">Start race</button><button class="btn ghost" id="bLeave" style="flex:0 0 auto">Leave</button></div>
 </div></section>
@@ -190,7 +201,7 @@
   <div class="arena" id="arena">
     <div class="problem" id="prob">
       <span></span><span class="n" id="qa">00</span>
-      <span class="op">+</span><span class="n" id="qb">00</span>
+      <span class="op" id="qop">+</span><span class="n" id="qb">00</span>
       <span class="rule"></span>
       <span class="ans" id="qans"></span>
       <span class="pen"><i id="pen"></i></span>
@@ -233,16 +244,26 @@ if (matchMedia("(pointer:coarse)").matches) document.body.classList.add("touch")
 
 // ============================================================
 //  QUESTIONS — all client-side. Same seed → same questions for every player.
-//  Addition of 1- or 2-digit numbers; answers are always 2 or 3 digits.
+//  Modes: add (answers 2–3 digits) · sub · mul (2–12 × 2–12) · div (whole answers) · money (add two prices).
+//  Every question is { top, bottom, op, s (answer), len (digits to type), money }.
 // ============================================================
+const MODES=[["add","+ Add"],["sub","− Subtract"],["mul","× Multiply"],["div","÷ Divide"],["money","$ Money"]];
+const MODE_NAME={ add:"Addition", sub:"Subtraction", mul:"Multiplication", div:"Division", money:"Money" };
+const cash=c=>"$"+Math.floor(c/100)+"."+String(c%100).padStart(2,"0");
 function rng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-function questionStream(seed){
-  const r=rng(seed), num=()=>r()<0.3 ? 1+(r()*9|0) : 10+(r()*90|0);
-  let prev=null;
-  return ()=>{ for(;;){ const a=num(), b=num(), s=a+b;
-    if (s<10||s>999) continue;                          // no 1-digit answers (max is 99+99=198)
-    if (prev && prev.a===a && prev.b===b) continue;
-    return prev={ a, b, s, len:String(s).length }; } };
+function questionStream(seed, mode="add"){
+  const r=rng(seed), int=(lo,hi)=>lo+(r()*(hi-lo+1)|0), num=()=>r()<0.3 ? int(1,9) : int(10,99);
+  let prev="";
+  const make={
+    add(){ const a=num(), b=num(), s=a+b; return s<10?null:{ top:a, bottom:b, op:"+", s }; },               // answers 2–3 digits
+    sub(){ const a=r()<0.75?int(20,99):int(100,199), b=int(1,a-10); return { top:a, bottom:b, op:"−", s:a-b }; },   // answers ≥ 10
+    mul(){ const a=int(2,12), b=int(2,12); return { top:a, bottom:b, op:"×", s:a*b }; },
+    div(){ const b=int(2,12), q=int(2,12); return { top:b*q, bottom:b, op:"÷", s:q }; },                    // always divides evenly
+    money(){ const a=int(1,199)*5, b=int(1,199)*5; return { top:cash(a), bottom:cash(b), op:"+", s:a+b, money:true }; },   // type the cents: $4.75 → 475
+  }[mode]||null;
+  return ()=>{ for(;;){ const q=(make||(()=>null))()||null; if (!q) { if (!make) return { top:0, bottom:0, op:"+", s:0, len:1 }; continue; }
+    const key=q.top+q.op+q.bottom; if (key===prev) continue; prev=key;
+    q.len=String(q.s).length; return q; } };
 }
 
 // ============================================================
@@ -281,22 +302,28 @@ addEventListener("blur",()=>Object.values(KEYS).forEach(k=>k.classList.remove("d
 // ============================================================
 //  ROUND (runs entirely in the browser)
 // ============================================================
-const R={ active:false, n:0, of:3, startAt:0, endAt:0, score:0, q:null, next:null, typed:"", lockUntil:0, practice:false, sent:false };
-function beginRound({ n, of, seed, inMs, dur, practice }){
-  Object.assign(R,{ active:false, n, of, practice, score:0, typed:"", lockUntil:0, sent:false,
-    next:questionStream(seed), startAt:performance.now()+inMs });
+const R={ mode:"add", active:false, n:0, of:3, startAt:0, endAt:0, score:0, q:null, next:null, typed:"", lockUntil:0, practice:false, sent:false };
+function beginRound({ n, of, seed, inMs, dur, practice, mode }){
+  Object.assign(R,{ mode:mode||"add", active:false, n, of, practice, score:0, typed:"", lockUntil:0, sent:false,
+    next:questionStream(seed, mode||"add"), startAt:performance.now()+inMs });
   R.endAt=R.startAt+dur; R.dur=dur;
   newQuestion();
   $("hRound").textContent=practice?"Solo":`${n}/${of}`; $("hScore").textContent="0"; $("hTime").textContent=Math.round(dur/1000);
-  $("cLabel").textContent=practice?"Practice":`Round ${n} of ${of}`;
+  $("cLabel").textContent=(practice?"Practice":`Round ${n} of ${of}`)+" · "+MODE_NAME[R.mode];
   show("play"); $("count").classList.add("on");
 }
 function newQuestion(){
   R.q=R.next(); R.typed="";
-  $("qa").textContent=R.q.a; $("qb").textContent=R.q.b;
+  $("qa").textContent=R.q.top; $("qb").textContent=R.q.bottom; $("qop").textContent=R.q.op;
+  const w=Math.max(String(R.q.top).length,String(R.q.bottom).length,R.q.money?R.q.len+2:R.q.len);
+  $("prob").style.gridTemplateColumns=`auto ${Math.max(3.2,w+0.2)}ch`;
   $("prob").classList.remove("good","bad"); renderAns();
 }
-function renderAns(extra){ $("qans").innerHTML=esc(R.typed)+(extra||(R.active&&!R.lockUntil?'<span class="caret"></span>':"")); }
+function moneyMask(typed,len){ const d=(typed+"_".repeat(len)).slice(0,len).padStart(Math.max(3,len),"0"); return "$"+d.slice(0,-2)+"."+d.slice(-2); }
+function renderAns(extra){
+  const shown=R.q&&R.q.money?moneyMask(R.typed,R.q.len):R.typed;
+  $("qans").innerHTML=esc(shown)+(extra||(R.active&&!R.lockUntil&&!(R.q&&R.q.money)?'<span class="caret"></span>':""));
+}
 function typeDigit(d){
   if (!R.active || R.lockUntil) return;
   R.typed+=d; renderAns();
@@ -306,7 +333,7 @@ function typeDigit(d){
     newQuestion(); flash($("arena"));                // next question immediately: no input is ever lost
   } else {                                          // wrong: shake + 3 s penalty
     $("prob").classList.add("bad"); shake($("arena"));
-    renderAns(`<span class="fix">= ${R.q.s}</span>`);
+    renderAns(`<span class="fix">= ${R.q.money?cash(R.q.s):R.q.s}</span>`);
     R.lockUntil=performance.now()+PENALTY_MS;
   }
 }
@@ -349,12 +376,16 @@ function renderPTime(){
 }
 $("pTime").addEventListener("click",e=>{ const b=e.target.closest("button[data-s]"); if (!b) return; pSecs=+b.dataset.s; store.set("mr_practice",pSecs); renderPTime(); });
 renderPTime();
-$("bPractice").onclick=()=>{ myName(); Net.close(); beginRound({ n:1, of:1, seed:(Math.random()*2**31)|0, inMs:3000, dur:pSecs*1000, practice:true }); };
+let pMode=store.get("mr_mode"); if (!MODES.some(m=>m[0]===pMode)) pMode="add";
+function modeButtons(el,cur){ el.innerHTML=MODES.map(([k,l])=>`<button type="button" role="radio" aria-checked="${k===cur}" class="${k===cur?"on":""}" data-m="${k}">${l}</button>`).join(""); }
+modeButtons($("pMode"),pMode);
+$("pMode").addEventListener("click",e=>{ const b=e.target.closest("button[data-m]"); if (!b) return; pMode=b.dataset.m; store.set("mr_mode",pMode); modeButtons($("pMode"),pMode); });
+$("bPractice").onclick=()=>{ myName(); Net.close(); beginRound({ n:1, of:1, seed:(Math.random()*2**31)|0, inMs:3000, dur:pSecs*1000, practice:true, mode:pMode }); };
 function practiceDone(){
-  const secs=Math.round(R.dur/1000), key="mr_best_"+secs;            // personal best per practice length
+  const secs=Math.round(R.dur/1000), key="mr_best_"+secs+(R.mode==="add"?"":"_"+R.mode);   // personal best per length (and mode)
   const best=Math.max(+(store.get(key)||0),R.score); store.set(key,best);
   const len=(P_OPTS.find(o=>o[0]===secs)||[0,secs+"s"])[1];
-  $("rTitle").textContent=`Practice results · ${len}`;
+  $("rTitle").textContent=`Practice results · ${len} · ${MODE_NAME[R.mode]}`;
   $("rBoard").innerHTML=line(1,{ name:myName(), score:R.score },true,R.score||1,0);
   $("rYou").innerHTML=`<span>Personal best (${len})</span><b style="font-family:var(--mono)">${best}</b>`;
   $("rNext").innerHTML=`<div class="row" style="margin-top:6px"><button class="btn" id="bPAgain">Go again</button><button class="btn ghost" id="bPMenu">Menu</button></div>`;
@@ -378,6 +409,17 @@ let resultsTimer=0;
 function showWaiting(){
   $("rTitle").textContent=`Round ${R.n} · you got ${R.score}`;
   $("rBoard").innerHTML=`<div class="next">Collecting everyone's scores…</div>`; $("rYou").innerHTML=""; $("rNext").innerHTML="";
+  show("results");
+}
+function teacherWatch(m){
+  const until=performance.now()+m.in+m.dur;
+  clearInterval(resultsTimer);
+  const students=(Net.lobby?Net.lobby.players.filter(p=>p.pid!==Net.lobby.teacher&&p.connected).length:0);
+  const tick=()=>{ const left=Math.max(0,Math.ceil((until-performance.now())/1000));
+    $("rTitle").textContent=`🍎 Class view · Round ${m.n} of ${m.of} · ${MODE_NAME[m.mode]||""}`;
+    $("rBoard").innerHTML=`<div class="next" style="font-size:18px">${left>Math.round(m.dur/1000)?"Get ready…":"Your class is racing!"}</div><div class="code" style="text-align:center;color:var(--b1)">${Math.min(left,Math.round(m.dur/1000))}s</div><div class="next">${students} student${students===1?"":"s"} playing · results appear here after the round</div>`;
+    $("rYou").innerHTML=""; $("rNext").innerHTML=""; };
+  tick(); resultsTimer=setInterval(tick,250);
   show("results");
 }
 function showResults(m){
@@ -444,11 +486,16 @@ function onNet(m){
     case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
     case "joined":
       if (m.game!=="math"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
-      Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
+      Net.pid=m.pid; Net.code=m.code;
+      if (Net.wantTeacher){ Net.wantTeacher=false; Net.send({ t:"teacher" }); }
+      if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby();
       if (screen==="menu" && m.state==="playing"){ show("results"); $("rTitle").textContent="Race in progress"; $("rBoard").innerHTML=`<div class="next">You'll join at the next round.</div>`; $("rYou").innerHTML=$("rNext").innerHTML=""; }
       break;
-    case "round": beginRound({ n:m.n, of:m.of, seed:m.seed, inMs:m.in, dur:m.dur, practice:false }); break;
+    case "round":
+      if (Net.lobby && Net.lobby.teacher===Net.pid) teacherWatch(m);           // the teacher watches; doesn't play
+      else beginRound({ n:m.n, of:m.of, seed:m.seed, inMs:m.in, dur:m.dur, practice:false, mode:m.mode });
+      break;
     case "results": showResults(m); break;
     case "final": showFinal(m); break;
     case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
@@ -459,20 +506,29 @@ function renderLobby(){
   const L=Net.lobby; if (!L) return;
   $("lKind").textContent=L.pub?"Public race":"Private race";
   $("lCode").textContent=L.code;
-  $("lCount").textContent=`${L.players.length} / ${L.max}`;
-  $("lPeople").innerHTML=L.players.map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.pid===L.host?"host":""} ${p.connected?"":"away"}">${esc(p.name)}</span>`).join("");
-  const host=L.host===Net.pid;
+  const players=L.players.filter(p=>p.pid!==L.teacher), teacher=L.players.find(p=>p.pid===L.teacher);
+  $("lCount").textContent=`${players.length} / ${L.max-(L.teacher?1:0)}`;
+  $("lPeople").innerHTML=players.map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.pid===L.host?"host":""} ${p.connected?"":"away"}">${esc(p.name)}</span>`).join("")||`<span class="sub">Waiting for students to join with the code…</span>`;
+  const host=L.host===Net.pid, iTeach=L.teacher===Net.pid;
   $("bStart").style.display=host?"":"none";
+  $("bStart").textContent=iTeach?"Start class race":"Start race";
+  $("lKind").textContent=L.teacher?"🍎 Teacher mode · private race":(L.pub?"Public race":"Private race");
+  modeButtons($("lMode"),L.mode||"add"); $("lMode").classList.toggle("ro",!host||L.state!=="lobby");
+  $("lModeLbl").textContent=host?"Question type (you choose)":"Question type";
+  $("lTeach").hidden=!L.teacher;
+  $("lTeach").innerHTML=iTeach?"🍎 You're the teacher. You won't play. Pick a question type, then press <b>Start class race</b> when everyone's in.":teacher?`🍎 ${esc(teacher.name)} is your teacher and will start the race.`:"";
   clearInterval(lobbyTimer);
   const note=()=>{
-    let t=L.state==="playing"?"A race is in progress…":host?"You're the host. Start when everyone's in.":"Waiting for the host to start…";
+    let t=L.state==="playing"?"A race is in progress…":L.teacher?(iTeach?"":"Waiting for your teacher to start…"):host?"You're the host. Start when everyone's in.":"Waiting for the host to start…";
     if (L.autoIn){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting automatically in ${s}s`+(host?" (or start now)":""); }
-    else if (L.state==="lobby") t="Auto-starts 30 s after a 2nd racer joins."+(host?" Or start now.":"");
-    $("lNote").textContent=(L.pub?"":"Share the code so friends can join. ")+t;
+    else if (L.state==="lobby" && !L.teacher) t="Auto-starts 30 s after a 2nd racer joins."+(host?" Or start now.":"");
+    $("lNote").textContent=(L.pub?"":iTeach?"Share this code with your class. ":"Share the code so friends can join. ")+t;
   };
   note(); lobbyTimer=setInterval(note,500);
 }
 function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
+$("lMode").addEventListener("click",e=>{ const b=e.target.closest("button[data-m]"); const L=Net.lobby; if (!b||!L||L.host!==Net.pid||L.state!=="lobby") return; Net.send({ t:"mode", mode:b.dataset.m }); });
+$("bTeacher").onclick=()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"math" }); };
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:"math" });
 $("bPrivate").onclick=()=>goOnline({ t:"create", game:"math" });
 $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Room codes are 4 letters."); goOnline({ t:"join", code:c }); };
