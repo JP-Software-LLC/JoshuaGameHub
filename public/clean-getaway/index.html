@@ -11,7 +11,7 @@
   html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:"VT323",monospace; font-size:20px; overflow:hidden; touch-action:none; }
   #wrap { display:flex; flex-direction:column; height:100%; padding:8px; gap:8px; max-width:980px; margin:0 auto; }
   /* top bar: player cards */
-  #hud { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  #hud { flex:none; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
   .pl { background:var(--panel); border:2px solid var(--edge); border-radius:4px; padding:5px 7px; display:flex; gap:7px; align-items:center; min-width:0; box-shadow:inset 0 -3px 0 rgba(0,0,0,.35); }
   .pl.it { border-color:var(--gold); background:linear-gradient(#211d12,#151a23); }
   .pl canvas { width:32px; height:32px; image-rendering:pixelated; flex:none; }
@@ -21,14 +21,17 @@
   #stage { position:relative; flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
   #cv { image-rendering:pixelated; max-width:100%; max-height:100%; border:3px solid var(--edge); border-radius:4px; background:#000; }
   /* bottom bar */
-  #bar { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; background:var(--panel); border:2px solid var(--edge); border-radius:4px; padding:6px 10px; }
+  #bar { flex:none; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; background:var(--panel); border:2px solid var(--edge); border-radius:4px; padding:6px 10px; }
   #lives { display:flex; gap:3px; align-items:center; }
   #lives canvas { width:20px; height:20px; image-rendering:pixelated; }
   .meter { height:10px; background:#0b0e14; border:2px solid var(--edge); border-radius:2px; overflow:hidden; }
   .meter i { display:block; height:100%; background:var(--green); transition:width .15s; }
   #emp i { background:#7fd3ff; }
   #info { font-size:18px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #feed { font-size:18px; text-align:right; white-space:nowrap; min-width:150px; }
+  /* fixed-size feed: alerts must never change the bar height (which would resize the board) */
+  #feed { font-size:18px; line-height:18px; height:54px; width:clamp(150px,30vw,300px); overflow:hidden; text-align:right;
+          display:flex; flex-direction:column; justify-content:center; }
+  #feed div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #banner { position:absolute; top:10px; left:50%; transform:translateX(-50%); pointer-events:none; display:flex; flex-direction:column; align-items:center; gap:4px; }
   .bn { font-family:"Press Start 2P"; font-size:11px; padding:8px 12px; background:rgba(12,15,21,.88); border:2px solid var(--gold); border-radius:4px; color:var(--ink); white-space:nowrap; animation:pop .18s ease-out; box-shadow:0 3px 0 rgba(0,0,0,.5); }
   .bn small { display:block; font-family:"VT323"; font-size:17px; color:var(--dim); margin-top:4px; text-align:center; }
