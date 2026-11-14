@@ -32,16 +32,17 @@ srv.stdout.on("data",async d=>{
     for (let k=1;k<=6;k++){ all.forEach((c,i)=>c.send({ t:"pos", d:k*100*(i+1), x:(i-1)*3.6 })); await sleep(100); }
     const ps=all[3].msgs.filter(m=>m.t==="ps").pop();
     if (!ps || ps.p.length!==4) fail("position relay should include all 4");
-    if (ps.p.find(q=>q[0]===all[3].pid)[1]<2000) fail("relay should carry latest distance");
+    if (ps.p.find(q=>q[0]===all[3].pid)[1]<Math.min(2000,gos[0].dist*0.5)) fail("relay should carry latest distance");
     // finishes: R2 first, then R0, R1; R3 never finishes
     all[2].send({ t:"finish", time:118.4 }); await sleep(50);
     all[0].send({ t:"finish", time:121.0 }); await sleep(50);
     all[1].send({ t:"finish", time:124.2 });
-    all[3].send({ t:"pos", d:4000, x:0 });
+    const partD=Math.round(gos[0].dist*0.8);
+    all[3].send({ t:"pos", d:partD, x:0 });
     const res=await all[0].wait(m=>m.t==="results",5000);
     const order=res.rank.map(r=>r.name).join(",");
     if (order!=="R2,R0,R1,R3") fail("ranking wrong: "+order);
-    if (res.rank[3].time!=null || res.rank[3].d!==4000) fail("unfinished racer should be ranked by distance");
+    if (res.rank[3].time!=null || res.rank[3].d!==partD) fail("unfinished racer should be ranked by distance");
     await all[0].wait(m=>m.t==="lobby"&&m.state==="lobby");
     console.log("OK: rush hour — shared seed, host start, position relay, finish ranking, unfinished by distance");
     srv.kill(); setTimeout(()=>process.exit(0),200);
