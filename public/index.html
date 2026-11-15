@@ -68,7 +68,7 @@
   .lede{max-width:620px;margin:0 auto;color:var(--dim);font-size:clamp(15px,1.6vw,17px);line-height:1.5}
 
   /* ---------- featured showcase ---------- */
-  .feature{margin:10px auto 24px;perspective:1600px;max-width:980px}
+  .feature{margin:10px auto 24px;perspective:1600px;max-width:1040px}
   .show{position:relative;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);border-radius:22px;overflow:hidden;
     background:var(--glass);border:1px solid var(--edge2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     box-shadow:0 40px 120px -30px rgba(0,0,0,.8),0 0 0 1px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
@@ -167,9 +167,9 @@
   .joinbox .btn{padding:12px 16px;font-size:10px}
   .joinerr{display:block;min-height:0;margin-top:4px;color:#ff8f8f;font-size:14px}
   /* ---------- featured tabs ---------- */
-  .ftabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
-  .ftab{position:relative;overflow:hidden;appearance:none;border:1px solid var(--edge2);background:var(--glass);color:var(--dim);border-radius:999px;padding:6px 12px;
-    font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+  .ftabs{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+  .ftab{position:relative;overflow:hidden;appearance:none;border:1px solid var(--edge2);background:var(--glass);color:var(--dim);border-radius:999px;padding:6px 10px;
+    font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
   .ftab:hover{color:var(--ink)}
   .ftab[aria-selected="true"]{color:#1a1408;background:var(--acc,var(--gold));border-color:transparent}
   .ftab .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:rgba(0,0,0,.35)}
@@ -302,7 +302,7 @@
   <section class="hero wrap">
     <span class="eyebrow rise d1"><i></i>BROWSER · MULTIPLAYER · FREE</span>
     <h1 class="rise d2">Small games.<br><span class="g">Big rivalries.</span></h1>
-    <p class="lede rise d3">Eight quick multiplayer games for up to 40 players. No downloads, no accounts.</p>
+    <p class="lede rise d3">Nine quick multiplayer games for up to 40 players. No downloads, no accounts.</p>
     <form class="joinbox rise d4" id="joinForm" autocomplete="off"><span>Have a room code?</span><input id="joinCode" maxlength="4" placeholder="ABCD" aria-label="Room code"><button class="btn" type="submit">JOIN</button></form><a class="teachcta" href="#teachers">🍎 Teacher? Run a game for your whole class →</a>
     <span class="joinerr" id="joinErr" role="status"></span>
   </section>
@@ -346,7 +346,7 @@
   <section class="wrap sec teach" id="teachers" aria-label="For teachers">
     <div class="sechead"><div><span class="kicker">🍎 FOR TEACHERS</span><h2>WHOLE-CLASS GAMES</h2></div><p>Up to 40 students · free · nothing to install</p></div>
     <div class="tintro">
-      <p class="tlead">Six of our games have a <b>Teacher mode</b>. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
+      <p class="tlead">Seven of our games are made for the whole class. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
       <div class="tsteps">
         <div class="tstep"><div><b>Pick a game from the list</b><span>Press <b>🍎 Start as teacher</b>. You get a 4-letter room code.</span></div></div>
         <div class="tstep"><div><b>Put the code on the board</b><span>Students open <b>joshuagamehub.website</b>, type a name, and enter the code in "Have a room code?".</span></div></div>
@@ -391,6 +391,7 @@ const GAMES=[
   { id:"hurdle-dash", teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
+  { id:"odds-evens", teach:true, kind:"oddsevens", cat:"Brainy", title:"ODDS OR EVENS", path:"/odds-evens/", blurb:"Pairs swipe to slice the right numbers on the smart board!", tags:["Up to 40","Smart board","Brainy"], badge:"NEW", thumb:"oddsevens" },
 ];
 
 // ------------------------------------------------------------
@@ -532,6 +533,17 @@ function arrowThumb(){
   return c;
 }
 // Memory Tiles thumbnail: a 5×5 board, a few tiles flipped to show pictures, the "FIND" card
+function oddsThumb(){
+  const balls=[[120,250,36,"#38bdf8",14],[230,130,40,"#a78bfa",7],[340,210,38,"#34d399",22],[440,110,34,"#fb923c",9],[300,300,30,"#f472b6",18]];
+  const b=balls.map(([x,y,r,c,n])=>`<circle cx="${x+4}" cy="${y+6}" r="${r}" fill="rgba(0,0,0,.3)"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#fff" stroke-width="4"/><text x="${x}" y="${y+r*0.36}" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="${r}" fill="#fff" stroke="#0d1b2a" stroke-width="3" paint-order="stroke">${n}</text>`).join("");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><radialGradient id="og" cx=".5" cy="1.1" r="1"><stop offset="0" stop-color="#1d3a5c"/><stop offset="1" stop-color="#0d1b2a"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#og)"/>${b}
+    <path d="M60 330 Q 250 140 500 60" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+    <path d="M60 330 Q 250 140 500 60" fill="none" stroke="#38bdf8" stroke-width="18" stroke-linecap="round" opacity=".25"/>
+    </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
+}
 function memoryThumb(){
   const pics=["🍕","⚽","🍕","🌙","⚽"], up=new Set([1,3,7,11,13,17,19,23]);
   let tiles="";
@@ -588,6 +600,7 @@ for (const g of GAMES){
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
+  if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
   lib.appendChild(el);
 }
 const live=GAMES.filter(g=>!g.soon).length;
@@ -749,9 +762,13 @@ const FEATURES={
     desc:"Every tile flips to show a picture for a few seconds, then goes black. When you are told what to find, use the arrows to stand on a matching tile before time runs out. Each round adds a new picture and gives you less time to look.",
     roles:[["<span class=ico>👀</span>","LOOK","#ffd23f","Pictures flash, then hide."],["<span class=ico>🏃</span>","STAND","#2ee6c5","5 s to reach a match."],["<span class=ico>👑</span>","SURVIVE","#ff5d9e","Last one in wins."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ ~1–2 min games"] },
+  "odds-evens":{ acc:"#38bdf8", chips:["Up to 40","Smart board","Brainy"], logo:"ODDS OR EVENS", sub:"SLICE THE RIGHT NUMBERS", tag:"SMART BOARD GAME",
+    desc:"The class is split into pairs. Each pair comes up to the board, picks evens or odds, then has 30 seconds to swipe through the right numbers as they fly up. Slice a wrong one and you lose points!",
+    roles:[["<span class=ico>👫</span>","PAIR UP","#fcd34d","Two slicers at once."],["<span class=ico>✋</span>","SLICE","#38bdf8","+10 for the right type."],["<span class=ico>❌</span>","CAREFUL","#fb923c","−5 for a wrong one."]],
+    cta:[["🍎 PLAY WITH MY CLASS","teacher"],["TRY A ROUND","try"]], meta:["👆 Touch screen or smart board","🖱 Mouse works too","⏱ 30 s per pair"] },
 };
 const ROT_MS=9000; let rotTimer=0, userPicked=false;
-const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb })[g.thumb]();
+const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb })[g.thumb]();
 function renderTabs(){
   $("ftabs").innerHTML=GAMES.filter(g=>!g.soon).map(g=>`<button class="ftab" role="tab" data-id="${g.id}" data-kind="${g.kind}" aria-selected="${g.id===featured}" style="--acc:${FEATURES[g.id].acc};--rot:${ROT_MS}ms">${g.title}<span class="dot" hidden></span><span class="bar"></span></button>`).join("");
 }
@@ -788,6 +805,7 @@ const CLASS_GAMES=[
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
   { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
+  { id:"odds-evens", ico:"✂️", skill:"Odd and even numbers", len:"30 s per pair", view:"Played on your smart board", desc:"Pairs come up to the board and swipe to slice the right numbers." },
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
 ];

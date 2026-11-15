@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Odds or Evens · Joshua Game Hub</title>
+<meta name="theme-color" content="#0d1b2a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0d1b2a; --ink:#f4f7fb; --dim:#9fb3c8; --even:#38bdf8; --odd:#fb923c; --good:#4ade80; --bad:#f87171; --gold:#fcd34d; --f:"Fredoka",system-ui,sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(1200px 700px at 50% 110%,#1d3a5c,transparent 60%),var(--bg);color:var(--ink);font-family:var(--f);
+    -webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
+  button,input,select,textarea{font-family:inherit}
+  #cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .scr{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
+  .scr[hidden]{display:none}
+  .card{width:min(620px,100%);max-height:calc(100vh - 40px);overflow:auto;background:rgba(13,27,42,.88);border:2px solid #24476b;border-radius:26px;padding:26px;box-shadow:0 30px 80px -20px rgba(0,0,0,.7);backdrop-filter:blur(8px)}
+  .logo{margin:0;text-align:center;font-weight:700;font-size:clamp(40px,7vw,64px);line-height:1}
+  .logo .e{color:var(--even)} .logo .o{color:var(--odd)}
+  .logo small{display:block;font-size:.3em;letter-spacing:5px;color:var(--dim);margin-top:10px}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0}
+  .how div{background:#12263b;border:1px solid #24476b;border-radius:16px;padding:12px;text-align:center;color:var(--dim);font-size:14px;line-height:1.3}
+  .how b{display:block;font-size:26px;margin-bottom:4px}
+  .lbl{display:block;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:14px 0 6px}
+  .f{width:100%;border:2px solid #2c5582;border-radius:14px;padding:12px 14px;font-size:17px;color:var(--ink);background:#0a1624;outline:none}
+  .f:focus{border-color:var(--even)}
+  textarea.f{height:120px;resize:vertical;user-select:text;-webkit-user-select:text}
+  .btn{appearance:none;border:0;border-radius:16px;padding:15px 20px;font-size:20px;font-weight:700;cursor:pointer;color:#0d1b2a;background:var(--gold);box-shadow:0 5px 0 #b8901c;transition:transform .08s}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b8901c}
+  .btn.alt{background:#1f3a57;color:var(--ink);box-shadow:0 5px 0 #10233a}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1}
+  .muted{color:var(--dim);font-size:14px;line-height:1.45}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;border:2px solid #2c5582;background:#0a1624;color:var(--dim);border-radius:12px;padding:10px;font-size:16px;font-weight:600;cursor:pointer}
+  .seg button.on{border-color:var(--gold);color:var(--ink);background:#1f3a57}
+  .pairs{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:14px 0}
+  .pair{background:#12263b;border:1px solid #24476b;border-radius:12px;padding:8px 10px;font-size:15px}
+  .pair b{color:var(--gold);margin-right:6px}
+  .pair.done{opacity:.45}
+  .big{font-size:clamp(28px,5vw,44px);font-weight:700;text-align:center;margin:4px 0 6px}
+  .names{text-align:center;font-size:clamp(22px,3.6vw,32px);color:var(--gold);margin-bottom:18px}
+  .choose{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .pick{border:0;border-radius:24px;padding:28px 10px;cursor:pointer;color:#0d1b2a;font-weight:700;font-size:clamp(30px,5vw,46px);line-height:1.1}
+  .pick small{display:block;font-size:.42em;font-weight:600;opacity:.8;margin-top:6px}
+  .pick.e{background:var(--even);box-shadow:0 8px 0 #1d7fae} .pick.o{background:var(--odd);box-shadow:0 8px 0 #b8611f}
+  .pick:active{transform:translateY(4px)}
+  .podium{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+  .pod{display:flex;align-items:center;gap:12px;background:#12263b;border:1px solid #24476b;border-radius:14px;padding:12px 14px;font-size:20px}
+  .pod .m{font-size:30px;width:40px;text-align:center}
+  .pod .s{margin-left:auto;font-weight:700;color:var(--gold)}
+  #hud{position:fixed;left:0;right:0;top:0;z-index:4;display:flex;justify-content:space-between;align-items:flex-start;padding:14px 70px 0 18px;pointer-events:none}
+  #hud[hidden]{display:none}
+  .hb{background:rgba(10,22,36,.75);border:2px solid #24476b;border-radius:16px;padding:8px 16px;font-weight:700;font-size:clamp(20px,3vw,30px)}
+  .hb small{display:block;font-size:12px;letter-spacing:1.5px;color:var(--dim);font-weight:600}
+  #goal{font-size:clamp(22px,3.4vw,36px)}
+  #count{position:fixed;inset:0;z-index:6;display:grid;place-items:center;font-size:min(30vw,220px);font-weight:700;pointer-events:none;text-shadow:0 10px 0 rgba(0,0,0,.3)}
+  #count[hidden]{display:none}
+  #xbtn{position:fixed;top:12px;right:12px;z-index:10;width:34px;height:34px;border-radius:50%;border:2px solid #3b6a99;background:rgba(10,22,36,.8);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center}
+  @media (max-width:560px){ .how{grid-template-columns:1fr} .card{padding:18px} }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button id="xbtn" aria-label="Exit" title="Exit (Esc)">✕</button>
+<div id="hud" hidden>
+  <div class="hb" id="goal">SLICE EVENS</div>
+  <div class="row" style="flex:0 0 auto;gap:10px"><div class="hb"><small>POINTS</small><span id="hScore">0</span></div><div class="hb"><small>TIME</small><span id="hTime">30</span></div></div>
+</div>
+<div id="count" hidden></div>
+
+<!-- MENU -->
+<div class="scr" id="sMenu"><div class="card">
+  <h1 class="logo"><span class="o">ODDS</span> or <span class="e">EVENS</span><small>SLICE THE RIGHT NUMBERS</small></h1>
+  <div class="how"><div><b>👫</b>Pairs come up to the board together</div><div><b>✋</b>Pick evens or odds, then swipe to slice</div><div><b>⏱</b>30 seconds. Wrong numbers lose points!</div></div>
+  <div class="row"><button class="btn" id="bClass">🍎 Play with my class</button><button class="btn alt" id="bTry">Try a round</button></div>
+  <p class="muted" style="text-align:center;margin:14px 0 0">Made for a smart board or touch screen. Two people can slice at once. A mouse works too.</p>
+</div></div>
+
+<!-- SETUP -->
+<div class="scr" id="sSetup" hidden><div class="card">
+  <div class="big">Set up your class</div>
+  <label class="lbl" for="names">Student names (optional, one per line)</label>
+  <textarea class="f" id="names" placeholder="Leave empty to use numbered pairs"></textarea>
+  <label class="lbl" for="num">…or just the number of students</label>
+  <input class="f" id="num" type="number" min="2" max="40" value="24">
+  <label class="lbl">Numbers</label>
+  <div class="seg" id="range"><button data-r="20">1–20</button><button data-r="100" class="on">1–100</button><button data-r="999">1–999</button></div>
+  <div class="row" style="margin-top:18px"><button class="btn alt" id="bBack">Back</button><button class="btn" id="bPair">Make pairs →</button></div>
+  <p class="muted" style="margin:12px 0 0">Names stay on this screen only. Nothing is saved or sent anywhere.</p>
+</div></div>
+
+<!-- PAIRS -->
+<div class="scr" id="sPairs" hidden><div class="card">
+  <div class="big">Pairs</div>
+  <p class="muted" style="text-align:center;margin:0">Each pair gets one 30-second turn. With an odd number of students, the last group is a three.</p>
+  <div class="pairs" id="pairList"></div>
+  <div class="row"><button class="btn alt" id="bShuffle">🔀 Shuffle</button><button class="btn" id="bStart">Start →</button></div>
+</div></div>
+
+<!-- TURN: choose -->
+<div class="scr" id="sTurn" hidden><div class="card" style="width:min(720px,100%)">
+  <div class="muted" style="text-align:center" id="turnOf"></div>
+  <div class="big">Your turn!</div>
+  <div class="names" id="turnNames"></div>
+  <div class="choose"><button class="pick e" data-c="even">EVENS<small>2 · 4 · 6 · 8 · 10</small></button><button class="pick o" data-c="odd">ODDS<small>1 · 3 · 5 · 7 · 9</small></button></div>
+</div></div>
+
+<!-- TURN: result -->
+<div class="scr" id="sDone" hidden><div class="card" style="text-align:center">
+  <div class="names" id="doneNames" style="margin:0"></div>
+  <div class="big" id="doneScore"></div>
+  <p class="muted" id="doneStats" style="font-size:17px"></p>
+  <button class="btn" id="bNext" style="margin-top:10px;min-width:60%">Next pair →</button>
+</div></div>
+
+<!-- FINAL -->
+<div class="scr" id="sFinal" hidden><div class="card" style="text-align:center">
+  <div class="big">🏆 Top slicers</div>
+  <div class="podium" id="podium"></div>
+  <p class="muted" id="finalNote"></p>
+  <div class="row"><button class="btn alt" id="bAgain">Play again</button><button class="btn" id="bMenu">Menu</button></div>
+</div></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const SCREENS=["sMenu","sSetup","sPairs","sTurn","sDone","sFinal"];
+const show=id=>SCREENS.forEach(s=>$(s).hidden=s!==id);
+const ROUND_S=30, RIGHT=10, WRONG=-5;
+const S={ range:100, pairs:[], idx:0, solo:false };
+
+// ============================================================
+//  Setup + pairing
+// ============================================================
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function students(){
+  const names=$("names").value.split(/\n|,/).map(s=>s.trim().slice(0,20)).filter(Boolean).slice(0,40);
+  if (names.length>=2) return names;
+  const n=Math.max(2,Math.min(40,$("num").value|0||2)); return Array.from({ length:n },(_,i)=>i);
+}
+function makePairs(){
+  const st=students(), named=typeof st[0]==="string";
+  if (!named){ const n=st.length, groups=[]; let p=Math.floor(n/2); for (let i=0;i<p;i++) groups.push({ label:`Pair ${i+1}`, names:"", score:null }); if (n%2) groups[groups.length-1].three=true; return groups; }
+  const s=shuffle(st.slice()), groups=[];
+  for (let i=0;i+1<s.length;i+=2) groups.push([s[i],s[i+1]]);
+  if (s.length%2) groups[groups.length-1].push(s[s.length-1]);
+  return groups.map((g,i)=>({ label:`Pair ${i+1}`, names:g.length===3?`${g[0]}, ${g[1]} & ${g[2]}`:`${g[0]} & ${g[1]}`, score:null }));
+}
+function renderPairs(){
+  $("pairList").innerHTML=S.pairs.map(p=>`<div class="pair"><b>${p.label}</b>${esc(p.names||(p.three?"(group of 3)":""))}</div>`).join("");
+}
+$("bClass").onclick=()=>show("sSetup");
+$("bTry").onclick=()=>{ S.solo=true; S.pairs=[{ label:"Practice", names:"", score:null }]; S.idx=0; startTurn(); };
+$("bBack").onclick=()=>show("sMenu");
+$("range").onclick=e=>{ const b=e.target.closest("button"); if (!b) return; S.range=+b.dataset.r; $("range").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); };
+$("bPair").onclick=()=>{ S.solo=false; S.pairs=makePairs(); renderPairs(); show("sPairs"); };
+$("bShuffle").onclick=()=>{ S.pairs=makePairs(); renderPairs(); };
+$("bStart").onclick=()=>{ S.idx=0; startTurn(); };
+$("bNext").onclick=()=>{ if (S.solo){ show("sMenu"); return; } S.idx++; S.idx<S.pairs.length?startTurn():finish(); };
+$("bAgain").onclick=()=>{ S.pairs.forEach(p=>p.score=null); S.pairs=makePairs(); renderPairs(); show("sPairs"); };
+$("bMenu").onclick=()=>show("sMenu");
+
+function startTurn(){
+  const p=S.pairs[S.idx];
+  $("turnOf").textContent=S.solo?"Practice round":`${p.label} of ${S.pairs.length}`;
+  $("turnNames").innerHTML=p.names?esc(p.names):(S.solo?"Pick one and get slicing":`${esc(p.label)}, come on up!`);
+  show("sTurn");
+}
+document.querySelectorAll(".pick").forEach(b=>b.onclick=()=>{ show(null); countdown(b.dataset.c); });
+
+// ============================================================
+//  Game
+// ============================================================
+const cv=$("cv"), ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener("resize",resize); resize();
+
+const G={ on:false, goal:"even", t:0, score:0, right:0, wrong:0, missed:0, balls:[], halves:[], parts:[], pops:[], spawnT:0, shake:0, flash:0 };
+const COLORS=["#38bdf8","#a78bfa","#f472b6","#34d399","#fbbf24","#fb923c","#60a5fa","#f87171"];
+const isGoal=n=>(n%2===0)===(G.goal==="even");
+function countdown(goal){
+  Object.assign(G,{ goal, t:0, score:0, right:0, wrong:0, missed:0, balls:[], halves:[], parts:[], pops:[], spawnT:0.3, on:false });
+  $("goal").textContent=goal==="even"?"SLICE EVENS ✂":"SLICE ODDS ✂"; $("goal").style.color=goal==="even"?"var(--even)":"var(--odd)";
+  $("hScore").textContent=0; $("hTime").textContent=ROUND_S; $("hud").hidden=false;
+  let n=3; const c=$("count"); c.hidden=false; c.style.color=goal==="even"?"var(--even)":"var(--odd)"; c.textContent=n;
+  clearInterval(G.cd); const iv=G.cd=setInterval(()=>{ n--; if (n>0) c.textContent=n; else if (n===0) c.textContent="GO!"; else { clearInterval(iv); c.hidden=true; G.on=true; } },800);
+}
+function randNum(){
+  const want=Math.random()<0.6;                           // ~60% are the numbers you want
+  let n=1+(Math.random()*S.range|0);
+  if (isGoal(n)!==want) n=n<S.range?n+1:n-1;
+  return Math.max(1,n);
+}
+function spawn(){
+  const r=Math.max(38,Math.min(62,Math.min(W,H)*0.07));
+  const x=r+Math.random()*(W-2*r), tx=W*0.2+Math.random()*W*0.6;
+  const peak=H*(0.12+Math.random()*0.3), g=H*0.95;           // gravity scales with screen height
+  const vy=-Math.sqrt(2*g*(H+r-peak)), tUp=-vy/g;
+  G.balls.push({ x, y:H+r, vx:(tx-x)/(tUp*1.6), vy, g, r, n:randNum(), col:COLORS[Math.random()*COLORS.length|0], rot:0, vr:(Math.random()-.5)*2 });
+}
+// slicing: every finger/mouse has its own trail
+const trails=new Map();
+cv.addEventListener("pointerdown",e=>{ cv.setPointerCapture(e.pointerId); trails.set(e.pointerId,{ pts:[{ x:e.clientX, y:e.clientY, t:performance.now() }], down:true }); });
+cv.addEventListener("pointermove",e=>{ const tr=trails.get(e.pointerId); if (!tr||!tr.down) return;
+  const a=tr.pts[tr.pts.length-1], b={ x:e.clientX, y:e.clientY, t:performance.now() }; tr.pts.push(b); if (G.on) cut(a,b); });
+const up=e=>{ const tr=trails.get(e.pointerId); if (tr) tr.down=false; };
+cv.addEventListener("pointerup",up); cv.addEventListener("pointercancel",up);
+function segDist(px,py,a,b){ const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy||1; let t=((px-a.x)*dx+(py-a.y)*dy)/L; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-(a.x+t*dx),py-(a.y+t*dy)); }
+function cut(a,b){
+  if (Math.hypot(b.x-a.x,b.y-a.y)<3) return;
+  for (let i=G.balls.length-1;i>=0;i--){ const o=G.balls[i];
+    if (segDist(o.x,o.y,a,b)>o.r) continue;
+    G.balls.splice(i,1);
+    const ang=Math.atan2(b.y-a.y,b.x-a.x), good=isGoal(o.n);
+    for (const s of [-1,1]) G.halves.push({ x:o.x, y:o.y, vx:o.vx*0.5+Math.cos(ang+Math.PI/2)*s*140, vy:o.vy*0.3+Math.sin(ang+Math.PI/2)*s*140-60, g:o.g, r:o.r, ang, side:s, col:o.col, n:o.n, life:1.2, spin:s*2 });
+    for (let k=0;k<16;k++){ const a2=Math.random()*Math.PI*2, sp=80+Math.random()*260; G.parts.push({ x:o.x, y:o.y, vx:Math.cos(a2)*sp, vy:Math.sin(a2)*sp, life:.6+Math.random()*.4, col:good?o.col:"#f87171", r:3+Math.random()*4 }); }
+    if (good){ G.score+=RIGHT; G.right++; G.pops.push({ x:o.x, y:o.y, txt:`+${RIGHT}`, col:"#4ade80", life:1 }); }
+    else { G.score=Math.max(0,G.score+WRONG); G.wrong++; G.shake=0.3; G.flash=0.35; G.pops.push({ x:o.x, y:o.y, txt:`${o.n} is ${o.n%2?"odd":"even"}! ${WRONG}`, col:"#f87171", life:1.4 }); }
+    $("hScore").textContent=G.score;
+  }
+}
+function endTurn(){
+  G.on=false; $("hud").hidden=true; trails.clear();
+  const p=S.pairs[S.idx]; p.score=G.score;
+  $("doneNames").innerHTML=p.names?esc(p.names):esc(p.label);
+  $("doneScore").textContent=`${G.score} points!`;
+  const kind=G.goal==="even"?"even":"odd";
+  $("doneStats").textContent=`${G.right} ${kind} number${G.right===1?"":"s"} sliced · ${G.wrong} oops${G.wrong===1?"":"es"}`;
+  $("bNext").textContent=S.solo?"Done":S.idx+1<S.pairs.length?"Next pair →":"See the winners →";
+  setTimeout(()=>show("sDone"),900);
+}
+function finish(){
+  const ranked=S.pairs.filter(p=>p.score!=null).sort((a,b)=>b.score-a.score);
+  const shown=Math.max(3,Math.ceil(ranked.length*0.15));      // only the top are named
+  const medals=["🥇","🥈","🥉"];
+  $("podium").innerHTML=ranked.slice(0,shown).map((p,i)=>`<div class="pod"><span class="m">${medals[i]||"⭐"}</span><span>${esc(p.names||p.label)}</span><span class="s">${p.score}</span></div>`).join("");
+  $("finalNote").textContent=ranked.length>shown?"Great slicing, everyone!":"";
+  show("sFinal");
+}
+
+// ============================================================
+//  Loop + drawing
+// ============================================================
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if (G.on){
+    G.t+=dt; const left=Math.max(0,ROUND_S-G.t); $("hTime").textContent=Math.ceil(left);
+    G.spawnT-=dt;
+    if (G.spawnT<=0 && left>1){ const k=G.t<8?1:G.t<18?(Math.random()<.5?1:2):(1+(Math.random()*3|0)); for (let i=0;i<k;i++) spawn(); G.spawnT=Math.max(0.55,1.15-G.t*0.02); }
+    if (left<=0) endTurn();
+  }
+  for (const o of G.balls){ o.vy+=o.g*dt; o.x+=o.vx*dt; o.y+=o.vy*dt; o.rot+=o.vr*dt; }
+  G.balls=G.balls.filter(o=>{ if (o.vy>0&&o.y>H+o.r+10){ if (G.on&&isGoal(o.n)) G.missed++; return false; } return true; });
+  for (const h of G.halves){ h.vy+=h.g*dt; h.x+=h.vx*dt; h.y+=h.vy*dt; h.ang+=h.spin*dt; h.life-=dt; }
+  G.halves=G.halves.filter(h=>h.life>0&&h.y<H+h.r*2);
+  for (const p of G.parts){ p.vy+=600*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; }
+  G.parts=G.parts.filter(p=>p.life>0);
+  for (const p of G.pops){ p.y-=50*dt; p.life-=dt; } G.pops=G.pops.filter(p=>p.life>0);
+  G.shake=Math.max(0,G.shake-dt); G.flash=Math.max(0,G.flash-dt);
+  draw(now); requestAnimationFrame(frame);
+}
+function ball(o){
+  ctx.save(); ctx.translate(o.x,o.y);
+  ctx.fillStyle="rgba(0,0,0,.25)"; ctx.beginPath(); ctx.arc(4,6,o.r,0,Math.PI*2); ctx.fill();
+  const g=ctx.createRadialGradient(-o.r*.35,-o.r*.4,o.r*.1,0,0,o.r); g.addColorStop(0,"#ffffff"); g.addColorStop(.25,o.col); g.addColorStop(1,shade(o.col));
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,o.r,0,Math.PI*2); ctx.fill();
+  ctx.lineWidth=4; ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.stroke();
+  ctx.rotate(o.rot*0.15);
+  num(o.n,o.r); ctx.restore();
+}
+function num(n,r){ const s=String(n); ctx.font=`700 ${r*(s.length>2?0.8:1)}px Fredoka, sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.lineWidth=6; ctx.strokeStyle="rgba(13,27,42,.75)"; ctx.strokeText(s,0,r*0.06); ctx.fillStyle="#fff"; ctx.fillText(s,0,r*0.06); }
+function shade(hex){ const n=parseInt(hex.slice(1),16); const f=v=>Math.round(v*0.55); return `rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`; }
+function draw(now){
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  if (G.shake>0) ctx.translate((Math.random()-.5)*16*G.shake/.3,(Math.random()-.5)*16*G.shake/.3);
+  // soft floating background dots
+  ctx.fillStyle="rgba(255,255,255,.04)";
+  for (let i=0;i<24;i++){ const x=(i*137.5%1)*W, y=((i*0.618+now/40000)%1)*H; ctx.beginPath(); ctx.arc((i*97)%W,H-y,6+(i%5)*4,0,Math.PI*2); ctx.fill(); }
+  for (const h of G.halves){ ctx.save(); ctx.globalAlpha=Math.min(1,h.life*1.5); ctx.translate(h.x,h.y); ctx.rotate(h.ang);
+    ctx.beginPath(); ctx.arc(0,0,h.r,h.side>0?0:Math.PI,h.side>0?Math.PI:Math.PI*2); ctx.closePath();
+    ctx.fillStyle=h.col; ctx.fill(); ctx.lineWidth=4; ctx.strokeStyle="rgba(255,255,255,.8)"; ctx.stroke();
+    ctx.clip(); num(h.n,h.r); ctx.restore(); }
+  for (const o of G.balls) ball(o);
+  for (const p of G.parts){ ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); }
+  ctx.globalAlpha=1;
+  for (const p of G.pops){ ctx.globalAlpha=Math.min(1,p.life); ctx.font="700 30px Fredoka, sans-serif"; ctx.textAlign="center"; ctx.lineWidth=6; ctx.strokeStyle="#0d1b2a"; ctx.strokeText(p.txt,p.x,p.y); ctx.fillStyle=p.col; ctx.fillText(p.txt,p.x,p.y); }
+  ctx.globalAlpha=1;
+  // blade trails
+  const T=performance.now();
+  for (const [id,tr] of trails){ tr.pts=tr.pts.filter(p=>T-p.t<160); if (!tr.pts.length&&!tr.down){ trails.delete(id); continue; }
+    for (let i=1;i<tr.pts.length;i++){ const a=tr.pts[i-1], b=tr.pts[i], k=i/tr.pts.length;
+      ctx.strokeStyle=`rgba(255,255,255,${k})`; ctx.lineWidth=2+k*10; ctx.lineCap="round"; ctx.shadowColor=G.goal==="even"?"#38bdf8":"#fb923c"; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); } ctx.shadowBlur=0; }
+  ctx.restore();
+  if (G.flash>0){ ctx.fillStyle=`rgba(248,113,113,${G.flash*0.5})`; ctx.fillRect(0,0,W,H); }
+}
+requestAnimationFrame(frame);
+
+// ---------- exit: menu → hub, anywhere else → menu
+function exit(){
+  if (!$("sMenu").hidden) return location.href="/";
+  clearInterval(G.cd); G.on=false; G.balls=[]; $("hud").hidden=true; $("count").hidden=true; show("sMenu");
+}
+$("xbtn").onclick=exit;
+addEventListener("keydown",e=>{ if (e.key==="Escape") exit(); });
+if (/play=teacher/.test(location.search)) show("sSetup");
+if (/play=try/.test(location.search)) $("bTry").click();
+</script>
+</body>
+</html>
