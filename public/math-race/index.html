@@ -257,9 +257,9 @@ function questionStream(seed, mode="add"){
   let prev="";
   const make={
     add(){ const a=num(), b=num(), s=a+b; return s<10?null:{ top:a, bottom:b, op:"+", s }; },               // answers 2–3 digits
-    sub(){ const a=r()<0.75?int(20,99):int(100,199), b=int(1,a-10); return { top:a, bottom:b, op:"−", s:a-b }; },   // answers ≥ 10
+    sub(){ const a=int(20,99), b=int(1,a-10); return { top:a, bottom:b, op:"−", s:a-b }; },   // answers ≥ 10
     mul(){ const a=int(2,12), b=int(2,12); return { top:a, bottom:b, op:"×", s:a*b }; },
-    div(){ const b=int(2,12), q=int(2,12); return { top:b*q, bottom:b, op:"÷", s:q }; },                    // always divides evenly
+    div(){ const b=int(2,12), q=int(2,12); if (b*q>99) return null; return { top:b*q, bottom:b, op:"÷", s:q }; },                    // always divides evenly
     money(){ const a=int(1,199)*5, b=int(1,199)*5; return { top:cash(a), bottom:cash(b), op:"+", s:a+b, money:true }; },   // type the cents: $4.75 → 475
   }[mode]||null;
   return ()=>{ for(;;){ const q=(make||(()=>null))()||null; if (!q) { if (!make) return { top:0, bottom:0, op:"+", s:0, len:1 }; continue; }

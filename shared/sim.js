@@ -19,7 +19,7 @@ const TUNE = {
   stageEscalation: 0.04,
   catchRadius: 0.7,
   countdown: 3,
-  lives: 3,
+  lives: 1,
   rotations: 1,
   pause: 1.6,
 };
@@ -95,7 +95,7 @@ function makeFloor(stage){
   }
   // 5. side service tunnels
   for (const ty of [CY-4, CY+4]) if (ty%2===1){ g[ty][0]="_"; g[ty][W-1]="_"; g[ty][1]="_"; g[ty][W-2]="_"; }
-  const spawns = { thief:{x:CX,y:H-2}, guards:[{x:CX-1,y:CY},{x:CX,y:CY},{x:CX+1,y:CY}] };
+  const spawns = { thief:{x:CX,y:H-2}, guards:[{x:CX-2,y:CY},{x:CX-1,y:CY},{x:CX+1,y:CY},{x:CX+2,y:CY}] };
   g[spawns.thief.y][spawns.thief.x]="_";
   // 6. cash on every cell centre the thief can reach; EMPs near the corners
   const reach = bfs(g, [spawns.thief], false);

@@ -16,7 +16,7 @@ const { RoomBase }=require("./roombase");
 const env=(k,d)=>+process.env[k]||d;                   // overridable for tests
 const MIN_PLAYERS=2, MAX_PLAYERS=6;
 const HIDE_MS=[env("SPLAT_HIDE1_MS",10000), env("SPLAT_HIDE2_MS",5000), env("SPLAT_HIDE3_MS",3000)];
-const THROW_MS=env("SPLAT_THROW_MS",4000);             // thrower's time to pick (random after)
+const THROW_MS=env("SPLAT_THROW_MS",8000);             // thrower's time to pick (random after)
 const INTRO_MS=env("SPLAT_INTRO_MS",1500);
 const SPLASH_MS=env("SPLAT_SPLASH_MS",2200);
 const TURN_END_MS=env("SPLAT_TURN_END_MS",2500);

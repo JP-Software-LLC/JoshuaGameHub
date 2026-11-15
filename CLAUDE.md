@@ -1,13 +1,13 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (4-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) and **Memory Tiles** (up to 40, remember-the-picture survival).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) and **Memory Tiles** (up to 40, remember-the-picture survival).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
-- 4 players, public or private lobby. A random rotation decides who's the Thief ("It"); everyone gets one turn.
-- The Thief has 3 lives per turn. Getting caught resets everyone's positions, but cash already collected on that floor stays collected. Losing the last life ends the turn.
+- Up to 5 players (bots fill empty seats), public or private lobby. A random rotation decides who's the Thief ("It"); everyone gets one turn.
+- The Thief has 1 life per turn: getting caught ends the turn.
 - The Thief collects every cash stack to clear a floor. A new floor is generated, then a 3-2-1 countdown.
-- Guards (the other 3 players) catch the Thief by colliding with them.
+- Guards (the other 4 players) catch the Thief by colliding with them.
 - Gold bar = EMP (4.5 s): guards slowed to 60%, and the Thief can tackle them, which sends them back to their post after 3 s.
 - Score: +10 per second survived, +10 per cash stack, +500 per floor cleared, +200 per tackle, +300 for catching the Thief (guard).
 - Speeds: guards 3.1 tiles/s, Thief 3.45 tiles/s. Floors get +4% guard speed for each floor cleared this turn.
@@ -17,7 +17,7 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Addition of 1–2 digit numbers, answers always 2–3 digits. Answer is checked the moment it has as many digits as the correct answer — no Enter, no backspace. Wrong = shake + 3 s penalty (shows the right answer), then next question.
 - **All questions and checking are client-side by design (no anti-cheat).** Server sends one seed per round (everyone gets the same questions) and receives one number per player per round.
 - Round leaderboard shows top max(3, ceil(15%)) (6 for 40). Final shows a podium + the same count, ranked by total.
-- Modes (host picks in the lobby; practice has its own picker): add · sub (answers ≥ 10) · mul (2–12 × 2–12) · div (whole answers) · money (add two prices; type the cents, shown in a $_.__ mask). Round msg carries `mode`.
+- Modes (host picks in the lobby; practice has its own picker): add · sub (20–99 minus a smaller number, answers ≥ 10) · mul (2–12 × 2–12) · div (whole answers, dividend ≤ 99) · money (add two prices up to $9.95, 5¢ steps; type the cents, shown in a $_.__ mask). Outside money, no operand is ever more than 2 digits; answers may be 3. Round msg carries `mode`.
 - Teacher Mode (menu button): private room where the host sends `teacher{}` → doesn't play, isn't ranked, auto-start off, sees a class view (timer) during rounds plus the normal boards.
 - Solo practice: offline, length selectable (15 s–2 min, default 1 min, remembered), personal best per length.
 - Visuals: very dark grey + shades of blue only; red only for a physically held key on the on-screen keypad (keypad is tappable on touch screens).
@@ -34,7 +34,7 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 
 ## SPLAT! rules (kids game: no "killed/eliminated/soaked" wording — use SPLAT!/splatted/dodged)
 - 2–6 players, host start or auto-start 30 s after a 2nd player. Everyone throws once (random order).
-- Turn: up to 3 throws. Hiders pick barrel Left/Up/Right behind a sheet (10 s, 5 s, 3 s; changeable; random if none). Sheet lifts; thrower picks (4 s, random after). Hit hiders sit out the rest of the turn. Turn ends early if all are hit. ≈30–40 s per turn.
+- Turn: up to 3 throws. Hiders pick barrel Left/Up/Right behind a sheet (10 s, 5 s, 3 s; changeable; random if none). Sheet lifts; thrower picks (8 s, random after). Hit hiders sit out the rest of the turn. Turn ends early if all are hit. ≈30–40 s per turn.
 - Points: +10 per throw dodged, +20 per player splatted (balanced: equal expected points throwing vs hiding at any lobby size).
 - Server-authoritative; hiding spots are never sent to the thrower. `server/splatroom.js`, `public/splat/index.html`, timings overridable via SPLAT_*_MS.
 
@@ -62,11 +62,11 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Client-side play from a shared seed; server = `server/arrowroom.js`, a 1-round subclass of the Math Race room (MathRoom KIND/ROUNDS/ROUND_MS/MAX_SCORE statics; single-round rooms skip straight to `final`).
 
 ## Memory Tiles rules
-- Up to 40 on a 5×5 board of black tiles. Each round: all tiles show pictures (5 s, −0.4 s per round, min 1.6 s) → flip back → target picture shown → 5 s (constant) to move with arrows (only during this phase) onto a matching tile. Not on a match = OUT; if nobody matched, nobody is out. Round 1 has 2 different pictures, +1 per round (max 10). Last one standing wins; ranking by rounds survived.
+- Up to 40 on a 5×5 board of black tiles. Each round: all tiles show pictures (7 s, −0.25 s per round, min 3.5 s) → flip back (1.2 s) → target picture shown → 7 s (constant) to move with arrows (only during this phase) onto a matching tile. Not on a match = OUT; if nobody matched, nobody is out. 2 different pictures in rounds 1–3, 3 in rounds 4–7, then 4 (max). Results shown 4.5 s. Last one standing wins; ranking by rounds survived.
 - Server-authoritative (`shared/memory.js` Game in `server/memoryroom.js`); each player's position is sent ONLY to them (`me{x,y}`) until the round's `result`, which reveals everyone (avatars laid out in a mini-grid per tile, never stacked). Solo mode vs 7 bots runs the same Game in the browser.
 
 ## Odds or Evens (smart-board game, no server)
-- `public/odds-evens/index.html`, fully client-side. Teacher enters names (optional) or a class size (2–40) and a number range (1–20 / 1–100 / 1–999); students are shuffled into pairs (a three if odd). Each pair comes to the board, picks EVENS or ODDS, then 30 s of swipe-to-slice numbered bubbles (multi-touch: one trail per pointer). Right type +10, wrong type −5 (score never below 0) with a "7 is odd!" correction. ~60% of bubbles are the chosen type. Final board names only the top max(3, 15%) pairs. Names are never saved or sent. `?play=teacher` opens setup, `?play=try` a practice round.
+- `public/odds-evens/index.html`, fully client-side. Teacher enters names (optional) or a class size (2–40) and a number range (1–20 / 1–100 / 1–999); students are shuffled into a play order, ONE at a time. After each 15 s turn the next player gets a 10 s window to come up and pick EVENS or ODDS (random pick + auto-start at 0), so 40 students ≈ 19 min. Gentle pacing: one big bubble every 1.3 s (sometimes 2 after 8 s), low gravity. Right type +10, wrong type −5 (score never below 0) with a "7 is odd!" correction. ~70% of bubbles are the chosen type. Final board names only the top max(3, 15%) players. Names are never saved or sent. `?play=teacher` opens setup, `?play=try` a practice round.
 
 ## Teacher Mode (all six 40-player games: math, arrows, rush, hurdle, bear, memory)
 - A private room's host sends `teacher{}` (menu button "🍎 Teacher mode", or `?play=teacher`). Shared core is `RoomBase.makeTeacher()`: the teacher never plays, isn't ranked or counted, auto-start is off, only the teacher can start; public rooms refuse it. Lobby/start/go messages carry `teacher`.

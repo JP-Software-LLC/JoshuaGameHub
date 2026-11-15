@@ -319,11 +319,11 @@
         <div class="demo-hud" id="demoHud"><div><b id="dThief">—</b><span id="dFloor">—</span></div><div style="text-align:right"><b>CASH LEFT</b><span id="dCash">—</span></div></div>
       </div>
       <div class="info">
-        <div class="chips" id="fChips"><span class="chip hot">FEATURED</span><span class="chip">1–4 players</span><span class="chip">Online + bots</span><span class="chip">Chase</span></div>
-        <h2 class="logo" id="fLogo">CLEAN GETAWAY<small>A FOUR-PLAYER BANK HEIST</small></h2>
-        <p class="desc" id="fDesc">Everyone gets a turn as the Thief. Sweep every cash stack off a procedurally generated bank floor while three Guards close in. Grab a gold bar to fire an EMP and turn the chase around.</p>
+        <div class="chips" id="fChips"><span class="chip hot">FEATURED</span><span class="chip">1–5 players</span><span class="chip">Online + bots</span><span class="chip">Chase</span></div>
+        <h2 class="logo" id="fLogo">CLEAN GETAWAY<small>A FIVE-PLAYER BANK HEIST</small></h2>
+        <p class="desc" id="fDesc">Everyone gets a turn as the Thief. Sweep every cash stack off a procedurally generated bank floor while four Guards close in. Grab a gold bar to fire an EMP and turn the chase around.</p>
         <div class="roles" id="fRoles">
-          <div class="role"><canvas data-spr="thief0" width="16" height="16"></canvas><div><b style="color:var(--gold)">THIEF</b><br><span>Clear the floor. 3 lives.</span></div></div>
+          <div class="role"><canvas data-spr="thief0" width="16" height="16"></canvas><div><b style="color:var(--gold)">THIEF</b><br><span>Clear the floor. 1 life.</span></div></div>
           <div class="role"><canvas data-spr="guard0" width="16" height="16"></canvas><div><b style="color:#7fa4ff">GUARDS</b><br><span>Team up and corner them.</span></div></div>
           <div class="role"><canvas data-spr="gold" width="16" height="16"></canvas><div><b style="color:var(--cyan)">EMP</b><br><span>Stun guards. Tackle back.</span></div></div>
         </div>
@@ -383,7 +383,7 @@ $("yr").textContent=new Date().getFullYear();
 //  Game registry: add an entry here for each new game.
 // ------------------------------------------------------------
 const GAMES=[
-  { id:"clean-getaway", kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, three guards, one very full bank.", tags:["1–4 players","Online","Chase"], thumb:"cg" },
+  { id:"clean-getaway", kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
   { id:"math-race", teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
   { id:"splat", kind:"splat", cat:"Party", title:"SPLAT!", path:"/splat/", blurb:"Hide behind a barrel. Dodge the water balloon!", tags:["2–6 players","Online","Party"], thumb:"splat" },
   { id:"rush-hour", teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
@@ -391,7 +391,7 @@ const GAMES=[
   { id:"hurdle-dash", teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
-  { id:"odds-evens", teach:true, kind:"oddsevens", cat:"Brainy", title:"ODDS OR EVENS", path:"/odds-evens/", blurb:"Pairs swipe to slice the right numbers on the smart board!", tags:["Up to 40","Smart board","Brainy"], badge:"NEW", thumb:"oddsevens" },
+  { id:"odds-evens", teach:true, kind:"oddsevens", cat:"Brainy", title:"ODDS OR EVENS", path:"/odds-evens/", blurb:"Take turns at the smart board slicing the right numbers!", tags:["Up to 40","Smart board","Brainy"], badge:"NEW", thumb:"oddsevens" },
 ];
 
 // ------------------------------------------------------------
@@ -618,7 +618,7 @@ function sizeDemo(){
 }
 function newDemo(){
   const names=CG.BOT_NAMES.slice().sort(()=>Math.random()-.5);
-  game=new CG.Game([0,1,2,3].map(i=>({id:i,name:names[i],bot:true})));
+  game=new CG.Game([0,1,2,3,4].map(i=>({id:i,name:names[i],bot:true})));
   game.start(); game.drainEvents();
 }
 function pop(text,color){ const p=$("pop"); p.textContent=text; p.style.borderColor=color; p.style.color=color; p.classList.add("on"); popT=1.3; }
@@ -730,9 +730,9 @@ addEventListener("keydown",e=>{ if (e.key==="Enter" && document.activeElement===
 // ------------------------------------------------------------
 const spr=k=>`<canvas data-spr="${k}" width="16" height="16"></canvas>`;
 const FEATURES={
-  "clean-getaway":{ acc:"#f2c94c", chips:["1–4 players","Online + bots","Chase"], logo:"CLEAN GETAWAY", sub:"A FOUR-PLAYER BANK HEIST", tag:"LIVE BOT DEMO",
-    desc:"Everyone gets a turn as the Thief. Sweep every cash stack off a procedurally generated bank floor while three Guards close in. Grab a gold bar to fire an EMP and turn the chase around.",
-    roles:[[spr("thief0"),"THIEF","#f2c94c","Clear the floor. 3 lives."],[spr("guard0"),"GUARDS","#7fa4ff","Team up and corner them."],[spr("gold"),"EMP","#7fd3ff","Stun guards. Tackle back."]],
+  "clean-getaway":{ acc:"#f2c94c", chips:["1–5 players","Online + bots","Chase"], logo:"CLEAN GETAWAY", sub:"A FIVE-PLAYER BANK HEIST", tag:"LIVE BOT DEMO",
+    desc:"Everyone gets a turn as the Thief. Sweep every cash stack off a procedurally generated bank floor while four Guards close in. Grab a gold bar to fire an EMP and turn the chase around.",
+    roles:[[spr("thief0"),"THIEF","#f2c94c","Clear the floor. 1 life."],[spr("guard0"),"GUARDS","#7fa4ff","Team up and corner them."],[spr("gold"),"EMP","#7fd3ff","Stun guards. Tackle back."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE ROOM","private"],["VS BOTS","bots"]], meta:["⌨ Arrows / WASD","📱 Swipe on mobile","⏱ ~6 min matches"] },
   "math-race":{ acc:"#5b9bff", chips:["Up to 40","Online","Brainy"], logo:"MATH RACE", sub:"SPEED SUMS FOR UP TO 40", tag:"3 ROUNDS × 1 MIN",
     desc:"Add as fast as you can. Answers are checked the moment you type the last digit, with no Enter key, so the right answer flies you straight to the next one. A wrong one costs you 3 seconds.",
@@ -759,13 +759,13 @@ const FEATURES={
     roles:[["<span class=ico>⬆️</span>","TYPE","#facc15","Arrows turn yellow."],["<span class=ico>➕</span>","GROW","#5b9bff","3 → 4 → 5 arrows…"],["<span class=ico>🔥</span>","STREAK","#f97316","+50% after 3 flawless."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["PRACTICE","practice"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ 1 minute"] },
   "memory-tiles":{ acc:"#ff5d9e", chips:["Up to 40","Online + bots","Brainy"], logo:"MEMORY TILES", sub:"LOOK · REMEMBER · STAND", tag:"LAST ONE STANDING",
-    desc:"Every tile flips to show a picture for a few seconds, then goes black. When you are told what to find, use the arrows to stand on a matching tile before time runs out. Each round adds a new picture and gives you less time to look.",
-    roles:[["<span class=ico>👀</span>","LOOK","#ffd23f","Pictures flash, then hide."],["<span class=ico>🏃</span>","STAND","#2ee6c5","5 s to reach a match."],["<span class=ico>👑</span>","SURVIVE","#ff5d9e","Last one in wins."]],
+    desc:"Every tile flips to show a picture for a few seconds, then goes black. When you are told what to find, use the arrows to stand on a matching tile before time runs out. New pictures are added as the rounds go on, and you get a little less time to look.",
+    roles:[["<span class=ico>👀</span>","LOOK","#ffd23f","Pictures flash, then hide."],["<span class=ico>🏃</span>","STAND","#2ee6c5","7 s to reach a match."],["<span class=ico>👑</span>","SURVIVE","#ff5d9e","Last one in wins."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ ~1–2 min games"] },
   "odds-evens":{ acc:"#38bdf8", chips:["Up to 40","Smart board","Brainy"], logo:"ODDS OR EVENS", sub:"SLICE THE RIGHT NUMBERS", tag:"SMART BOARD GAME",
-    desc:"The class is split into pairs. Each pair comes up to the board, picks evens or odds, then has 30 seconds to swipe through the right numbers as they fly up. Slice a wrong one and you lose points!",
-    roles:[["<span class=ico>👫</span>","PAIR UP","#fcd34d","Two slicers at once."],["<span class=ico>✋</span>","SLICE","#38bdf8","+10 for the right type."],["<span class=ico>❌</span>","CAREFUL","#fb923c","−5 for a wrong one."]],
-    cta:[["🍎 PLAY WITH MY CLASS","teacher"],["TRY A ROUND","try"]], meta:["👆 Touch screen or smart board","🖱 Mouse works too","⏱ 30 s per pair"] },
+    desc:"Students take turns at the board. Each one picks evens or odds, then has 15 seconds to swipe through the right numbers as they float up. Slice a wrong one and you lose points!",
+    roles:[["<span class=ico>🙋</span>","YOUR TURN","#fcd34d","One at a time."],["<span class=ico>✋</span>","SLICE","#38bdf8","+10 for the right type."],["<span class=ico>❌</span>","CAREFUL","#fb923c","−5 for a wrong one."]],
+    cta:[["🍎 PLAY WITH MY CLASS","teacher"],["TRY A ROUND","try"]], meta:["👆 Touch screen or smart board","🖱 Mouse works too","⏱ 15 s per student"] },
 };
 const ROT_MS=9000; let rotTimer=0, userPicked=false;
 const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb })[g.thumb]();
@@ -805,7 +805,7 @@ const CLASS_GAMES=[
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
   { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
-  { id:"odds-evens", ico:"✂️", skill:"Odd and even numbers", len:"30 s per pair", view:"Played on your smart board", desc:"Pairs come up to the board and swipe to slice the right numbers." },
+  { id:"odds-evens", ico:"✂️", skill:"Odd and even numbers", len:"15 s per student", view:"Played on your smart board", desc:"Students take turns at the board slicing the right numbers." },
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
 ];

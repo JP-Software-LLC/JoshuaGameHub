@@ -1,7 +1,7 @@
 // Memory Tiles — shared rules (Node: require; browser: window.MEMORY for solo mode).
 // N×N black tiles. Each round every tile flips to show a picture for a few seconds, then flips
 // back. A target picture is shown and players have a fixed time to stand on a tile with it.
-// Anyone not on a matching tile is out. Round 1 uses 2 different pictures; each round adds one.
+// Anyone not on a matching tile is out. Round 1 uses 2 different pictures, building up to a maximum of 4.
 // Reveal time shrinks each round; choosing time stays the same. Positions are secret until the reveal.
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -12,11 +12,11 @@
 const PICS=["🍎","🐶","⭐","🚗","🌙","🐟","🎈","🌸","🍕","⚽","🦋","🍩"];
 const T = {
   N: 5,                                            // 5×5 grid
-  decideT: 5,                                      // seconds to get onto a tile (constant)
-  hideT: 0.8,                                      // tiles flip back to black
-  resultT: 3.6,                                    // show everyone + who's out
-  revealFor: r=>Math.max(1.6, 5-0.4*(r-1)),        // picture reveal: 5 s, then 0.4 s shorter each round
-  imagesFor: r=>Math.min(10, r+1),                 // 2 pictures in round 1, +1 per round (max 10)
+  decideT: 7,                                      // seconds to get onto a tile (constant)
+  hideT: 1.2,                                      // tiles flip back to black
+  resultT: 4.5,                                    // show everyone + who's out
+  revealFor: r=>Math.max(3.5, 7-0.25*(r-1)),       // picture reveal: 7 s, then 0.25 s shorter each round (min 3.5 s)
+  imagesFor: r=>r<=3?2:r<=7?3:4,                   // 2 pictures (rounds 1–3), 3 (rounds 4–7), then 4 max
   maxRounds: 25,
 };
 function rng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }

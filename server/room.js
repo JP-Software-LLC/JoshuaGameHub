@@ -1,4 +1,4 @@
-// Clean Getaway room: up to 4 humans (bots fill the rest), authoritative sim at 30 Hz.
+// Clean Getaway room: up to 5 humans (bots fill the rest), authoritative sim at 30 Hz.
 "use strict";
 const CG=require("../shared/sim.js");
 const { RoomBase }=require("./roombase");
@@ -7,7 +7,7 @@ const TICK_HZ=30;                 // sim + snapshot rate
 
 class Room extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
-    super(code, isPublic, bus, instanceId, onClose, "cg", 4);
+    super(code, isPublic, bus, instanceId, onClose, "cg", 5);
     this.slots=[null,null,null,null];   // {cid,name,token,ready,connected}
     this.game=null; this.timer=null;
   }

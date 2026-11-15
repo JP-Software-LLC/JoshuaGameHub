@@ -2,7 +2,7 @@
 // Original 16×16 sprites drawn from palette strings. Exposes window.CGArt.
 (function (root) {
 "use strict";
-const COLORS = ["#f2c94c","#5aa9e6","#e2554b","#58c27d"];
+const COLORS = ["#f2c94c","#5aa9e6","#e2554b","#58c27d","#c084fc"];
 const PAL = { k:"#16161d", s:"#e8b98f", S:"#c08a64", b:"#2b2b36", w:"#e9e6dc", g:"#58c27d", G:"#2f7d4a",
   y:"#f2c94c", Y:"#b8862b", u:"#3b62b8", U:"#263f7a", n:"#1b2540", r:"#d9534f", R:"#8e2b2b", l:"#9aa3ad", L:"#5d6670", c:"#7fd3ff" };
 const ART = {

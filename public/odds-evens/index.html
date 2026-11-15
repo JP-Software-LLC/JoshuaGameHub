@@ -75,38 +75,40 @@
 <!-- MENU -->
 <div class="scr" id="sMenu"><div class="card">
   <h1 class="logo"><span class="o">ODDS</span> or <span class="e">EVENS</span><small>SLICE THE RIGHT NUMBERS</small></h1>
-  <div class="how"><div><b>👫</b>Pairs come up to the board together</div><div><b>✋</b>Pick evens or odds, then swipe to slice</div><div><b>⏱</b>30 seconds. Wrong numbers lose points!</div></div>
+  <div class="how"><div><b>🙋</b>One student at a time comes up to the board</div><div><b>✋</b>Pick evens or odds, then swipe to slice</div><div><b>⏱</b>15 seconds each. Wrong numbers lose points!</div></div>
   <div class="row"><button class="btn" id="bClass">🍎 Play with my class</button><button class="btn alt" id="bTry">Try a round</button></div>
-  <p class="muted" style="text-align:center;margin:14px 0 0">Made for a smart board or touch screen. Two people can slice at once. A mouse works too.</p>
+  <p class="muted" style="text-align:center;margin:14px 0 0">Made for a smart board or touch screen. A mouse works too.</p>
 </div></div>
 
 <!-- SETUP -->
 <div class="scr" id="sSetup" hidden><div class="card">
   <div class="big">Set up your class</div>
   <label class="lbl" for="names">Student names (optional, one per line)</label>
-  <textarea class="f" id="names" placeholder="Leave empty to use numbered pairs"></textarea>
+  <textarea class="f" id="names" placeholder="Leave empty to use numbered players"></textarea>
   <label class="lbl" for="num">…or just the number of students</label>
-  <input class="f" id="num" type="number" min="2" max="40" value="24">
+  <input class="f" id="num" type="number" min="1" max="40" value="24">
   <label class="lbl">Numbers</label>
   <div class="seg" id="range"><button data-r="20">1–20</button><button data-r="100" class="on">1–100</button><button data-r="999">1–999</button></div>
-  <div class="row" style="margin-top:18px"><button class="btn alt" id="bBack">Back</button><button class="btn" id="bPair">Make pairs →</button></div>
+  <div class="row" style="margin-top:18px"><button class="btn alt" id="bBack">Back</button><button class="btn" id="bPair">Set the order →</button></div>
   <p class="muted" style="margin:12px 0 0">Names stay on this screen only. Nothing is saved or sent anywhere.</p>
 </div></div>
 
 <!-- PAIRS -->
 <div class="scr" id="sPairs" hidden><div class="card">
-  <div class="big">Pairs</div>
-  <p class="muted" style="text-align:center;margin:0">Each pair gets one 30-second turn. With an odd number of students, the last group is a three.</p>
+  <div class="big">Play order</div>
+  <p class="muted" style="text-align:center;margin:0">Everyone gets one 15-second turn. The next player has 10 seconds to get to the board and pick evens or odds, then it starts automatically.</p>
   <div class="pairs" id="pairList"></div>
   <div class="row"><button class="btn alt" id="bShuffle">🔀 Shuffle</button><button class="btn" id="bStart">Start →</button></div>
 </div></div>
 
 <!-- TURN: choose -->
 <div class="scr" id="sTurn" hidden><div class="card" style="width:min(720px,100%)">
+  <div id="lastRes" class="muted" style="text-align:center;font-size:18px;margin-bottom:10px"></div>
   <div class="muted" style="text-align:center" id="turnOf"></div>
   <div class="big">Your turn!</div>
   <div class="names" id="turnNames"></div>
   <div class="choose"><button class="pick e" data-c="even">EVENS<small>2 · 4 · 6 · 8 · 10</small></button><button class="pick o" data-c="odd">ODDS<small>1 · 3 · 5 · 7 · 9</small></button></div>
+  <div id="gapWrap" style="margin-top:20px"><div class="muted" style="text-align:center;margin-bottom:6px" id="gapTxt"></div><div style="height:10px;border-radius:10px;background:#0a1624;overflow:hidden"><i id="gapBar" style="display:block;height:100%;width:100%;background:var(--gold);border-radius:10px"></i></div></div>
 </div></div>
 
 <!-- TURN: result -->
@@ -131,7 +133,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const SCREENS=["sMenu","sSetup","sPairs","sTurn","sDone","sFinal"];
 const show=id=>SCREENS.forEach(s=>$(s).hidden=s!==id);
-const ROUND_S=30, RIGHT=10, WRONG=-5;
+const ROUND_S=15, GAP_S=10, RIGHT=10, WRONG=-5;
 const S={ range:100, pairs:[], idx:0, solo:false };
 
 // ============================================================
@@ -140,19 +142,16 @@ const S={ range:100, pairs:[], idx:0, solo:false };
 function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function students(){
   const names=$("names").value.split(/\n|,/).map(s=>s.trim().slice(0,20)).filter(Boolean).slice(0,40);
-  if (names.length>=2) return names;
-  const n=Math.max(2,Math.min(40,$("num").value|0||2)); return Array.from({ length:n },(_,i)=>i);
+  if (names.length) return names;
+  const n=Math.max(1,Math.min(40,$("num").value|0||1)); return Array.from({ length:n },(_,i)=>i);
 }
 function makePairs(){
   const st=students(), named=typeof st[0]==="string";
-  if (!named){ const n=st.length, groups=[]; let p=Math.floor(n/2); for (let i=0;i<p;i++) groups.push({ label:`Pair ${i+1}`, names:"", score:null }); if (n%2) groups[groups.length-1].three=true; return groups; }
-  const s=shuffle(st.slice()), groups=[];
-  for (let i=0;i+1<s.length;i+=2) groups.push([s[i],s[i+1]]);
-  if (s.length%2) groups[groups.length-1].push(s[s.length-1]);
-  return groups.map((g,i)=>({ label:`Pair ${i+1}`, names:g.length===3?`${g[0]}, ${g[1]} & ${g[2]}`:`${g[0]} & ${g[1]}`, score:null }));
+  if (!named) return st.map((_,i)=>({ label:`Player ${i+1}`, names:"", score:null }));
+  return shuffle(st.slice()).map((n,i)=>({ label:`Player ${i+1}`, names:n, score:null }));
 }
 function renderPairs(){
-  $("pairList").innerHTML=S.pairs.map(p=>`<div class="pair"><b>${p.label}</b>${esc(p.names||(p.three?"(group of 3)":""))}</div>`).join("");
+  $("pairList").innerHTML=S.pairs.map((p,i)=>`<div class="pair"><b>${i+1}</b>${esc(p.names||p.label)}</div>`).join("");
 }
 $("bClass").onclick=()=>show("sSetup");
 $("bTry").onclick=()=>{ S.solo=true; S.pairs=[{ label:"Practice", names:"", score:null }]; S.idx=0; startTurn(); };
@@ -161,17 +160,27 @@ $("range").onclick=e=>{ const b=e.target.closest("button"); if (!b) return; S.ra
 $("bPair").onclick=()=>{ S.solo=false; S.pairs=makePairs(); renderPairs(); show("sPairs"); };
 $("bShuffle").onclick=()=>{ S.pairs=makePairs(); renderPairs(); };
 $("bStart").onclick=()=>{ S.idx=0; startTurn(); };
-$("bNext").onclick=()=>{ if (S.solo){ show("sMenu"); return; } S.idx++; S.idx<S.pairs.length?startTurn():finish(); };
+$("bNext").onclick=()=>show("sMenu");
 $("bAgain").onclick=()=>{ S.pairs.forEach(p=>p.score=null); S.pairs=makePairs(); renderPairs(); show("sPairs"); };
 $("bMenu").onclick=()=>show("sMenu");
 
-function startTurn(){
+let gapIv=0;
+function startTurn(last){
   const p=S.pairs[S.idx];
-  $("turnOf").textContent=S.solo?"Practice round":`${p.label} of ${S.pairs.length}`;
-  $("turnNames").innerHTML=p.names?esc(p.names):(S.solo?"Pick one and get slicing":`${esc(p.label)}, come on up!`);
+  $("lastRes").innerHTML=last?`${esc(last.names||last.label)} scored <b style="color:var(--gold)">${last.score}</b>`:"";
+  $("turnOf").textContent=S.solo?"Practice round":`Player ${S.idx+1} of ${S.pairs.length}`;
+  $("turnNames").innerHTML=p.names?`${esc(p.names)}, come on up!`:(S.solo?"Pick one and get slicing":`${esc(p.label)}, come on up!`);
   show("sTurn");
+  clearInterval(gapIv); $("gapWrap").hidden=S.solo;
+  if (S.solo) return;
+  const end=performance.now()+GAP_S*1000;
+  const tick=()=>{ const left=Math.max(0,(end-performance.now())/1000);
+    $("gapTxt").textContent=`Pick one! Starting in ${Math.ceil(left)}…`; $("gapBar").style.width=(100*left/GAP_S)+"%";
+    if (left<=0){ clearInterval(gapIv); go(Math.random()<.5?"even":"odd"); } };
+  tick(); gapIv=setInterval(tick,100);
 }
-document.querySelectorAll(".pick").forEach(b=>b.onclick=()=>{ show(null); countdown(b.dataset.c); });
+function go(c){ clearInterval(gapIv); show(null); countdown(c); }
+document.querySelectorAll(".pick").forEach(b=>b.onclick=()=>go(b.dataset.c));
 
 // ============================================================
 //  Game
@@ -189,18 +198,18 @@ function countdown(goal){
   $("goal").textContent=goal==="even"?"SLICE EVENS ✂":"SLICE ODDS ✂"; $("goal").style.color=goal==="even"?"var(--even)":"var(--odd)";
   $("hScore").textContent=0; $("hTime").textContent=ROUND_S; $("hud").hidden=false;
   let n=3; const c=$("count"); c.hidden=false; c.style.color=goal==="even"?"var(--even)":"var(--odd)"; c.textContent=n;
-  clearInterval(G.cd); const iv=G.cd=setInterval(()=>{ n--; if (n>0) c.textContent=n; else if (n===0) c.textContent="GO!"; else { clearInterval(iv); c.hidden=true; G.on=true; } },800);
+  clearInterval(G.cd); const iv=G.cd=setInterval(()=>{ n--; if (n>0) c.textContent=n; else if (n===0) c.textContent="GO!"; else { clearInterval(iv); c.hidden=true; G.on=true; } },600);
 }
 function randNum(){
-  const want=Math.random()<0.6;                           // ~60% are the numbers you want
+  const want=Math.random()<0.7;                           // ~70% are the numbers you want
   let n=1+(Math.random()*S.range|0);
   if (isGoal(n)!==want) n=n<S.range?n+1:n-1;
   return Math.max(1,n);
 }
 function spawn(){
-  const r=Math.max(38,Math.min(62,Math.min(W,H)*0.07));
+  const r=Math.max(46,Math.min(76,Math.min(W,H)*0.085));
   const x=r+Math.random()*(W-2*r), tx=W*0.2+Math.random()*W*0.6;
-  const peak=H*(0.12+Math.random()*0.3), g=H*0.95;           // gravity scales with screen height
+  const peak=H*(0.15+Math.random()*0.25), g=H*0.6;           // gravity scales with screen height
   const vy=-Math.sqrt(2*g*(H+r-peak)), tUp=-vy/g;
   G.balls.push({ x, y:H+r, vx:(tx-x)/(tUp*1.6), vy, g, r, n:randNum(), col:COLORS[Math.random()*COLORS.length|0], rot:0, vr:(Math.random()-.5)*2 });
 }
@@ -232,8 +241,8 @@ function endTurn(){
   $("doneScore").textContent=`${G.score} points!`;
   const kind=G.goal==="even"?"even":"odd";
   $("doneStats").textContent=`${G.right} ${kind} number${G.right===1?"":"s"} sliced · ${G.wrong} oops${G.wrong===1?"":"es"}`;
-  $("bNext").textContent=S.solo?"Done":S.idx+1<S.pairs.length?"Next pair →":"See the winners →";
-  setTimeout(()=>show("sDone"),900);
+  $("bNext").textContent="Done";
+  setTimeout(()=>{ if (S.solo) return show("sDone"); S.idx++; S.idx<S.pairs.length?startTurn(p):finish(); },900);
 }
 function finish(){
   const ranked=S.pairs.filter(p=>p.score!=null).sort((a,b)=>b.score-a.score);
@@ -253,7 +262,7 @@ function frame(now){
   if (G.on){
     G.t+=dt; const left=Math.max(0,ROUND_S-G.t); $("hTime").textContent=Math.ceil(left);
     G.spawnT-=dt;
-    if (G.spawnT<=0 && left>1){ const k=G.t<8?1:G.t<18?(Math.random()<.5?1:2):(1+(Math.random()*3|0)); for (let i=0;i<k;i++) spawn(); G.spawnT=Math.max(0.55,1.15-G.t*0.02); }
+    if (G.spawnT<=0 && left>1){ const k=G.t>8&&Math.random()<.3?2:1; for (let i=0;i<k;i++) spawn(); G.spawnT=1.3; }
     if (left<=0) endTurn();
   }
   for (const o of G.balls){ o.vy+=o.g*dt; o.x+=o.vx*dt; o.y+=o.vy*dt; o.rot+=o.vr*dt; }
@@ -308,6 +317,7 @@ requestAnimationFrame(frame);
 // ---------- exit: menu → hub, anywhere else → menu
 function exit(){
   if (!$("sMenu").hidden) return location.href="/";
+  clearInterval(gapIv);
   clearInterval(G.cd); G.on=false; G.balls=[]; $("hud").hidden=true; $("count").hidden=true; show("sMenu");
 }
 $("xbtn").onclick=exit;
