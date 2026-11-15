@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Typing Cowboys · Joshua Game Hub</title>
+<meta name="theme-color" content="#7a3b1b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Nunito:wght@600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#3b2314; --ink2:#7c5a43; --wood:#a0612f; --wood2:#6e3a17; --red:#d7392f; --red2:#8f1f18; --cream:#fff6e4; --gold:#f5b82e; --ok:#2f9e44; --bad:#d7392f;
+    --h:"Rye",Georgia,serif; --b:"Nunito",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#2a160b;color:var(--ink);font-family:var(--b);-webkit-font-smoothing:antialiased}
+  button,input{font-family:inherit}
+  #cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;overflow:auto;z-index:5}
+  .screen.on{display:flex}
+  .card{width:100%;max-width:540px;background:var(--cream);border-radius:22px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative;
+    border:4px solid var(--wood2);box-shadow:0 8px 0 #3d1f0c,0 30px 70px -20px rgba(0,0,0,.7);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.92) translateY(10px);opacity:0}}
+  .logo{margin:0;text-align:center;font-family:var(--h);font-weight:400;font-size:52px;line-height:1;color:var(--gold);
+    -webkit-text-stroke:2px var(--red2);paint-order:stroke fill;text-shadow:0 5px 0 var(--red2)}
+  .logo small{display:block;font-family:var(--b);font-size:.27em;font-weight:900;letter-spacing:5px;color:var(--ink2);-webkit-text-stroke:0;text-shadow:none;margin-top:10px}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .how div{background:#f6e6c8;border-radius:14px;padding:10px;text-align:center;font-size:14px;color:var(--ink2);line-height:1.25;font-weight:700}
+  .how b{display:block;font-size:24px;margin-bottom:2px}
+  .lbl{font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink2)}
+  input.f{width:100%;border:3px solid #e2c99c;border-radius:14px;padding:12px 16px;font-size:18px;font-weight:800;color:var(--ink);outline:none;background:#fffaf0}
+  input.f:focus{border-color:var(--red)}
+  .btn{appearance:none;border:0;border-radius:14px;padding:14px 18px;font-size:17px;font-weight:900;cursor:pointer;color:#fff;background:var(--red);box-shadow:0 5px 0 var(--red2);transition:transform .08s,box-shadow .08s,filter .15s}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red2)}
+  .btn.wood{background:var(--wood);box-shadow:0 5px 0 var(--wood2)}
+  .btn.alt{background:#fffaf0;color:var(--ink);box-shadow:0 5px 0 #e2c99c;border:3px solid #e2c99c}
+  .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+  .err{min-height:1.2em;margin:0;color:var(--bad);text-align:center;font-weight:800}
+  .code{font-family:var(--h);font-size:52px;letter-spacing:10px;text-align:center;line-height:1}
+  .count{text-align:center;color:var(--ink2);font-weight:800}
+  .grid{display:flex;flex-wrap:wrap;gap:7px;max-height:36vh;overflow:auto}
+  .chip{display:flex;align-items:center;gap:6px;padding:5px 11px 5px 6px;border-radius:999px;background:#f6e6c8;font-weight:800;font-size:14px}
+  .chip i{min-width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;font-weight:900;padding:0 4px}
+  .chip.me{box-shadow:inset 0 0 0 3px var(--red)}
+  .chip.away{opacity:.45}
+  .note{text-align:center;color:var(--ink2);margin:0;font-weight:700}
+
+  /* race HUD: the typing desk under the carnival booth */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:3;display:none}
+  #hud.on{display:block}
+  .hbox{position:absolute;background:var(--cream);border:3px solid var(--wood2);border-radius:14px;box-shadow:0 4px 0 #3d1f0c;padding:4px 12px}
+  #place{top:12px;left:12px;font-family:var(--h);font-size:26px;line-height:1.2;display:flex;align-items:baseline;gap:6px}
+  #place small{font-family:var(--b);font-size:14px;font-weight:900;color:var(--ink2)}
+  #clock{top:12px;right:56px;font-family:var(--h);font-size:22px;line-height:1.3}
+  #desk{position:absolute;left:50%;bottom:max(16px,4vh);transform:translateX(-50%);width:min(680px,calc(100vw - 24px));pointer-events:auto;
+    background:var(--cream);border:4px solid var(--wood2);border-radius:22px;box-shadow:0 8px 0 #3d1f0c,0 24px 50px -16px rgba(0,0,0,.7);padding:16px 20px 18px;display:flex;flex-direction:column;gap:10px;align-items:center}
+  #upnext{display:flex;gap:12px;font-weight:800;color:#b49477;font-size:18px;min-height:24px}
+  #word{font-family:var(--mono);font-weight:800;font-size:clamp(44px,9vw,72px);line-height:1.05;letter-spacing:.06em;color:#b49477}
+  #word .ok{color:var(--ok)} #word .no{color:var(--bad);text-decoration:underline}
+  #word.hit{animation:hit .3s ease-out} @keyframes hit{from{transform:scale(1.15);color:var(--ok)}}
+  #word.miss{animation:shake .4s} @keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+  #typeIn{width:min(420px,100%);text-align:center;font-family:var(--mono);font-weight:800;font-size:26px;padding:10px 14px;border-radius:14px;border:3px solid #e2c99c;background:#fff;color:var(--ink);outline:none}
+  #typeIn:focus{border-color:var(--red)}
+  #tip{font-size:13px;font-weight:800;color:var(--ink2);text-align:center}
+  #msg{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);font-family:var(--h);font-size:min(16vw,110px);color:var(--gold);-webkit-text-stroke:4px var(--red2);paint-order:stroke fill;opacity:0;white-space:nowrap}
+  #msg.show{animation:msg 1.1s ease-out forwards}
+  @keyframes msg{0%{transform:translate(-50%,-50%) scale(1.6);opacity:0}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0}}
+  #done{display:none;text-align:center}
+  #done.on{display:block}
+  #done h2{margin:0;font-family:var(--h);font-weight:400;font-size:40px;color:var(--red)}
+  #done b{font-family:var(--h);font-size:26px;font-weight:400}
+  #done p{margin:4px 0 0;color:var(--ink2);font-weight:800}
+
+  /* results */
+  #results .card{max-width:600px;text-align:center}
+  .champ{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .champ .t{font-weight:900;letter-spacing:3px;color:var(--red);text-transform:uppercase;font-size:14px}
+  .champ h2{margin:0;font-family:var(--h);font-weight:400;font-size:40px;line-height:1.1}
+  .board{display:flex;flex-direction:column;gap:7px;text-align:left}
+  .line{display:grid;grid-template-columns:36px 30px 1fr auto auto;align-items:center;gap:10px;padding:9px 14px;border-radius:14px;background:#f6e6c8;font-weight:800;animation:pop .4s cubic-bezier(.2,1.4,.4,1) backwards}
+  .line .pos{font-family:var(--h);font-size:20px;color:var(--ink2)}
+  .line i{min-width:26px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;font-weight:900}
+  .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .line .cl{color:var(--ink2);font-size:13px}
+  .line .tm{font-family:var(--h);font-size:18px;min-width:58px;text-align:right}
+  .line.p1{background:#ffe9a8;box-shadow:inset 0 0 0 3px var(--gold)}
+  .line.me{box-shadow:inset 0 0 0 3px var(--red)}
+  .you{display:flex;justify-content:space-between;font-weight:800;color:var(--ink2);padding:0 6px}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:8}
+  #exitBtn{position:fixed;top:12px;right:12px;z-index:9;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:var(--cream);border:0;color:var(--ink2);cursor:pointer}
+  @media (max-width:620px){ .logo{font-size:40px} .how{grid-template-columns:1fr} .card{padding:20px} #place{font-size:20px} #clock{font-size:17px} #desk{padding:12px 14px} #typeIn{font-size:22px} }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script src="/assets/hub-frame.js" defer></script>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+
+<div id="hud">
+  <div class="hbox" id="place">–<small>/ –</small></div>
+  <div class="hbox" id="clock">0:00.0</div>
+  <div id="msg"></div>
+  <div id="desk">
+    <div id="typing" style="display:contents">
+      <div id="word" aria-live="polite">howdy</div>
+      <input id="typeIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="Type the word">
+      <div id="upnext"></div>
+      <div id="tip">Spell it right and your horse gallops. Stuck? Press Space to skip (no penalty).</div>
+    </div>
+    <div id="done"><h2>YEE-HAW!</h2><b id="dTime">0:00.0</b><p id="dNote">Waiting for the others…</p></div>
+  </div>
+</div>
+
+<!-- MENU -->
+<section class="screen on" id="menu"><div class="card">
+  <h1 class="logo">Typing Cowboys<small>TYPE · GALLOP · WIN</small></h1>
+  <div class="how">
+    <div><b>⌨️</b>Type the word you see. Spell it right to gallop ahead</div>
+    <div><b>🐴</b>Wrong word? No problem. Your horse just waits</div>
+    <div><b>🏁</b>First cowboy to the finish line wins!</div>
+  </div>
+  <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
+  <div class="row"><button class="btn" id="bPublic">Race online</button><button class="btn wood" id="bPrivate">Private race</button></div>
+  <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a race for your class</button>
+  <button class="btn alt" id="bSolo">Solo race vs bots</button>
+  <p class="err" id="err"></p>
+</div></section>
+
+<!-- LOBBY -->
+<section class="screen" id="lobby"><div class="card">
+  <div class="lbl" id="lKind" style="text-align:center">Private race</div>
+  <div class="code" id="lCode">----</div>
+  <div class="count" id="lCount">1 / 40 riders</div>
+  <div class="grid" id="lGrid"></div>
+  <p class="note" id="lNote"></p>
+  <div class="row"><button class="btn" id="bStart">Start race!</button><button class="btn alt" id="bLeave" style="flex:0 0 auto">Leave</button></div>
+</div></section>
+
+<!-- RESULTS -->
+<section class="screen" id="results"><div class="card">
+  <div class="champ" id="champ"></div>
+  <div class="board" id="rBoard"></div>
+  <div class="you" id="rYou"></div>
+  <div class="row"><button class="btn" id="bAgain">Back to lobby</button><a class="btn alt" href="../" style="text-align:center;text-decoration:none;flex:0 0 auto">Game hub</a></div>
+</div></section>
+<canvas id="confetti"></canvas>
+
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
+<script src="../typing.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
+const { T }=TYPING;
+const pcol=i=>`hsl(${(i*137.508+20)%360},72%,50%)`;
+const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}`;
+const GAME="typing";
+
+// ============================================================
+//  STATE
+// ============================================================
+const G={ mode:"", me:0, players:new Map(), run:null, startAt:0, others:new Map(), finished:new Map(), bots:[], done:false, resultShown:false, sentD:-1, sentAt:0, shown:new Map(), log:[] };
+let screen="menu";
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); screen=id;
+  $("hud").classList.toggle("on",id==="race");
+  const t=id==="menu"?"Back to game hub":"Leave race"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t);
+}
+const err=t=>$("err").textContent=t||"";
+$("nameIn").value=store.get("cg_name")||"";
+const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store.set("cg_name",n); return n; };
+function flash(t){ const m=$("msg"); m.textContent=t; m.classList.remove("show"); void m.offsetWidth; m.classList.add("show"); }
+
+// ============================================================
+//  TYPING
+// ============================================================
+const racing=()=>screen==="race" && G.run && !G.done && performance.now()>=G.startAt;
+function curWord(){ return G.run.words[G.run.i % G.run.words.length]; }
+function renderWord(){
+  if (!G.run) return;
+  const w=curWord(), typed=$("typeIn").value.trim().toLowerCase();
+  let html=""; for (let i=0;i<w.length;i++){ const c=typed[i]; html+=c==null?esc(w[i]):`<span class="${c===w[i]?"ok":"no"}">${esc(w[i])}</span>`; }
+  $("word").innerHTML=html;
+  const nx=[1,2,3].map(k=>G.run.words[(G.run.i+k)%G.run.words.length]);
+  $("upnext").innerHTML=nx.map(esc).join("<span>·</span>");
+}
+function nextWord(hit){
+  const r=G.run, w=curWord();
+  G.log.push({ w, ok:hit, t:Math.round(r.t*10)/10 });
+  r.i++; if (hit) r.d++; else r.missed++;
+  $("typeIn").value="";
+  const el=$("word"); el.classList.remove("hit","miss"); void el.offsetWidth; el.classList.add(hit?"hit":"miss");
+  if (r.d>=T.dist){ r.finishT=r.t; onFinish(); return; }
+  renderWord();
+}
+$("typeIn").addEventListener("input",()=>{
+  if (!racing()){ $("typeIn").value=""; return; }
+  const raw=$("typeIn").value, v=raw.trim().toLowerCase();
+  if (v===curWord()) return nextWord(true);                     // spelled right: gallop on, no Space needed
+  if (/\s$/.test(raw)){ if (v) nextWord(false); else $("typeIn").value=""; return; }   // Space on a wrong word: next word, no penalty
+  renderWord();
+});
+$("typeIn").addEventListener("keydown",e=>{
+  if (e.key==="Enter"){ e.preventDefault(); if (racing() && $("typeIn").value.trim()) nextWord($("typeIn").value.trim().toLowerCase()===curWord()); }
+});
+$("hud").addEventListener("pointerdown",e=>{ if (e.target.id!=="typeIn" && screen==="race" && !G.done) setTimeout(()=>$("typeIn").focus(),0); });
+
+// ============================================================
+//  DRAWING — a carnival derby booth: striped awning, wooden lanes, cowboys on horses
+// ============================================================
+const cv=$("cv"), cx=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener("resize",resize); resize();
+const rr=(x,y,w,h,r)=>{ cx.beginPath(); cx.roundRect(x,y,w,h,r); };
+
+function booth(){
+  // night sky + carnival lights
+  const g=cx.createLinearGradient(0,0,0,H); g.addColorStop(0,"#2b1a3d"); g.addColorStop(.6,"#4a2420"); g.addColorStop(1,"#2a160b");
+  cx.fillStyle=g; cx.fillRect(0,0,W,H);
+  // awning
+  const aw=Math.max(54,H*0.075), top=46;
+  for (let x=0,k=0;x<W;x+=60,k++){ cx.fillStyle=k%2?"#fff6e4":"#d7392f"; cx.fillRect(x,top,60,aw); cx.beginPath(); cx.arc(x+30,top+aw,30,0,Math.PI); cx.fill(); }
+  const t=performance.now()/1000;
+  for (let i=0;i<Math.ceil(W/46)+1;i++){ const on=((i+Math.floor(t*3))%3)!==0; cx.fillStyle=on?"#ffd36b":"#7a5a2a"; cx.beginPath(); cx.arc(23+i*46,top+aw+40,5,0,7); cx.fill(); }
+  return top+aw+58;
+}
+function boardArea(){
+  const top=booth(), deskTop=$("desk").getBoundingClientRect().top||H*0.62;
+  const bottom=Math.max(top+120,deskTop-18);
+  return { x:Math.max(12,W*0.04), y:top, w:W-Math.max(24,W*0.08), h:bottom-top };
+}
+function lanesToShow(){
+  const all=[{ pid:G.me, d:G.run.d }, ...[...G.others].map(([pid,d])=>({ pid, d }))].filter(a=>G.players.has(a.pid));
+  if (all.length<=8) return all.sort((a,b)=>G.players.get(a.pid).color-G.players.get(b.pid).color);
+  const lead=[...all].sort((a,b)=>b.d-a.d).slice(0,3), set=new Set(lead.map(a=>a.pid)); set.add(G.me);
+  const near=all.filter(a=>!set.has(a.pid)).sort((a,b)=>Math.abs(a.d-G.run.d)-Math.abs(b.d-G.run.d));
+  for (const a of near){ if (set.size>=8) break; set.add(a.pid); }
+  return all.filter(a=>set.has(a.pid)).sort((a,b)=>G.players.get(a.pid).color-G.players.get(b.pid).color);
+}
+function drawHorse(x,y,s,col,phase,me,label,done){
+  const bob=done?0:Math.sin(phase*2)*s*0.06;
+  cx.save(); cx.translate(x,y+bob); cx.scale(s,s);
+  // legs
+  cx.strokeStyle="#5b3416"; cx.lineWidth=0.09; cx.lineCap="round";
+  const sw=done?0:Math.sin(phase)*0.25;
+  for (const [lx,a] of [[-0.32,sw],[-0.18,-sw],[0.26,-sw],[0.4,sw]]){ cx.beginPath(); cx.moveTo(lx,0.05); cx.lineTo(lx+a*0.6,0.48); cx.stroke(); }
+  // body
+  cx.fillStyle="#9a5a2c"; cx.beginPath(); cx.ellipse(0.04,-0.02,0.5,0.22,0,0,7); cx.fill();
+  // tail
+  cx.strokeStyle="#3b2314"; cx.lineWidth=0.08; cx.beginPath(); cx.moveTo(-0.46,-0.08); cx.quadraticCurveTo(-0.7,0.0+sw*0.2,-0.66,0.22); cx.stroke();
+  // neck + head
+  cx.fillStyle="#9a5a2c"; cx.beginPath(); cx.moveTo(0.36,-0.12); cx.lineTo(0.55,-0.5); cx.lineTo(0.72,-0.44); cx.lineTo(0.56,-0.02); cx.fill();
+  cx.beginPath(); cx.ellipse(0.74,-0.44,0.2,0.1,0.35,0,7); cx.fill();
+  cx.fillStyle="#3b2314"; cx.beginPath(); cx.moveTo(0.5,-0.5); cx.lineTo(0.38,-0.16); cx.lineTo(0.46,-0.14); cx.lineTo(0.58,-0.46); cx.fill();   // mane
+  cx.fillStyle="#1b0f07"; cx.beginPath(); cx.arc(0.74,-0.48,0.025,0,7); cx.fill();
+  // saddle blanket in player colour
+  cx.fillStyle=col; rr(-0.2,-0.2,0.36,0.16,0.04); cx.fill();
+  // cowboy
+  cx.fillStyle="#2f4e8a"; cx.fillRect(-0.06,-0.5,0.16,0.32);               // shirt
+  cx.strokeStyle="#2f4e8a"; cx.lineWidth=0.07; cx.beginPath(); cx.moveTo(0.06,-0.42); cx.lineTo(0.3,-0.3); cx.stroke();   // arm to reins
+  cx.fillStyle="#f2c39b"; cx.beginPath(); cx.arc(0.02,-0.6,0.09,0,7); cx.fill();   // head
+  cx.fillStyle=col; cx.fillRect(-0.16,-0.68,0.36,0.04); rr(-0.08,-0.8,0.2,0.13,0.04); cx.fill();   // hat in player colour
+  cx.restore();
+  // name tag
+  if (label){ cx.font=`900 ${Math.max(11,Math.round(s*0.2))}px Nunito`; const tw=cx.measureText(label).width;
+    const lx=x-s*0.8-tw/2, ly=y-s*0.2; cx.fillStyle=me?"#d7392f":"rgba(59,35,20,.85)"; rr(lx-tw/2-7,ly-9,tw+14,18,9); cx.fill();
+    cx.fillStyle="#fff"; cx.textAlign="center"; cx.textBaseline="middle"; cx.fillText(label,lx,ly); }
+}
+function render(now){
+  const A=boardArea(), lanes=lanesToShow(), n=Math.max(lanes.length,4);
+  // booth back wall
+  cx.fillStyle="#6e3a17"; rr(A.x-8,A.y-8,A.w+16,A.h+16,16); cx.fill();
+  const startX=A.x+70, finX=A.x+A.w-50;
+  const lh=A.h/n;
+  lanes.forEach((a,i)=>{
+    const y=A.y+i*lh, p=G.players.get(a.pid), me=a.pid===G.me;
+    cx.fillStyle=i%2?"#3a7bd5":"#2f6bc4"; cx.fillRect(A.x,y,A.w,lh-3);           // water-wave lane like the carnival game
+    cx.strokeStyle="rgba(255,255,255,.25)"; cx.lineWidth=2; cx.beginPath();
+    for (let x=A.x;x<A.x+A.w;x+=24) cx.arc(x+12,y+lh*0.8,8,Math.PI,0); cx.stroke();
+    if (me){ cx.strokeStyle="#ffd36b"; cx.lineWidth=4; cx.strokeRect(A.x+2,y+2,A.w-4,lh-7); }
+    cx.fillStyle="#fff"; cx.font=`900 ${Math.min(18,lh*0.4)}px Nunito`; cx.textAlign="left"; cx.textBaseline="middle"; cx.fillText(String(p.color+1),A.x+10,y+lh/2);
+    // smooth gallop toward the real position
+    const prev=G.shown.get(a.pid)??a.d, cur=prev+(a.d-prev)*0.12; G.shown.set(a.pid,cur);
+    const done=a.d>=T.dist, x=startX+(finX-startX)*Math.min(1,cur/T.dist), s=Math.min(lh*0.95,80,A.w*0.1);
+    const label=me?"YOU":(lanes.length<=8?p.name:"");
+    drawHorse(x,y+lh*0.62,s,pcol(p.color),now/90+a.pid,me,label,done||Math.abs(a.d-cur)<0.05);
+  });
+  // start + finish posts
+  cx.fillStyle="rgba(255,255,255,.7)"; cx.fillRect(startX-2,A.y,3,n*lh-3);
+  for (let y=A.y,k=0;y<A.y+n*lh-3;y+=10,k++) for (let j=0;j<2;j++){ cx.fillStyle=(k+j)%2?"#111":"#fff"; cx.fillRect(finX+j*10,y,10,Math.min(10,A.y+n*lh-3-y)); }
+}
+function hud(){
+  const all=[{ pid:G.me, d:G.run.d, ft:G.run.finishT }, ...[...G.others].map(([pid,d])=>({ pid, d, ft:G.finished.get(pid) }))]
+    .sort((a,b)=>((b.ft!=null)-(a.ft!=null))||(a.ft!=null&&b.ft!=null?a.ft-b.ft:b.d-a.d));
+  const place=all.findIndex(a=>a.pid===G.me)+1, suf=(place%100>10&&place%100<14)?"th":["th","st","nd","rd"][place%10]||"th";
+  $("place").innerHTML=`${place}${suf}<small>/ ${all.length}</small>`;
+}
+
+// ============================================================
+//  LOOP
+// ============================================================
+let last=performance.now(), countShown=-1;
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if (screen==="race" && G.run){
+    const rt=(now-G.startAt)/1000;
+    if (rt<0){ const c=Math.ceil(-rt); if (c!==countShown){ countShown=c; flash(c); } }
+    else {
+      if (countShown>0){ countShown=0; flash("GO!"); $("typeIn").disabled=false; $("typeIn").focus(); }
+      if (!G.done) G.run.t=rt;
+      for (const b of G.bots){ if (b.run.d>=T.dist) continue; TYPING.botStep(b.bot,b.run,dt); b.run.t=rt; if (b.run.d>=T.dist){ b.run.finishT=rt; G.finished.set(b.pid,rt); } G.others.set(b.pid,b.run.d); }
+      if (G.mode==="online" && !G.done && G.run.d!==G.sentD && now-G.sentAt>100){ G.sentAt=now; G.sentD=G.run.d; Net.send({ t:"pos", d:G.run.d, x:0 }); }
+    }
+    $("clock").textContent=fmt(Math.max(0,G.done?G.run.finishT:rt));
+    render(now); hud();
+  } else if (screen!=="race"){
+    booth();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function beginRace({ seed, players, me, inMs, mode }){
+  Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), run:TYPING.newRun(seed), startAt:performance.now()+inMs, others:new Map(),
+    finished:new Map(), bots:[], done:false, resultShown:false, sentD:-1, sentAt:0, shown:new Map(), log:[] });
+  for (const p of players) if (p.pid!==me) G.others.set(p.pid,0);
+  countShown=-1; $("done").classList.remove("on"); $("typing").style.display="contents";
+  $("typeIn").value=""; $("typeIn").disabled=true; renderWord();
+  show("race");
+}
+function onFinish(){
+  G.done=true;
+  if (G.mode==="online") Net.send({ t:"finish", time:G.run.finishT, extra:G.run.missed, log:G.log });
+  $("typing").style.display="none"; $("typeIn").blur();
+  const wpm=Math.round((G.log.filter(l=>l.ok).reduce((s,l)=>s+l.w.length+1,0)/5)/(G.run.finishT/60));
+  $("dTime").textContent=fmt(G.run.finishT);
+  $("dNote").textContent=`About ${wpm} words a minute · `+(G.mode==="solo"?"nice riding!":"waiting for everyone to finish…");
+  $("done").classList.add("on"); flash("FINISH!");
+  if (G.mode==="solo") setTimeout(soloResults,2500);
+}
+
+// ============================================================
+//  SOLO vs bots
+// ============================================================
+$("bSolo").onclick=()=>{
+  const name=myName(); Net.close();
+  const seed=(Math.random()*2**31)|0;
+  const names=["Dusty","Rusty","Daisy","Buck","Sunny"];
+  const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
+  beginRace({ seed, players, me:1, inMs:3000, mode:"solo" });
+  G.bots=names.map((n,i)=>({ pid:i+2, bot:TYPING.makeBot(seed+i*101,i/(names.length-1)), run:TYPING.newRun(seed) }));
+};
+function soloResults(){
+  if (screen!=="race"||G.resultShown) return;
+  for (const b of G.bots){ let g=0; while (b.run.d<T.dist && g++<20000){ b.run.t+=0.05; TYPING.botStep(b.bot,b.run,0.05); } if (b.run.finishT==null) b.run.finishT=b.run.t; }
+  const rank=[{ pid:G.me, name:G.players.get(G.me).name, color:0, time:G.run.finishT, extra:G.run.missed },
+    ...G.bots.map(b=>({ pid:b.pid, name:G.players.get(b.pid).name, color:G.players.get(b.pid).color, time:b.run.finishT, extra:b.run.missed }))].sort((a,b)=>a.time-b.time);
+  showResults(rank);
+}
+
+// ============================================================
+//  RESULTS — top 3 or top 15 % (whichever is more) + your place
+// ============================================================
+const topCount=n=>Math.min(n,Math.max(3,Math.ceil(n*0.15)));
+function showResults(rank){
+  G.resultShown=true; $("typeIn").blur();
+  const w=rank[0], n=topCount(rank.length), best=w.time;
+  $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🤠</div><div class="t">${w.pid===G.me?"You won the race!":"Fastest cowboy!"}</div><h2>${esc(w.name)}</h2>`;
+  const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl"></span><span class="tm">${e.time!=null?fmt(e.time):Math.round(100*(e.d||0)/T.dist)+"%"}</span></div>`;
+  $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
+  const mi=rank.findIndex(e=>e.pid===G.me);
+  $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].time!=null?fmt(rank[mi].time):"didn't finish"}</span>`:"";
+  $("bAgain").textContent=G.mode==="solo"?"Race again":"Back to lobby";
+  show("results"); confetti();
+}
+$("bAgain").onclick=()=>{ if (G.mode==="solo") $("bSolo").click(); else { show("lobby"); renderLobby(); } };
+function confetti(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=$("confetti"), x=c.getContext("2d"); c.width=innerWidth; c.height=innerHeight;
+  const P=Array.from({length:140},(_,i)=>({ x:Math.random()*innerWidth, y:-20-Math.random()*innerHeight*0.5, v:2+Math.random()*4, s:5+Math.random()*7, r:Math.random()*6, c:i%3?pcol(i):"#f5b82e" }));
+  const t0=performance.now();
+  (function f(now){ const age=(now-t0)/1000; x.clearRect(0,0,c.width,c.height);
+    for (const p of P){ p.y+=p.v; p.r+=0.08; x.save(); x.globalAlpha=Math.max(0,1-Math.max(0,age-2.8)/1.4); x.translate(p.x+Math.sin(p.r)*14,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/3,p.s,p.s*0.66); x.restore(); }
+    if (age<4.2) requestAnimationFrame(f); else x.clearRect(0,0,c.width,c.height); })(t0);
+}
+
+// ============================================================
+//  NETWORK
+// ============================================================
+const Net={
+  ws:null, want:false, retry:0, queue:[], pid:0, code:null, lobby:null, token:store.get("cg_token"),
+  url(){ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; if (s) return s; if (!location.host) return null; return (location.protocol==="https:"?"wss://":"ws://")+location.host; },
+  open(){
+    this.want=true; if (this.ws&&this.ws.readyState<=1) return;
+    const url=this.url(); if (!url) return err("Online play needs the game server.");
+    const ws=this.ws=new WebSocket(url);
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
+    ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
+  },
+  send(m){ if (this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify(m)); else if (this.want){ this.queue.push(m); this.open(); } },
+  close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
+};
+function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
+  if (teacherIntercept(m)) return;
+  switch (m.t){
+    case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
+    case "joined":
+      if (m.game!==GAME){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
+      Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
+    case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
+    case "go": beginRace({ seed:m.seed, players:m.players, me:Net.pid, inMs:m.in, mode:"online" });
+      if (m.you && m.you.d>0){ G.run.d=Math.round(m.you.d); G.run.i=G.run.d; renderWord(); } break;   // rejoin mid-race
+    case "ps": if (G.mode==="online") for (const [pid,d] of m.p) if (pid!==G.me) G.others.set(pid,d); break;
+    case "fin": if (m.pid!==Net.pid) G.finished.set(m.pid,m.time); break;
+    case "results": if (G.mode==="online") showResults(m.rank); break;
+    case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
+  }
+}
+let lobbyTimer=0;
+function renderLobby(){
+  const L=Net.lobby; if (!L) return;
+  $("lKind").textContent=L.pub?"Online race":"Private race";
+  $("lCode").textContent=L.code;
+  $("lCount").textContent=`${L.players.length} / ${L.max} riders`;
+  $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
+  const host=L.host===Net.pid;
+  $("bStart").style.display=host?"":"none";
+  clearInterval(lobbyTimer);
+  const note=()=>{
+    let t=L.state==="playing"?"A race is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
+    if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
+    $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t;
+  };
+  const note2=()=>{ note(); teacherLobby(L); }; note2(); lobbyTimer=setInterval(note2,500);
+}
+function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
+$("bPublic").onclick=()=>goOnline({ t:"quick", game:GAME });
+$("bPrivate").onclick=()=>goOnline({ t:"create", game:GAME });
+$("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Race codes are 4 letters."); goOnline({ t:"join", code:c }); };
+$("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
+$("bStart").onclick=()=>Net.send({ t:"start" });
+$("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+
+// ============================================================
+//  TEACHER MODE — the teacher runs a private room without playing
+// ============================================================
+function teacherLobby(L){
+  if (!L || !L.teacher) return;
+  const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), t=L.players.find(p=>p.pid===L.teacher);
+  const cnt=$("lCount"); if (cnt) cnt.textContent=`${kids.length} / ${L.max-1} students`;
+  $("lKind").textContent="🍎 Teacher mode · private game";
+  $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
+}
+function teacherIntercept(m){
+  if (m.t==="joined" && Net.wantTeacher && m.game===GAME){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
+  return teacherView(m);
+}
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:GAME }); });
+
+const CV={ on:false, players:new Map(), dist:T.dist, fin:new Map(), el:null };
+function classView(m){
+  CV.on=true; CV.players=new Map(m.players.map(p=>[p.pid,p])); CV.fin=new Map();
+  G.mode="online"; G.me=Net.pid; G.players=CV.players;
+  if (!CV.el){ CV.el=document.createElement("div"); CV.el.id="classView";
+    CV.el.style.cssText="position:fixed;inset:0;z-index:6;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto;background:rgba(42,22,11,.82);backdrop-filter:blur(4px)";
+    document.body.appendChild(CV.el); }
+  document.querySelectorAll(".screen").forEach(x=>x.classList.remove("on")); screen="class";
+  CV.el.style.display="flex"; CV.start=performance.now()+m.in; renderCV([]);
+}
+function renderCV(rows){
+  if (!CV.on) return;
+  const all=[...CV.players.values()].map(p=>{ const q=rows.find(r=>r[0]===p.pid); return { p, d:q?q[1]:0, done:q?!!q[3]:false, t:CV.fin.get(p.pid) }; })
+    .sort((a,b)=>(b.done-a.done)||(a.done&&b.done?a.t-b.t:b.d-a.d));
+  const secs=Math.max(0,(performance.now()-CV.start)/1000), pre=performance.now()<CV.start;
+  const shown=Math.min(all.length,Math.max(3,Math.ceil(all.length*0.15))), rest=all.length-shown, restDone=all.slice(shown).filter(a=>a.done).length;
+  CV.el.innerHTML=`<div style="width:min(900px,100%);background:#fff6e4;border:4px solid #6e3a17;border-radius:22px;padding:22px 24px;box-shadow:0 30px 70px -20px #000;font-family:inherit;color:#3b2314">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div><div style="font-weight:900;letter-spacing:2px;font-size:13px;color:#d7392f">🍎 CLASS VIEW · LIVE STANDINGS</div><div style="font-size:30px;font-family:Rye,Georgia,serif">${pre?"Get ready…":all.every(a=>a.done)?"Everyone finished!":"Race in progress"}</div></div>
+      <div style="font-size:34px;font-weight:900;font-variant-numeric:tabular-nums">${pre?Math.ceil((CV.start-performance.now())/1000):fmt(secs)}</div></div>
+    <div style="font-weight:900;letter-spacing:1px;font-size:12px;color:#7c5a43;margin:-4px 0 8px">TOP ${shown} OF ${all.length}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${all.slice(0,shown).map((a,i)=>`<div style="display:grid;grid-template-columns:34px minmax(90px,180px) 1fr 78px;gap:10px;align-items:center;font-weight:800">
+      <span style="font-size:18px;color:#7c5a43">${i+1}</span><span style="display:flex;align-items:center;gap:8px;min-width:0"><i style="width:14px;height:14px;border-radius:4px;flex:none;background:${pcol(a.p.color)}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.p.name)}</span></span>
+      <span style="height:14px;border-radius:8px;background:#f0dcb8;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,100*a.d/CV.dist)}%;background:${a.done?"#2f9e44":pcol(a.p.color)};border-radius:8px"></i></span>
+      <span style="text-align:right;font-variant-numeric:tabular-nums">${a.done&&a.t!=null?fmt(a.t):Math.round(100*a.d/CV.dist)+"%"}</span></div>`).join("")}</div>
+    ${rest?`<div style="margin-top:14px;padding:12px 14px;border-radius:14px;background:#f6e6c8;font-weight:800;color:#7c5a43;text-align:center">+ ${rest} more student${rest===1?"":"s"} ${restDone===rest?"finished":"still riding"}. Keep going! 💪</div>`:""}</div>`;
+}
+function endCV(){ CV.on=false; if (CV.el) CV.el.style.display="none"; }
+function teacherView(m){
+  if (m.t==="go" && m.teacher && m.teacher===Net.pid){ classView(m); return true; }
+  if (CV.on && m.t==="ps"){ CV.rows=m.p; renderCV(m.p); return true; }
+  if (CV.on && m.t==="fin"){ CV.fin.set(m.pid,m.time); renderCV(CV.rows||[]); return true; }
+  if (CV.on && m.t==="results"){ endCV(); showResults(m.rank); return true; }
+  if (m.t==="lobby" && CV.on){ Net.lobby=m; m.at=performance.now(); return true; }
+  return false;
+}
+function exitGame(){
+  if (screen==="menu"){ location.href="../"; return; }
+  if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
+  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); endCV(); G.mode=""; G.run=null;
+  show("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("keydown",e=>{ if (e.key==="Escape" && screen!=="menu") exitGame(); });
+addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.search).get("play"); if (!q) return; history.replaceState(null,"",location.pathname);
+  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
+addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
+  $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+</script>
+</body>
+</html>

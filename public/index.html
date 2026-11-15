@@ -167,9 +167,10 @@
   .joinbox .btn{padding:12px 16px;font-size:10px}
   .joinerr{display:block;min-height:0;margin-top:4px;color:#ff8f8f;font-size:14px}
   /* ---------- featured tabs ---------- */
-  .ftabs{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
-  .ftab{position:relative;overflow:hidden;appearance:none;border:1px solid var(--edge2);background:var(--glass);color:var(--dim);border-radius:999px;padding:6px 10px;
-    font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+  .ftabs{display:flex;gap:5px;justify-content:safe center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:10px;padding:2px}
+  .ftabs::-webkit-scrollbar{display:none} .ftab{flex:none}
+  .ftab{position:relative;overflow:hidden;appearance:none;border:1px solid var(--edge2);background:var(--glass);color:var(--dim);border-radius:999px;padding:5px 8px;
+    font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
   .ftab:hover{color:var(--ink)}
   .ftab[aria-selected="true"]{color:#1a1408;background:var(--acc,var(--gold));border-color:transparent}
   .ftab .bar{position:absolute;left:0;bottom:0;height:3px;width:0;background:rgba(0,0,0,.35)}
@@ -302,7 +303,7 @@
   <section class="hero wrap">
     <span class="eyebrow rise d1"><i></i>BROWSER · MULTIPLAYER · FREE</span>
     <h1 class="rise d2">Small games.<br><span class="g">Big rivalries.</span></h1>
-    <p class="lede rise d3">Nine quick multiplayer games for up to 40 players. No downloads, no accounts.</p>
+    <p class="lede rise d3">Twelve quick multiplayer games for up to 40 players. No downloads, no accounts.</p>
     <form class="joinbox rise d4" id="joinForm" autocomplete="off"><span>Have a room code?</span><input id="joinCode" maxlength="4" placeholder="ABCD" aria-label="Room code"><button class="btn" type="submit">JOIN</button></form><a class="teachcta" href="#teachers">🍎 Teacher? Run a game for your whole class →</a>
     <span class="joinerr" id="joinErr" role="status"></span>
   </section>
@@ -346,7 +347,7 @@
   <section class="wrap sec teach" id="teachers" aria-label="For teachers">
     <div class="sechead"><div><span class="kicker">🍎 FOR TEACHERS</span><h2>WHOLE-CLASS GAMES</h2></div><p>Up to 40 students · free · nothing to install</p></div>
     <div class="tintro">
-      <p class="tlead">Seven of our games are made for the whole class. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
+      <p class="tlead">Ten of our games are made for the whole class. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
       <div class="tsteps">
         <div class="tstep"><div><b>Pick a game from the list</b><span>Press <b>🍎 Start as teacher</b>. You get a 4-letter room code.</span></div></div>
         <div class="tstep"><div><b>Put the code on the board</b><span>Students open <b>joshuagamehub.website</b>, type a name, and enter the code in "Have a room code?".</span></div></div>
@@ -392,6 +393,9 @@ const GAMES=[
   { id:"arrow-blitz", teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
   { id:"odds-evens", teach:true, kind:"oddsevens", cat:"Brainy", title:"ODDS OR EVENS", path:"/odds-evens/", blurb:"Take turns at the smart board slicing the right numbers!", tags:["Up to 40","Smart board","Brainy"], badge:"NEW", thumb:"oddsevens" },
+  { id:"typing-cowboys", teach:true, kind:"typing", cat:"Brainy", title:"TYPING COWBOYS", path:"/typing-cowboys/", blurb:"Type words right to gallop your horse to the finish!", tags:["Up to 40","Online","Typing"], badge:"NEW", thumb:"typing" },
+  { id:"star-cannons", teach:true, kind:"cannons", cat:"Party", title:"STAR CANNONS", path:"/star-cannons/", blurb:"Team up and laser bouncing asteroids. Don't get squashed!", tags:["Up to 40","Online","Team"], badge:"NEW", thumb:"cannons" },
+  { id:"dart-party", teach:true, kind:"darts", cat:"Party", title:"DART PARTY", path:"/dart-party/", blurb:"Walk, aim and throw darts. First to pop 20 points wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"darts" },
 ];
 
 // ------------------------------------------------------------
@@ -533,6 +537,47 @@ function arrowThumb(){
   return c;
 }
 // Memory Tiles thumbnail: a 5×5 board, a few tiles flipped to show pictures, the "FIND" card
+function dartsThumb(){
+  const cols=["#ef4b5b","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899"];
+  const bal=(x,y,r,c)=>`<path d="M${x} ${y+r*1.15} q ${r*.4} ${r*.7} ${-r*.1} ${r*1.4}" stroke="#23324a" stroke-opacity=".5" stroke-width="2" fill="none"/><ellipse cx="${x}" cy="${y}" rx="${r*.88}" ry="${r*1.08}" fill="${c}"/><path d="M${x-r*.18} ${y+r*1.2} L${x+r*.18} ${y+r*1.2} L${x} ${y+r*1.02}Z" fill="${c}"/><ellipse cx="${x-r*.3}" cy="${y-r*.4}" rx="${r*.18}" ry="${r*.32}" fill="#fff" opacity=".55" transform="rotate(-28 ${x-r*.3} ${y-r*.4})"/>`;
+  const kid=(x,y,c,ang)=>{ const ux=Math.cos(ang), uy=Math.sin(ang); return `<circle cx="${x}" cy="${y}" r="17" fill="${c}" stroke="#fff" stroke-width="3"/><line x1="${x+ux*10}" y1="${y+uy*10}" x2="${x+ux*30}" y2="${y+uy*30}" stroke="#5d4037" stroke-width="4"/><circle cx="${x+ux*6-uy*6}" cy="${y+uy*6+ux*6}" r="4.5" fill="#fff"/><circle cx="${x+ux*6+uy*6}" cy="${y+uy*6-ux*6}" r="4.5" fill="#fff"/>`; };
+  const bunting=Array.from({length:14},(_,i)=>`<path d="M${i*40} 0 L${i*40+40} 0 L${i*40+20} 26Z" fill="${cols[i%6]}"/>`).join("");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380"><rect width="540" height="380" fill="#7cc96b"/>
+    ${Array.from({length:6},(_,i)=>`<rect x="${i*100}" y="0" width="50" height="380" fill="#fff" opacity=".06"/>`).join("")}${bunting}
+    <circle cx="460" cy="290" r="34" fill="#2f7d32"/><circle cx="452" cy="282" r="22" fill="#43a047"/><circle cx="70" cy="110" r="28" fill="#2f7d32"/><circle cx="64" cy="104" r="18" fill="#43a047"/>
+    ${bal(330,110,30,cols[0])}${bal(420,170,24,cols[1])}${bal(200,90,26,cols[4])}${bal(120,220,22,"#ffc83d")}
+    <line x1="252" y1="232" x2="312" y2="152" stroke="#fff" stroke-width="4" stroke-dasharray="8 10"/>
+    <g transform="translate(300 168) rotate(-53)"><line x1="-26" y1="0" x2="0" y2="0" stroke="#5d4037" stroke-width="5"/><path d="M8 0 L-2 -5 L-2 5Z" fill="#9e9e9e"/><path d="M-26 0 L-20 -7 L-20 7Z" fill="#ef4b5b"/></g>
+    ${kid(240,250,"#3b82f6",-0.93)}${kid(190,300,"#ec4899",-2.2)}${kid(290,310,"#f59e0b",0)}${kid(250,330,"#a855f7",1.57)}</svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
+}
+function cannonsThumb(){
+  const stars=Array.from({length:40},(_,i)=>`<circle cx="${(i*97)%540}" cy="${(i*53)%300}" r="${i%3?1:1.8}" fill="#fff" opacity=".7"/>`).join("");
+  const rock=(x,y,r,c,n)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="rgba(255,255,255,.4)" stroke-width="3"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.35}" fill="rgba(255,255,255,.35)"/><text x="${x}" y="${y+r*.3}" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="${r*.8}" fill="#fff" stroke="#1c1440" stroke-width="4" paint-order="stroke">${n}</text>`;
+  const beam=(x,top,c,w)=>`<line x1="${x}" y1="330" x2="${x}" y2="${top}" stroke="${c}" stroke-width="${w}" opacity=".9"/><line x1="${x}" y1="330" x2="${x}" y2="${top}" stroke="#fff" stroke-width="2" stroke-dasharray="6 12"/>`;
+  const cannon=(x,c)=>`<rect x="${x-18}" y="330" width="36" height="16" rx="4" fill="#2a2366"/><path d="M${x-13} 330 A13 13 0 0 1 ${x+13} 330Z" fill="${c}"/><rect x="${x-3}" y="306" width="6" height="22" fill="#fff"/>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380"><defs><linearGradient id="scg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05041a"/><stop offset="1" stop-color="#2a1660"/></linearGradient></defs>
+    <rect width="540" height="380" fill="url(#scg)"/>${stars}<circle cx="450" cy="70" r="90" fill="#ff4fd8" opacity=".12"/>
+    ${beam(150,170,"#3ee8ff",6)}${beam(290,118,"#ffd23f",8)}${beam(400,215,"#ff4fd8",5)}
+    ${rock(150,130,46,"#5ec2ff",24)}${rock(300,80,40,"#ff8a5c",57)}${rock(400,190,28,"#8a7bd1",9)}
+    <circle cx="80" cy="230" r="20" fill="#0a0820" stroke="#ffd23f" stroke-width="4"/><text x="80" y="238" text-anchor="middle" font-size="22">⚡</text>
+    <rect x="0" y="346" width="540" height="34" fill="#3a2f7a"/><rect x="0" y="345" width="540" height="2" fill="#3ee8ff"/>
+    ${cannon(150,"#3ee8ff")}${cannon(290,"#ffd23f")}${cannon(400,"#ff4fd8")}${cannon(470,"#7cf29c")}</svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
+}
+function typingThumb(){
+  const lane=(y,c,x,hat)=>`<rect x="20" y="${y}" width="500" height="58" fill="${c}"/><path d="M20 ${y+50} ${Array.from({length:21},(_,i)=>`q12 -14 24 0`).join(" ")}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="3"/>
+    <g transform="translate(${x} ${y+36}) scale(46)"><ellipse cx="0.04" cy="-0.02" rx="0.5" ry="0.22" fill="#9a5a2c"/><path d="M0.36 -0.12 L0.55 -0.5 L0.72 -0.44 L0.56 -0.02Z" fill="#9a5a2c"/><ellipse cx="0.74" cy="-0.44" rx="0.2" ry="0.1" fill="#9a5a2c"/>
+    <path d="M-0.32 0.05 L-0.42 0.45 M-0.18 0.05 L-0.08 0.45 M0.26 0.05 L0.38 0.45 M0.4 0.05 L0.3 0.45" stroke="#5b3416" stroke-width="0.09" stroke-linecap="round"/>
+    <rect x="-0.06" y="-0.5" width="0.16" height="0.32" fill="#2f4e8a"/><circle cx="0.02" cy="-0.6" r="0.09" fill="#f2c39b"/><rect x="-0.16" y="-0.68" width="0.36" height="0.04" fill="${hat}"/><rect x="-0.08" y="-0.8" width="0.2" height="0.13" rx="0.04" fill="${hat}"/></g>`;
+  const stripes=Array.from({length:9},(_,i)=>`<rect x="${i*60}" y="0" width="60" height="44" fill="${i%2?"#fff6e4":"#d7392f"}"/><circle cx="${i*60+30}" cy="44" r="30" fill="${i%2?"#fff6e4":"#d7392f"}"/>`).join("");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380"><rect width="540" height="380" fill="#4a2420"/>${stripes}
+    <rect x="12" y="92" width="516" height="196" rx="10" fill="#6e3a17"/>${lane(100,"#2f6bc4",330,"#f5b82e")}${lane(162,"#3a7bd5",200,"#e5484d")}${lane(224,"#2f6bc4",270,"#22c55e")}
+    <g>${Array.from({length:19},(_,i)=>`<rect x="${470+(i%2)*10}" y="${100+i*10}" width="10" height="10" fill="${i%2?"#111":"#fff"}"/><rect x="${480-(i%2)*10}" y="${100+i*10}" width="10" height="10" fill="${i%2?"#fff":"#111"}"/>`).join("")}</g>
+    <rect x="150" y="304" width="240" height="56" rx="12" fill="#fff6e4" stroke="#6e3a17" stroke-width="4"/>
+    <text x="270" y="344" text-anchor="middle" font-family="Courier New, monospace" font-weight="700" font-size="34" fill="#2f9e44">hor<tspan fill="#b49477">se</tspan></text></svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
+}
 function oddsThumb(){
   const balls=[[120,250,36,"#38bdf8",14],[230,130,40,"#a78bfa",7],[340,210,38,"#34d399",22],[440,110,34,"#fb923c",9],[300,300,30,"#f472b6",18]];
   const b=balls.map(([x,y,r,c,n])=>`<circle cx="${x+4}" cy="${y+6}" r="${r}" fill="rgba(0,0,0,.3)"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}" stroke="#fff" stroke-width="4"/><text x="${x}" y="${y+r*0.36}" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="${r}" fill="#fff" stroke="#0d1b2a" stroke-width="3" paint-order="stroke">${n}</text>`).join("");
@@ -601,6 +646,9 @@ for (const g of GAMES){
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
   if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
+  if (g.thumb==="typing") el.querySelector(".thumb").prepend(typingThumb());
+  if (g.thumb==="cannons") el.querySelector(".thumb").prepend(cannonsThumb());
+  if (g.thumb==="darts") el.querySelector(".thumb").prepend(dartsThumb());
   lib.appendChild(el);
 }
 const live=GAMES.filter(g=>!g.soon).length;
@@ -766,9 +814,21 @@ const FEATURES={
     desc:"Students take turns at the board. Each one picks evens or odds, then has 15 seconds to swipe through the right numbers as they float up. Slice a wrong one and you lose points!",
     roles:[["<span class=ico>🙋</span>","YOUR TURN","#fcd34d","One at a time."],["<span class=ico>✋</span>","SLICE","#38bdf8","+10 for the right type."],["<span class=ico>❌</span>","CAREFUL","#fb923c","−5 for a wrong one."]],
     cta:[["🍎 PLAY WITH MY CLASS","teacher"],["TRY A ROUND","try"]], meta:["👆 Touch screen or smart board","🖱 Mouse works too","⏱ 15 s per student"] },
+  "typing-cowboys":{ acc:"#f5b82e", chips:["Up to 40","Online + bots","Typing"], logo:"TYPING COWBOYS", sub:"TYPE · GALLOP · WIN", tag:"CARNIVAL DERBY",
+    desc:"Every player rides a cowboy in their own lane, like the derby game at the fair. Type each word right and your horse gallops ahead. A wrong word costs nothing: your horse just waits. First to the finish line wins!",
+    roles:[["<span class=ico>⌨️</span>","TYPE","#f5b82e","Spell the word."],["<span class=ico>🐴</span>","GALLOP","#38bdf8","Right word = one step."],["<span class=ico>🏁</span>","FINISH","#22c55e","~1 min at 20 wpm."]],
+    cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Any keyboard","📱 Phone keyboard works","⏱ ~1–2 min races"] },
+  "star-cannons":{ acc:"#3ee8ff", chips:["Up to 40","Online + bots","Team"], logo:"STAR CANNONS", sub:"BLAST · DODGE · TEAM UP", tag:"40-PLAYER TEAM GAME",
+    desc:"Everyone's laser cannon shares one floor under a sky full of bouncing asteroids. Blast them into smaller pieces for points and grab power-ups by shooting them first. Get squashed and you're out. How long can your team hold on?",
+    roles:[["<span class=ico>🚀</span>","BLAST","#3ee8ff","Points for every hit."],["<span class=ico>☄️</span>","DODGE","#ff4fd8","Don't get squashed."],["<span class=ico>✨</span>","POWER UP","#ffd23f","Shoot it first to grab it."]],
+    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO + BOTS","solo"]], meta:["⌨ Arrow keys / A D","📱 Touch and drag","⏱ Lasts until the last cannon"] },
+  "dart-party":{ acc:"#ef4b5b", chips:["Up to 40","Online + bots","Party"], logo:"DART PARTY", sub:"WALK · AIM · POP!", tag:"BALLOON FAIR",
+    desc:"The whole party starts together in the middle of the fairground. Walk to aim: you always face the way you move. Throw a dart straight ahead (2-second reload) and pop drifting balloons for points. Gold balloons are worth 5. First to 20 points wins!",
+    roles:[["<span class=ico>🚶</span>","WALK + AIM","#3b82f6","WASD turns you."],["<span class=ico>🎯</span>","THROW","#ef4b5b","Enter. 2 s reload."],["<span class=ico>🎈</span>","POP","#ffc83d","First to 20 wins."]],
+    cta:[["▶ PLAY ONLINE","public"],["PRIVATE PARTY","private"],["SOLO VS BOTS","solo"]], meta:["⌨ WASD + Enter","📱 Joystick + THROW button","⏱ ~1–2 min games"] },
 };
 const ROT_MS=9000; let rotTimer=0, userPicked=false;
-const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb })[g.thumb]();
+const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb, typing:typingThumb, cannons:cannonsThumb, darts:dartsThumb })[g.thumb]();
 function renderTabs(){
   $("ftabs").innerHTML=GAMES.filter(g=>!g.soon).map(g=>`<button class="ftab" role="tab" data-id="${g.id}" data-kind="${g.kind}" aria-selected="${g.id===featured}" style="--acc:${FEATURES[g.id].acc};--rot:${ROT_MS}ms">${g.title}<span class="dot" hidden></span><span class="bar"></span></button>`).join("");
 }
@@ -806,6 +866,9 @@ const CLASS_GAMES=[
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
   { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
   { id:"odds-evens", ico:"✂️", skill:"Odd and even numbers", len:"15 s per student", view:"Played on your smart board", desc:"Students take turns at the board slicing the right numbers." },
+  { id:"typing-cowboys", ico:"🤠", skill:"Typing and spelling", len:"~1–2 min race", view:"Live standings on your screen", desc:"Students type words to gallop their cowboy to the finish. Wrong words don't count against them." },
+  { id:"star-cannons", ico:"🚀", skill:"Teamwork and quick reactions", len:"~2–4 min", view:"Watch the whole game on your screen", desc:"The whole class shares one floor of laser cannons against bouncing asteroids. Last cannon standing ends it." },
+  { id:"dart-party", ico:"🎈", skill:"Aiming and quick thinking", len:"~1–2 min", view:"Watch the whole field on your screen", desc:"Students walk to aim and throw darts at drifting balloons. First to 20 points ends the game." },
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
 ];

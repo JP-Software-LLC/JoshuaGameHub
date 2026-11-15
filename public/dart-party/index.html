@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Dart Party · Joshua Game Hub</title>
+<meta name="theme-color" content="#7cc96b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#23324a; --ink2:#5d6c84; --grass:#7cc96b; --red:#ef4b5b; --red2:#a92a37; --blue:#3b82f6; --blue2:#1d4fb8; --gold:#ffc83d; --cream:#fffdf6;
+    --f:"Fredoka",system-ui,sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--grass);color:var(--ink);font-family:var(--f);-webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
+  button,input{font-family:inherit}
+  #cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;overflow:auto;z-index:5}
+  .screen.on{display:flex}
+  .card{width:100%;max-width:540px;background:var(--cream);border-radius:26px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative;
+    box-shadow:0 8px 0 rgba(35,50,74,.18),0 30px 70px -20px rgba(35,50,74,.55);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.92) translateY(10px);opacity:0}}
+  .logo{margin:0;text-align:center;font-weight:700;font-size:58px;line-height:1;color:var(--red);-webkit-text-stroke:3px #fff;paint-order:stroke fill;text-shadow:0 5px 0 var(--red2)}
+  .logo span{color:var(--blue);text-shadow:0 5px 0 var(--blue2)}
+  .logo small{display:block;font-size:.26em;font-weight:700;letter-spacing:5px;color:var(--ink2);-webkit-text-stroke:0;text-shadow:none;margin-top:10px}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .how div{background:#eef6e9;border-radius:16px;padding:10px;text-align:center;font-size:15px;color:var(--ink2);line-height:1.25;font-weight:600}
+  .how b{display:block;font-size:26px;margin-bottom:2px}
+  .lbl{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink2)}
+  input.f{width:100%;border:3px solid #dde8d6;border-radius:16px;padding:12px 16px;font-size:19px;font-weight:600;color:var(--ink);outline:none;background:#fff}
+  input.f:focus{border-color:var(--blue)}
+  .btn{appearance:none;border:0;border-radius:16px;padding:14px 18px;font-size:18px;font-weight:700;cursor:pointer;color:#fff;background:var(--red);box-shadow:0 5px 0 var(--red2);transition:transform .08s,box-shadow .08s,filter .15s}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--red2)}
+  .btn.blue{background:var(--blue);box-shadow:0 5px 0 var(--blue2)}
+  .btn.alt{background:#fff;color:var(--ink);box-shadow:0 5px 0 #dde8d6;border:3px solid #dde8d6}
+  .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+  .err{min-height:1.2em;margin:0;color:var(--red);text-align:center;font-weight:700}
+  .code{font-size:54px;font-weight:700;letter-spacing:10px;text-align:center;line-height:1}
+  .count{text-align:center;color:var(--ink2);font-weight:600}
+  .grid{display:flex;flex-wrap:wrap;gap:7px;max-height:36vh;overflow:auto}
+  .chip{display:flex;align-items:center;gap:6px;padding:5px 11px 5px 6px;border-radius:999px;background:#eef6e9;font-weight:600;font-size:15px}
+  .chip i{min-width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;font-weight:700;padding:0 4px}
+  .chip.me{box-shadow:inset 0 0 0 3px var(--blue)}
+  .chip.away{opacity:.45}
+  .note{text-align:center;color:var(--ink2);margin:0;font-weight:600}
+
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:3;display:none}
+  #hud.on{display:block}
+  .hbox{position:absolute;background:rgba(255,253,246,.95);border-radius:16px;box-shadow:0 4px 0 rgba(35,50,74,.18);padding:6px 14px}
+  #score{top:10px;left:10px;font-size:28px;font-weight:700;line-height:1.1}
+  #score small{display:block;font-size:12px;letter-spacing:1.5px;color:var(--ink2)}
+  #lead{top:10px;right:54px;min-width:170px;font-weight:600;font-size:15px}
+  #lead .t{font-size:11px;letter-spacing:1.5px;color:var(--ink2);font-weight:700}
+  #lead div.r{display:flex;justify-content:space-between;gap:10px}
+  #cool{position:absolute;top:66px;left:10px;width:120px;height:10px;border-radius:10px;background:rgba(35,50,74,.25);overflow:hidden}
+  #cool i{display:block;height:100%;width:100%;background:var(--gold)}
+  #msg{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);font-weight:700;font-size:min(16vw,110px);color:#fff;-webkit-text-stroke:5px var(--red2);paint-order:stroke fill;opacity:0;white-space:nowrap}
+  #msg.show{animation:msg 1.1s ease-out forwards}
+  @keyframes msg{0%{transform:translate(-50%,-50%) scale(1.6);opacity:0}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0}}
+  #hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);white-space:nowrap}
+  /* touch controls */
+  #stick{position:absolute;left:22px;bottom:22px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.35);border:3px solid rgba(255,255,255,.7);pointer-events:auto;display:none;touch-action:none}
+  #stick i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:#fff;box-shadow:0 3px 0 rgba(35,50,74,.25)}
+  #throwBtn{position:absolute;right:22px;bottom:30px;width:112px;height:112px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:20px;font-weight:700;box-shadow:0 6px 0 var(--red2);pointer-events:auto;display:none;touch-action:none}
+  #throwBtn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--red2)}
+  body.touch #stick, body.touch #throwBtn{display:block} body.touch #hint{display:none}
+
+  #results .card{max-width:600px;text-align:center}
+  .champ{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .champ .t{font-weight:700;letter-spacing:3px;color:var(--red);text-transform:uppercase;font-size:14px}
+  .champ h2{margin:0;font-size:40px;line-height:1.1}
+  .board{display:flex;flex-direction:column;gap:7px;text-align:left}
+  .line{display:grid;grid-template-columns:36px 30px 1fr auto auto;align-items:center;gap:10px;padding:9px 14px;border-radius:14px;background:#eef6e9;font-weight:600;animation:pop .4s cubic-bezier(.2,1.4,.4,1) backwards}
+  .line .pos{font-size:20px;font-weight:700;color:var(--ink2)}
+  .line i{min-width:26px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;font-weight:700}
+  .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .line .cl{color:var(--ink2);font-size:14px}
+  .line .tm{font-size:20px;font-weight:700;min-width:44px;text-align:right}
+  .line.p1{background:#fff2c4;box-shadow:inset 0 0 0 3px var(--gold)}
+  .line.me{box-shadow:inset 0 0 0 3px var(--blue)}
+  .you{display:flex;justify-content:space-between;font-weight:600;color:var(--ink2);padding:0 6px}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:8}
+  #exitBtn{position:fixed;top:12px;right:12px;z-index:9;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff;border:0;color:var(--ink2);cursor:pointer}
+  @media (max-width:620px){ .logo{font-size:44px} .how{grid-template-columns:1fr} .card{padding:20px} #score{font-size:22px} #lead{top:58px;right:10px;min-width:140px;font-size:13px} }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script src="/assets/hub-frame.js" defer></script>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+
+<div id="hud">
+  <div class="hbox" id="score"><small>YOUR POINTS</small><span id="pts">0</span><span id="goal" style="font-size:16px;color:var(--ink2)"> / 20</span></div>
+  <div id="cool"><i id="coolBar"></i></div>
+  <div class="hbox" id="lead"></div>
+  <div id="msg"></div>
+  <div id="hint">WASD or arrows to walk and aim · Enter or Space to throw</div>
+  <div id="stick"><i id="knob"></i></div>
+  <button id="throwBtn" type="button">THROW</button>
+</div>
+
+<!-- MENU -->
+<section class="screen on" id="menu"><div class="card">
+  <h1 class="logo">DART <span>PARTY</span><small>WALK · AIM · POP!</small></h1>
+  <div class="how">
+    <div><b>🚶</b>WASD walks you. You face the way you walk</div>
+    <div><b>🎯</b>Enter throws a short dart straight ahead. Get close! Reload takes 2 s</div>
+    <div><b>🎈</b>Pop balloons for points. First to 20 wins!</div>
+  </div>
+  <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
+  <div class="row"><button class="btn" id="bPublic">Play online</button><button class="btn blue" id="bPrivate">Private party</button></div>
+  <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a game for your class</button>
+  <button class="btn alt" id="bSolo">Solo vs bots</button>
+  <p class="err" id="err"></p>
+</div></section>
+
+<!-- LOBBY -->
+<section class="screen" id="lobby"><div class="card">
+  <div class="lbl" id="lKind" style="text-align:center">Private party</div>
+  <div class="code" id="lCode">----</div>
+  <div class="count" id="lCount">1 / 40 players</div>
+  <div class="grid" id="lGrid"></div>
+  <p class="note" id="lNote"></p>
+  <div class="row"><button class="btn" id="bStart">Start!</button><button class="btn alt" id="bLeave" style="flex:0 0 auto">Leave</button></div>
+</div></section>
+
+<!-- RESULTS -->
+<section class="screen" id="results"><div class="card">
+  <div class="champ" id="champ"></div>
+  <div class="board" id="rBoard"></div>
+  <div class="you" id="rYou"></div>
+  <div class="row"><button class="btn" id="bAgain">Back to lobby</button><a class="btn alt" href="../" style="text-align:center;text-decoration:none;flex:0 0 auto">Game hub</a></div>
+</div></section>
+<canvas id="confetti"></canvas>
+
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
+<script src="../darts.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
+const { T, DIRS }=DARTS;
+const GAME="darts";
+const pcol=i=>`hsl(${(i*137.508+200)%360},70%,52%)`;
+const BCOL=["#ef4b5b","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899"];
+const KIND_COL={ blue:"#3b82f6", gold:"#ffc83d" };
+if (matchMedia("(pointer:coarse)").matches) document.body.classList.add("touch");
+
+// ============================================================
+//  STATE
+// ============================================================
+const G={ mode:"", me:0, teacherView:false, players:new Map(), snaps:[], startAt:0, my:null, face:0, sent:"", local:null, fx:[], texts:[], resultShown:false, coolUntil:0 };
+let screen="menu";
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); screen=id;
+  $("hud").classList.toggle("on",id==="game");
+  const t=id==="menu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t);
+}
+const err=t=>$("err").textContent=t||"";
+$("nameIn").value=store.get("cg_name")||"";
+const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store.set("cg_name",n); return n; };
+function flash(t){ const m=$("msg"); m.textContent=t; m.classList.remove("show"); void m.offsetWidth; m.classList.add("show"); }
+
+// ============================================================
+//  INPUT — WASD / arrows walk (and aim), Enter / Space throw; joystick + THROW on touch
+// ============================================================
+const K={};
+const KEYMAP={ w:"U", arrowup:"U", s:"D", arrowdown:"D", a:"L", arrowleft:"L", d:"R", arrowright:"R" };
+addEventListener("keydown",e=>{
+  if (screen!=="game") return;
+  const k=KEYMAP[e.key.toLowerCase()]; if (k){ K[k]=true; e.preventDefault(); }
+  if ((e.key==="Enter"||e.key===" ") && !e.repeat){ e.preventDefault(); throwDart(); }
+});
+addEventListener("keyup",e=>{ const k=KEYMAP[e.key.toLowerCase()]; if (k) K[k]=false; });
+addEventListener("blur",()=>{ for (const k in K) K[k]=false; stick.x=stick.y=0; });
+const stick={ x:0, y:0, id:null };
+$("stick").addEventListener("pointerdown",e=>{ stick.id=e.pointerId; $("stick").setPointerCapture(e.pointerId); moveStick(e); });
+$("stick").addEventListener("pointermove",e=>{ if (e.pointerId===stick.id) moveStick(e); });
+const stickUp=e=>{ if (e.pointerId!==stick.id) return; stick.id=null; stick.x=stick.y=0; $("knob").style.transform=""; };
+$("stick").addEventListener("pointerup",stickUp); $("stick").addEventListener("pointercancel",stickUp);
+function moveStick(e){ const r=$("stick").getBoundingClientRect(), cx0=r.left+r.width/2, cy0=r.top+r.height/2, R=r.width/2;
+  let dx=(e.clientX-cx0)/R, dy=(e.clientY-cy0)/R; const l=Math.hypot(dx,dy); if (l>1){ dx/=l; dy/=l; }
+  stick.x=Math.abs(dx)<0.25?0:dx; stick.y=Math.abs(dy)<0.25?0:dy; $("knob").style.transform=`translate(${dx*36}px,${dy*36}px)`; }
+$("throwBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); throwDart(); });
+function wantMove(){
+  let x=(K.R?1:0)-(K.L?1:0), y=(K.D?1:0)-(K.U?1:0);
+  if (!x&&!y){ x=stick.x; y=stick.y; if (x||y){ const a=Math.round(Math.atan2(y,x)/(Math.PI/4))*Math.PI/4; x=Math.round(Math.cos(a)*100)/100; y=Math.round(Math.sin(a)*100)/100; } }   // snap the stick to 8 directions
+  const l=Math.hypot(x,y); return l>1?[x/l,y/l]:[x,y];
+}
+function throwDart(){
+  if (screen!=="game" || G.teacherView || performance.now()<G.startAt) return;
+  if (performance.now()<G.coolUntil) return;
+  G.coolUntil=performance.now()+T.cool*1000;
+  if (G.mode==="solo") G.local.fire(G.me); else Net.send({ t:"fire" });
+}
+
+// ============================================================
+//  VIEW — a fairground field seen from above
+// ============================================================
+const cv=$("cv"), cx=cv.getContext("2d");
+let W=0,H=0,DPR=1, S=1, OX=0, OY=0;
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0);
+  S=Math.min(W/T.W,H/T.H); OX=(W-T.W*S)/2; OY=(H-T.H*S)/2; }
+addEventListener("resize",resize); resize();
+const sx=x=>OX+x*S, sy=y=>OY+y*S;
+
+const tufts=Array.from({length:140},(_,i)=>({ x:((i*73)%1000)/1000*T.W, y:((i*389)%1000)/1000*T.H }));
+function drawField(trees){
+  cx.fillStyle="#5fb052"; cx.fillRect(0,0,W,H);
+  cx.fillStyle="#7cc96b"; cx.fillRect(sx(0),sy(0),T.W*S,T.H*S);
+  // mowed stripes
+  cx.fillStyle="rgba(255,255,255,.06)"; for (let i=0;i<T.W;i+=10) cx.fillRect(sx(i),sy(0),5*S,T.H*S);
+  cx.strokeStyle="#4e9a42"; cx.lineWidth=2; for (const t of tufts){ const X=sx(t.x), Y=sy(t.y); cx.beginPath(); cx.moveTo(X-3,Y); cx.lineTo(X-1,Y-5); cx.moveTo(X,Y); cx.lineTo(X+1,Y-6); cx.moveTo(X+3,Y); cx.lineTo(X+3,Y-4); cx.stroke(); }
+  // bunting along the top
+  for (let x=0;x<T.W;x+=4){ cx.fillStyle=BCOL[(x/4)%BCOL.length]; cx.beginPath(); cx.moveTo(sx(x),sy(0)); cx.lineTo(sx(x+4),sy(0)); cx.lineTo(sx(x+2),sy(0)+S*2.2); cx.fill(); }
+  for (const t of trees||[]){ const X=sx(t.x), Y=sy(t.y), R=t.r*S;
+    cx.fillStyle="rgba(0,0,0,.18)"; cx.beginPath(); cx.ellipse(X+R*0.2,Y+R*0.3,R*1.05,R*0.8,0,0,7); cx.fill();
+    cx.fillStyle="#2f7d32"; cx.beginPath(); cx.arc(X,Y,R,0,7); cx.fill();
+    cx.fillStyle="#43a047"; cx.beginPath(); cx.arc(X-R*0.25,Y-R*0.25,R*0.65,0,7); cx.fill();
+    cx.fillStyle="#66bb6a"; cx.beginPath(); cx.arc(X-R*0.35,Y-R*0.4,R*0.3,0,7); cx.fill(); }
+}
+function drawBalloon(b,now){
+  const [id,x,y,kind,c]=b, K=T.kinds[kind], X=sx(x), Y=sy(y)+Math.sin(now/400+id)*2, R=K.r*S;
+  const col=KIND_COL[kind]||BCOL[c%BCOL.length];
+  cx.strokeStyle="rgba(35,50,74,.5)"; cx.lineWidth=1.5; cx.beginPath(); cx.moveTo(X,Y+R*1.15); cx.quadraticCurveTo(X+R*0.4,Y+R*1.8,X-R*0.1,Y+R*2.5); cx.stroke();
+  cx.fillStyle="rgba(0,0,0,.12)"; cx.beginPath(); cx.ellipse(X+R*0.5,Y+R*1.9,R*0.6,R*0.25,0,0,7); cx.fill();
+  cx.fillStyle=col; cx.beginPath(); cx.ellipse(X,Y,R*0.88,R*1.08,0,0,7); cx.fill();
+  cx.beginPath(); cx.moveTo(X-R*0.18,Y+R*1.2); cx.lineTo(X+R*0.18,Y+R*1.2); cx.lineTo(X,Y+R*1.02); cx.fill();
+  cx.fillStyle="rgba(255,255,255,.55)"; cx.beginPath(); cx.ellipse(X-R*0.3,Y-R*0.4,R*0.18,R*0.32,-0.5,0,7); cx.fill();
+  if (kind==="gold"){ cx.fillStyle="#7a5200"; cx.font=`700 ${Math.max(10,R*0.9)}px Fredoka`; cx.textAlign="center"; cx.textBaseline="middle"; cx.fillText("5",X,Y+1); }
+  if (kind==="blue"){ cx.fillStyle="#fff"; cx.font=`700 ${Math.max(10,R*0.9)}px Fredoka`; cx.textAlign="center"; cx.textBaseline="middle"; cx.fillText("2",X,Y+1); }
+}
+function drawDart(d){
+  const [id,x,y,f]=d, [ux,uy]=DIRS[f], X=sx(x), Y=sy(y), L=2.2*S;
+  cx.strokeStyle="#5d4037"; cx.lineWidth=Math.max(2,S*0.25); cx.beginPath(); cx.moveTo(X-ux*L,Y-uy*L); cx.lineTo(X,Y); cx.stroke();
+  cx.fillStyle="#9e9e9e"; cx.beginPath(); cx.moveTo(X+ux*S*0.7,Y+uy*S*0.7); cx.lineTo(X-uy*S*0.3,Y+ux*S*0.3); cx.lineTo(X+uy*S*0.3,Y-ux*S*0.3); cx.fill();
+  cx.fillStyle="#ef4b5b"; cx.beginPath(); cx.moveTo(X-ux*L,Y-uy*L); cx.lineTo(X-ux*L*0.75-uy*S*0.5,Y-uy*L*0.75+ux*S*0.5); cx.lineTo(X-ux*L*0.75+uy*S*0.5,Y-uy*L*0.75-ux*S*0.5); cx.fill();
+}
+function drawKid(p,x,y,face,me,now,moving){
+  const col=pcol(G.players.get(p[0])?.color??0), X=sx(x), Y=sy(y), R=T.r*S, [ux,uy]=DIRS[face];
+  cx.globalAlpha=me?1:0.85;
+  cx.fillStyle="rgba(0,0,0,.18)"; cx.beginPath(); cx.ellipse(X,Y+R*0.8,R*1.1,R*0.45,0,0,7); cx.fill();
+  // arrow showing where your next dart goes
+  if (me){ cx.strokeStyle="rgba(255,255,255,.85)"; cx.lineWidth=3; cx.setLineDash([6,8]); cx.beginPath(); cx.moveTo(X+ux*R*1.6,Y+uy*R*1.6); cx.lineTo(X+ux*(T.range*S-R*1.2),Y+uy*(T.range*S-R*1.2)); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle="#fff"; cx.beginPath(); const E=T.range*S; cx.moveTo(X+ux*E,Y+uy*E); cx.lineTo(X+ux*(E-R*1.4)-uy*R*0.8,Y+uy*(E-R*1.4)+ux*R*0.8); cx.lineTo(X+ux*(E-R*1.4)+uy*R*0.8,Y+uy*(E-R*1.4)-ux*R*0.8); cx.fill(); }
+  const bob=moving?Math.sin(now/90)*R*0.12:0;
+  cx.fillStyle=col; cx.beginPath(); cx.arc(X,Y+bob,R,0,7); cx.fill();
+  cx.lineWidth=me?3:2; cx.strokeStyle=me?"#fff":"rgba(35,50,74,.5)"; cx.stroke();
+  // hand holding a dart, pointing the way you face
+  cx.strokeStyle="#5d4037"; cx.lineWidth=2.5; cx.beginPath(); cx.moveTo(X+ux*R*0.6,Y+uy*R*0.6+bob); cx.lineTo(X+ux*R*1.7,Y+uy*R*1.7+bob); cx.stroke();
+  // eyes look the way you face
+  cx.fillStyle="#fff"; for (const s of [-1,1]){ cx.beginPath(); cx.arc(X+ux*R*0.35-uy*R*0.35*s,Y+uy*R*0.35+ux*R*0.35*s+bob,R*0.26,0,7); cx.fill(); }
+  cx.fillStyle="#23324a"; for (const s of [-1,1]){ cx.beginPath(); cx.arc(X+ux*R*0.45-uy*R*0.35*s,Y+uy*R*0.45+ux*R*0.35*s+bob,R*0.12,0,7); cx.fill(); }
+  if (me){ cx.font="700 13px Fredoka"; cx.textAlign="center"; cx.textBaseline="bottom"; cx.fillStyle="#fff"; cx.strokeStyle="#23324a"; cx.lineWidth=3; cx.strokeText("YOU",X,Y-R-4); cx.fillText("YOU",X,Y-R-4); }
+  cx.globalAlpha=1;
+}
+function addBurst(x,y,n,col){ for (let i=0;i<n;i++){ const a=Math.random()*7, v=6+Math.random()*14; G.fx.push({ x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:0.4+Math.random()*0.4,col }); } }
+
+function viewState(now){
+  const S2=G.snaps; if (!S2.length) return null;
+  const rt=now-(G.mode==="solo"?0:100); let a=S2[0], b=S2[S2.length-1];
+  for (let i=S2.length-1;i>=0;i--) if (S2[i].at<=rt){ a=S2[i]; b=S2[i+1]||S2[i]; break; }
+  const k=b.at>a.at?Math.max(0,Math.min(1,(rt-a.at)/(b.at-a.at))):1, lerp=(p,q)=>p+(q-p)*k;
+  const m=(arr,old,xi,yi)=>{ const O=new Map(old.map(r=>[r[0],r])); return arr.map(r=>{ const o=O.get(r[0]); if (!o) return r; const c=r.slice(); c[xi]=lerp(o[xi],r[xi]); c[yi]=lerp(o[yi],r[yi]); return c; }); };
+  return { s:b.s, players:m(b.s.p,a.s.p,1,2), balloons:m(b.s.b,a.s.b,1,2), darts:m(b.s.d,a.s.d,1,2) };
+}
+
+// ============================================================
+//  LOOP
+// ============================================================
+let last=performance.now(), countShown=-1, acc=0;
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if (screen==="game"){
+    const pre=now<G.startAt;
+    if (pre){ const c=Math.ceil((G.startAt-now)/1000); if (c!==countShown){ countShown=c; flash(c); } }
+    else if (countShown>0){ countShown=0; flash("POP!"); }
+    const [mx,my]=pre||G.teacherView?[0,0]:wantMove();
+    if (G.mode==="solo"){ G.local.setInput(G.me,mx,my); if (!pre){ acc+=dt; while (acc>=0.025){ acc-=0.025; G.local.step(0.025); } handleEvents(G.local.drainEvents()); }
+      G.snaps=[{ at:now, s:G.local.snapshot() }]; }
+    else if (!G.teacherView){ const key=mx+","+my; if (key!==G.sent){ G.sent=key; Net.send({ t:"in", x:mx, y:my }); } }
+    const V=viewState(now);
+    drawField(G.trees);
+    if (V){
+      const mine=V.players.find(p=>p[0]===G.me);
+      if (mine){ if (!G.my) G.my={ x:mine[1], y:mine[2] };
+        G.my.x+=mx*T.speed*dt; G.my.y+=my*T.speed*dt; const ease=G.mode==="solo"?1:0.12;
+        G.my.x+=(mine[1]-G.my.x)*ease; G.my.y+=(mine[2]-G.my.y)*ease; if (mx||my) G.face=Math.round(Math.atan2(my,mx)/(Math.PI/4)+8)%8; else if (G.mode==="solo") G.face=mine[3]; }
+      for (const d of V.darts) drawDart(d);
+      for (const p of V.players) if (p[0]!==G.me) drawKid(p,p[1],p[2],p[3],false,now,false);
+      if (mine) drawKid(mine,G.my.x,G.my.y,G.face,true,now,!!(mx||my));
+      for (const b of V.balloons) drawBalloon(b,now);
+      hud(V,now);
+    }
+    for (const f of G.fx){ f.life-=dt; f.x+=f.vx*dt; f.y+=f.vy*dt; cx.globalAlpha=Math.max(0,f.life*2); cx.fillStyle=f.col; cx.fillRect(sx(f.x)-3,sy(f.y)-3,6,6); }
+    G.fx=G.fx.filter(f=>f.life>0);
+    for (const t of G.texts){ t.life-=dt; t.y-=dt*5; cx.globalAlpha=Math.min(1,t.life*1.5); cx.font="700 20px Fredoka"; cx.textAlign="center"; cx.lineWidth=4; cx.strokeStyle="#fff"; cx.strokeText(t.t,sx(t.x),sy(t.y)); cx.fillStyle=t.col; cx.fillText(t.t,sx(t.x),sy(t.y)); }
+    G.texts=G.texts.filter(t=>t.life>0); cx.globalAlpha=1;
+  } else drawField(null);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function hud(V,now){
+  const mine=V.players.find(p=>p[0]===G.me), goal=V.s.goal||T.target;
+  $("score").style.display=mine?"":"none"; $("cool").style.display=mine?"":"none";
+  if (mine){ $("pts").textContent=mine[4]; $("goal").textContent=` / ${goal}`; }
+  $("coolBar").style.width=Math.min(100,100*(1-Math.max(0,G.coolUntil-now)/(T.cool*1000)))+"%";
+  const top=[...V.players].sort((a,b)=>b[4]-a[4]).slice(0,3);
+  $("lead").innerHTML=`<div class="t">FIRST TO ${goal} WINS</div>`+top.map((p,i)=>`<div class="r"><span>${["🥇","🥈","🥉"][i]} ${esc(G.players.get(p[0])?.name||"")}</span><b>${p[4]}</b></div>`).join("");
+}
+function handleEvents(ev){
+  for (const e of ev){
+    if (e[0]==="pop"){ const [,pid,x,y,kind,pts,c]=e; addBurst(x,y,16,KIND_COL[kind]||BCOL[c%BCOL.length]);
+      if (pid===G.me) G.texts.push({ x, y, t:`+${pts}`, col:"#23324a", life:1.2 }); }
+    if (e[0]==="thunk") addBurst(e[1],e[2],5,"#8d6e63");
+    if (e[0]==="throw" && e[1]===G.me) G.coolUntil=performance.now()+T.cool*1000;
+    if (e[0]==="over" && G.mode==="solo") setTimeout(soloResults,1200);
+  }
+}
+function beginGame({ players, me, inMs, mode, teacher, trees }){
+  Object.assign(G,{ mode, me, teacherView:!!teacher&&teacher===me, players:new Map(players.map(p=>[p.pid,p])), snaps:[], startAt:performance.now()+inMs,
+    my:null, face:0, sent:"", fx:[], texts:[], resultShown:false, coolUntil:0, trees:trees||G.trees||[] });
+  countShown=-1; acc=0; for (const k in K) K[k]=false;
+  $("hint").style.display=G.teacherView?"none":""; document.body.classList.toggle("watching",G.teacherView);
+  $("stick").style.visibility=$("throwBtn").style.visibility=G.teacherView?"hidden":"";
+  show("game");
+}
+
+// ============================================================
+//  SOLO vs bots (same simulation, in the browser)
+// ============================================================
+$("bSolo").onclick=()=>{
+  const name=myName(); Net.close();
+  const names=["Pip","Bubbles","Ziggy","Rosie","Max"];
+  const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
+  G.local=new DARTS.Game([{ id:1, name }, ...names.map((n,i)=>({ id:i+2, name:n, bot:true }))]);
+  G.local.players.forEach((p,i)=>{ if (p.bot) p.lazy=0.7+i*0.25; });   // friendlier solo bots
+  beginGame({ players, me:1, inMs:3000, mode:"solo", trees:G.local.trees });
+};
+function soloResults(){
+  if (screen!=="game"||G.resultShown) return;
+  showResults(G.local.ranking().map(r=>({ ...r, pid:r.id, color:G.players.get(r.id)?.color??0 })));
+}
+
+// ============================================================
+//  RESULTS — top 3 or top 15 % (whichever is more) + your place
+// ============================================================
+const topCount=n=>Math.min(n,Math.max(3,Math.ceil(n*0.15)));
+function showResults(rank){
+  G.resultShown=true;
+  const w=rank[0], n=topCount(rank.length);
+  $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🎈</div><div class="t">${w.pid===G.me?"You won the party!":"Party champion!"}</div><h2>${esc(w.name)}</h2>`;
+  const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">🎈 ${e.pops??0}</span><span class="tm">${e.score}</span></div>`;
+  $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
+  const mi=rank.findIndex(e=>e.pid===G.me);
+  $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].score} points · 🎈 ${rank[mi].pops??0}</span>`:"";
+  $("bAgain").textContent=G.mode==="solo"?"Play again":"Back to lobby";
+  show("results"); confetti();
+}
+$("bAgain").onclick=()=>{ if (G.mode==="solo") $("bSolo").click(); else { show("lobby"); renderLobby(); } };
+function confetti(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=$("confetti"), x=c.getContext("2d"); c.width=innerWidth; c.height=innerHeight;
+  const P=Array.from({length:140},(_,i)=>({ x:Math.random()*innerWidth, y:-20-Math.random()*innerHeight*0.5, v:2+Math.random()*4, s:5+Math.random()*7, r:Math.random()*6, c:BCOL[i%BCOL.length] }));
+  const t0=performance.now();
+  (function f(now){ const age=(now-t0)/1000; x.clearRect(0,0,c.width,c.height);
+    for (const p of P){ p.y+=p.v; p.r+=0.08; x.save(); x.globalAlpha=Math.max(0,1-Math.max(0,age-2.8)/1.4); x.translate(p.x+Math.sin(p.r)*14,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/3,p.s,p.s*0.66); x.restore(); }
+    if (age<4.2) requestAnimationFrame(f); else x.clearRect(0,0,c.width,c.height); })(t0);
+}
+
+// ============================================================
+//  NETWORK
+// ============================================================
+const Net={
+  ws:null, want:false, retry:0, queue:[], pid:0, code:null, lobby:null, token:store.get("cg_token"),
+  url(){ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; if (s) return s; if (!location.host) return null; return (location.protocol==="https:"?"wss://":"ws://")+location.host; },
+  open(){
+    this.want=true; if (this.ws&&this.ws.readyState<=1) return;
+    const url=this.url(); if (!url) return err("Online play needs the game server.");
+    const ws=this.ws=new WebSocket(url);
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
+    ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
+  },
+  send(m){ if (this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify(m)); else if (this.want){ this.queue.push(m); this.open(); } },
+  close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
+};
+function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
+  if (m.t==="joined" && Net.wantTeacher && m.game===GAME){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
+  switch (m.t){
+    case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
+    case "joined":
+      if (m.game!==GAME){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
+      Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
+    case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
+    case "start": beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online", teacher:m.teacher, trees:m.trees }); break;
+    case "s": if (G.mode==="online"){ if (m.s.tr) G.trees=m.s.tr; G.snaps.push({ at:performance.now(), s:m.s }); if (G.snaps.length>12) G.snaps.shift(); handleEvents(m.e||[]); } break;
+    case "results": if (G.mode==="online") showResults(m.rank); break;
+    case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
+  }
+}
+let lobbyTimer=0;
+function renderLobby(){
+  const L=Net.lobby; if (!L) return;
+  $("lKind").textContent=L.pub?"Online party":"Private party";
+  $("lCode").textContent=L.code;
+  $("lCount").textContent=`${L.players.length} / ${L.max} players`;
+  $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
+  const host=L.host===Net.pid;
+  $("bStart").style.display=host?"":"none";
+  clearInterval(lobbyTimer);
+  const note=()=>{
+    let t=L.state==="playing"?"A game is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
+    if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
+    $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t;
+    teacherLobby(L);
+  };
+  note(); lobbyTimer=setInterval(note,500);
+}
+function teacherLobby(L){
+  if (!L || !L.teacher) return;
+  const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), t=L.players.find(p=>p.pid===L.teacher);
+  $("lCount").textContent=`${kids.length} / ${L.max-1} students`;
+  $("lKind").textContent="🍎 Teacher mode · private game";
+  $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start when everyone's in, then put the game on the big screen.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
+}
+function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
+$("bPublic").onclick=()=>goOnline({ t:"quick", game:GAME });
+$("bPrivate").onclick=()=>goOnline({ t:"create", game:GAME });
+$("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Party codes are 4 letters."); goOnline({ t:"join", code:c }); };
+$("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
+$("bStart").onclick=()=>Net.send({ t:"start" });
+$("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:GAME }); });
+
+function exitGame(){
+  if (screen==="menu"){ location.href="../"; return; }
+  if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
+  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); G.mode=""; G.local=null; G.snaps=[];
+  show("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("keydown",e=>{ if (e.key==="Escape" && screen!=="menu") exitGame(); });
+addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.search).get("play"); if (!q) return; history.replaceState(null,"",location.pathname);
+  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
+addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
+  $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+</script>
+</body>
+</html>

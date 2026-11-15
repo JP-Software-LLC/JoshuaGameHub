@@ -52,7 +52,7 @@ class RushRoom extends RoomBase {
         if (!p || this.state!=="playing" || p.fin!=null) return;
         p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
         this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
-        if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),AFTER_FIRST_MS);
+        if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),this.constructor.AFTER_FIRST||AFTER_FIRST_MS);
         this.checkAllDone(); return;
       case "leave": case "drop":
         if (!p) return;

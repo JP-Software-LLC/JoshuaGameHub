@@ -10,6 +10,9 @@
 //   Memory Tiles:    start{} tile{dx,dy} (server replies me{x,y} only to you)
 //   Arrow Blitz:     start{} score{round:1,n}   (Math Race room, one round)
 //   Hurdle Dash:     start{} pos{d,x=state} finish{time,extra=clean jumps}
+//   Typing Cowboys:  start{} pos{d=words,x=0} finish{time,extra=words missed}
+//   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
+//   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
 //                   floor{grid,theme} s{s:snapshot,e:events} error{code,msg}
 "use strict";
@@ -24,8 +27,11 @@ const { BearRoom }=require("./bearroom");
 const { HurdleRoom }=require("./hurdleroom");
 const { ArrowRoom }=require("./arrowroom");
 const { MemoryRoom }=require("./memoryroom");
+const { TypingRoom }=require("./typingroom");
+const { CannonRoom }=require("./cannonroom");
+const { DartRoom }=require("./dartroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -121,6 +127,7 @@ async function onMessage(c,m){
     case "pos":    return toRoom(c,{ t:"pos", d:+m.d, x:+m.x });
     case "finish": return toRoom(c,{ t:"finish", time:+m.time, extra:m.extra|0, log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
+    case "fire":   return toRoom(c,{ t:"fire" });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
   }

@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) and **Memory Tiles** (up to 40, remember-the-picture survival).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) and **Dart Party** (up to 40, walk-to-aim dart throwing at balloons).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -91,3 +91,20 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 
 ## Shared hub frame
 - Every game and /teacher/ loads `/assets/hub-frame.js`. On a game's menu (`#exitBtn` title starts "Back to game hub") it shows the hub bar (brand, current game, All games menu, Teachers link); during play only the hub-styled `#exitBtn` shows. `data-always` keeps the bar on (teacher page); `data-pad` moves `.screen` below the bar (math-race, arrow-blitz). New games: add the script tag, an `#exitBtn` that toggles its title, and an entry in the GAMES list inside hub-frame.js.
+
+## Typing Cowboys rules
+- `public/typing-cowboys/`. Each player's cowboy rides its own lane (carnival derby). Type the word: an exact match advances automatically (no Space). Space/Enter on a wrong word = next word, no penalty, horse doesn't move. 22 correct words to finish (~1 min at 20 wpm; words avg ~4.2 letters).
+- `shared/typing.js` = word list (kid-safe), seeded list (same words for everyone), bots (served at /typing.js). Server = `server/typingroom.js`, a `RushRoom` subclass: pos{d=words}, finish{time, extra=words missed}. `AFTER_FIRST` = 4 min so the race waits for slower typists (6 min hard cap); results show the top max(3, 15 %).
+- Shows up to 8 lanes: you, the top 3 and the riders nearest you. Teacher mode = live standings board.
+
+## Star Cannons rules
+- `public/star-cannons/`. Server-authoritative like Bear Attack: `shared/cannons.js` (served at /cannons.js, also runs solo in the browser) + `server/cannonroom.js`. Client sends in{x:-1|0|1}; server sends s{s,e} 20×/s.
+- Every cannon fires a constant beam straight up; it hits the LOWEST asteroid/power-up above it (continuous damage, `T.dps`/s, x2.2 with rapid fire). Points = damage dealt. Asteroids show HP, bounce to a fixed height per size, split into two smaller ones at 0 HP. HP scales with sqrt(players alive) and time.
+- An asteroid touching a cannon knocks it out (shield absorbs one). Power-ups (rapid, shield, freeze, bomb) go to the first beam that reaches them (+25). No time limit: game ends when every cannon is out; bots last ~2.5–4 min. Results rank by points, top max(3, 15 %).
+- Teacher mode: the teacher watches the whole field (no cannon).
+
+## Dart Party rules
+- `public/dart-party/`. Server-authoritative: `shared/darts.js` (served at /darts.js, also runs solo) + `server/dartroom.js`. Client sends in{x,y} (8-way, on change) and fire{}; snapshot s{s,e} 20×/s (includes trees `tr`).
+- Top-down field (y down). Moving turns you to face that way (8 directions); Enter/Space throws a dart straight ahead, 2 s reload; darts only fly ``T.range`` = 18 units (the aim arrow shows the reach). Darts stop at trees, never hit players. Everyone starts clustered in the middle.
+- Balloons drift in from the edges: red 1 pt, big 1 pt, blue 2 pts (fast), gold 5 pts (rare, fastest). Spawn rate and cap scale with player count. First to `T.target` = 20 points ends it; results rank by points, top max(3, 15 %).
+- Touch: on-screen joystick (snapped to 8 directions) + THROW button. Solo bots get `lazy` so a human can win (~60–90 s).
