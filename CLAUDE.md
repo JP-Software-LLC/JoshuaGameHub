@@ -88,3 +88,6 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 ## Next up (see docs/DEPLOY.md roadmap)
 - Local prediction for the local player online (biggest feel improvement).
 - Juice: shake, particles, transitions, SFX.
+
+## Shared hub frame
+- Every game and /teacher/ loads `/assets/hub-frame.js`. On a game's menu (`#exitBtn` title starts "Back to game hub") it shows the hub bar (brand, current game, All games menu, Teachers link); during play only the hub-styled `#exitBtn` shows. `data-always` keeps the bar on (teacher page); `data-pad` moves `.screen` below the bar (math-race, arrow-blitz). New games: add the script tag, an `#exitBtn` that toggles its title, and an entry in the GAMES list inside hub-frame.js.

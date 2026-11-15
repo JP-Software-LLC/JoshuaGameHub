@@ -111,6 +111,7 @@
   @media (max-width:620px){ .logo{font-size:44px} .card{padding:22px} #place{font-size:26px} #clock{font-size:18px} #track{top:62px;width:calc(100vw - 40px)} }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<script src="/assets/hub-frame.js" defer></script>
 </head>
 <body>
 <canvas id="view"></canvas>
@@ -129,7 +130,6 @@
 
 <!-- MENU -->
 <section class="screen on" id="menu"><div class="card">
-  <a class="back" href="../">← Game hub</a>
   <h1 class="logo">RUSH HOUR<small>WEAVE · BOOST · WIN</small></h1>
   <div class="keys"><span><kbd>◀</kbd> <kbd>▶</kbd> change lane</span><span><kbd>▼</kbd> brake</span><span>Hit the <b style="color:#0ea5e9">glowing strips</b> to boost!</span></div>
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>

@@ -82,6 +82,7 @@
   .back:hover { color:var(--gold); }
   .bigcode { font-family:"Press Start 2P"; font-size:26px; letter-spacing:6px; color:var(--ink); }
 </style>
+<script src="/assets/hub-frame.js" defer></script>
 </head>
 <body>
 <button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -90,7 +91,6 @@
   <div id="stage">
     <canvas id="cv"></canvas>
     <div class="overlay" id="menu"><div class="card">
-      <a class="back" href="../">◂ GAME HUB</a>
       <h1>CLEAN<br>GETAWAY</h1>
       <p>Up to five players. Everyone takes a turn as the <b style="color:var(--gold)">Thief</b> with 1 life. Grab every stack of cash to rob the floor. The other four are <b style="color:#7fa4ff">Guards</b>, and their job is to tackle you.</p>
       <div class="legend">
