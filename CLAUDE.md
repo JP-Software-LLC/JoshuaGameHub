@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) and **Dart Party** (up to 40, walk-to-aim dart throwing at balloons).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) **Dart Party** (up to 40, walk-to-aim dart throwing at balloons) and **Sky Climb** (up to 40, flap-to-fly race to the top with player bumping).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -100,7 +100,7 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 ## Star Cannons rules
 - `public/star-cannons/`. Server-authoritative like Bear Attack: `shared/cannons.js` (served at /cannons.js, also runs solo in the browser) + `server/cannonroom.js`. Client sends in{x:-1|0|1}; server sends s{s,e} 20×/s.
 - Every cannon fires a constant beam straight up; it hits the LOWEST asteroid/power-up above it (continuous damage, `T.dps`/s, x2.2 with rapid fire). Points = damage dealt. Asteroids show HP, bounce to a fixed height per size, split into two smaller ones at 0 HP. HP scales with sqrt(players alive) and time.
-- An asteroid touching a cannon knocks it out (shield absorbs one). Power-ups (rapid, shield, freeze, bomb) go to the first beam that reaches them (+25). No time limit: game ends when every cannon is out; bots last ~2.5–4 min. Results rank by points, top max(3, 15 %).
+- An asteroid touching a cannon knocks it out (shield absorbs one). Final blow on an asteroid = bonus ``T.lastHit`` × size (5–25). Power-ups (rapid, shield, freeze, bomb, and +1 laser: permanent, stacks to 5, each laser = one more full beam of damage; twice as likely as the others) go to the first beam that reaches them (+25). No time limit: game ends when every cannon is out; bots last ~2.5–4 min. Results rank by points, top max(3, 15 %).
 - Teacher mode: the teacher watches the whole field (no cannon).
 
 ## Dart Party rules
@@ -108,3 +108,9 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Top-down field (y down). Moving turns you to face that way (8 directions); Enter/Space throws a dart straight ahead, 2 s reload; darts only fly ``T.range`` = 18 units (the aim arrow shows the reach). Darts stop at trees, never hit players. Everyone starts clustered in the middle.
 - Balloons drift in from the edges: red 1 pt, big 1 pt, blue 2 pts (fast), gold 5 pts (rare, fastest). Spawn rate and cap scale with player count. First to `T.target` = 20 points ends it; results rank by points, top max(3, 15 %).
 - Touch: on-screen joystick (snapped to 8 directions) + THROW button. Solo bots get `lazy` so a human can win (~60–90 s).
+
+## Sky Climb rules
+- `public/sky-climb/`. Server-authoritative: `shared/sky.js` (served at /sky.js; also solo + own-flyer prediction) + `server/skyroom.js`. Client sends in{x:-1|0|1} (steer) and fire{} (flap). start{} carries `seed`; the level (ledges, stone blocks, buzzers) is a pure function of (seed, time) so clients draw it locally; snapshots carry only players.
+- Flap = Space/↑/W, steer ←→. World wraps left↔right. Ledges are one-way (fly up through, land on top; moving ones carry you). Stone blocks are solid. Buzzers stun 0.9 s and knock you down. Nobody is ever out.
+- Player bumps: hit someone from below → they're pushed UP; land on someone from above → they're pushed DOWN; side hits bounce. Everyone starts spread along the floor.
+- Finish at `T.goal` = 640. Game ends when every connected player is up (or 7 min). Perfect bots ~1.5–3 min; aimed at ~4 min for real classes. Results by finish time, unfinished by best height; top max(3, 15 %).

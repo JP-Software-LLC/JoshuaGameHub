@@ -12,6 +12,7 @@ fs.copyFileSync(path.join(root,"shared","hurdle.js"),path.join(out,"hurdle.js"))
 fs.copyFileSync(path.join(root,"shared","typing.js"),path.join(out,"typing.js"));
 fs.copyFileSync(path.join(root,"shared","cannons.js"),path.join(out,"cannons.js"));
 fs.copyFileSync(path.join(root,"shared","darts.js"),path.join(out,"darts.js"));
+fs.copyFileSync(path.join(root,"shared","sky.js"),path.join(out,"sky.js"));
 fs.copyFileSync(path.join(root,"shared","memory.js"),path.join(out,"memory.js"));
 const url=(process.env.GAME_SERVER_URL||"").trim();
 fs.writeFileSync(path.join(out,"config.js"),`window.CG_CONFIG=${JSON.stringify({ server:url })};\n`);

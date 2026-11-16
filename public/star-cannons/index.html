@@ -87,7 +87,7 @@
 <button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 
 <div id="hud">
-  <div class="hbox" id="score"><small>YOUR POINTS</small><span id="pts">0</span></div>
+  <div class="hbox" id="score"><small>YOUR POINTS</small><span id="pts">0</span><span id="lasers" style="font-size:14px;color:#7cf29c"></span></div>
   <div class="hbox" id="left">40 cannons left</div>
   <div class="hbox" id="clock">0:00</div>
   <div id="msg"></div>
@@ -101,7 +101,7 @@
   <div class="how">
     <div><b>🚀</b>Your laser fires by itself. Slide left and right to aim</div>
     <div><b>☄️</b>Blast asteroids into pieces. Don't let one land on you!</div>
-    <div><b>✨</b>Shoot a power-up first to grab it</div>
+    <div><b>✨</b>Shoot power-ups first to grab them. ➕ adds a laser for good. The final blow scores a bonus!</div>
   </div>
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Play online</button><button class="btn pink" id="bPrivate">Private game</button></div>
@@ -142,7 +142,7 @@ const { T }=CANNONS;
 const GAME="cannons";
 const pcol=i=>`hsl(${(i*137.508+180)%360},85%,60%)`;
 const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
-const POWER={ rapid:["⚡","RAPID FIRE!","#ffd23f"], shield:["🛡️","SHIELD!","#3ee8ff"], freeze:["❄️","FREEZE!","#9fd8ff"], bomb:["💥","STAR BOMB!","#ff4fd8"] };
+const POWER={ rapid:["⚡","RAPID FIRE!","#ffd23f"], shield:["🛡️","SHIELD!","#3ee8ff"], freeze:["❄️","FREEZE!","#9fd8ff"], bomb:["💥","STAR BOMB!","#ff4fd8"], laser:["➕","+1 LASER!","#7cf29c"] };
 
 // ============================================================
 //  STATE
@@ -239,14 +239,16 @@ function drawCannon(p,x,me,now){
     cx.font="900 12px Nunito"; cx.textAlign="center"; cx.textBaseline="top"; cx.fillStyle="#fff"; cx.fillText("YOU",X,Y+6); }
   cx.globalAlpha=1;
 }
-function drawBeam(x,top,me,rapid,col,now){
-  const X=sx(x), y0=sy(T.cannonH), y1=sy(top);
+function drawBeam(x,top,me,rapid,col,now,n){ n=n||1; const gap=Math.max(3,T.cannonW*S*0.18);
+  for (let i=0;i<n;i++) drawOneBeam(x,top,me,rapid,col,now,(i-(n-1)/2)*gap); }
+function drawOneBeam(x,top,me,rapid,col,now,off){
+  const X=sx(x)+off, y0=sy(T.cannonH), y1=sy(top);
   if (y1>=y0) return;
   cx.globalAlpha=me?0.95:0.32;
   cx.strokeStyle=rapid?"#ffd23f":col; cx.lineWidth=me?(rapid?5:3.5):2; cx.beginPath(); cx.moveTo(X,y0); cx.lineTo(X,y1); cx.stroke();
   // bolts streaming up
-  cx.fillStyle="#fff"; const step=18, off=(now/(rapid?3:5))%step;
-  for (let y=y0-off;y>y1;y-=step) cx.fillRect(X-(me?2:1),y-6,me?4:2,8);
+  cx.fillStyle="#fff"; const step=18, flow=(now/(rapid?3:5))%step;
+  for (let y=y0-flow;y>y1;y-=step) cx.fillRect(X-(me?2:1),y-6,me?4:2,8);
   if (top<T.H){ cx.fillStyle=rapid?"#ffd23f":col; cx.beginPath(); cx.arc(X,y1,(me?5:3)+Math.random()*3,0,7); cx.fill(); }
   cx.globalAlpha=1;
 }
@@ -289,7 +291,7 @@ function frame(now){
       const mine=V.players.find(p=>p[0]===G.me);
       if (mine && mine[2]){ if (G.myX==null) G.myX=mine[1]; G.myX=Math.max(T.cannonW/2,Math.min(T.W-T.cannonW/2,G.myX+d*T.speed*dt)); G.myX+=(mine[1]-G.myX)*(G.mode==="solo"?1:0.08); }
       for (const p of V.players){ if (!p[2]) continue; const me=p[0]===G.me, x=me&&G.myX!=null?G.myX:p[1];
-        drawBeam(x,beamTop(x,V.rocks,V.powers),me,!!p[4],pcol(G.players.get(p[0])?.color??0),now); }
+        drawBeam(x,beamTop(x,V.rocks,V.powers),me,!!p[4],pcol(G.players.get(p[0])?.color??0),now,p[6]); }
       for (const u of V.powers) drawPower(u,now);
       for (const a of V.rocks) drawRock(a,!!V.s.fz);
       for (const p of V.players){ if (!p[2] || p[0]===G.me) continue; drawCannon(p,p[1],false,now); }
@@ -309,13 +311,13 @@ requestAnimationFrame(frame);
 function hud(V){
   const mine=V.players.find(p=>p[0]===G.me), alive=V.players.filter(p=>p[2]).length;
   $("score").style.display=mine?"":"none";
-  if (mine) $("pts").textContent=mine[5];
+  if (mine){ $("pts").textContent=mine[5]; $("lasers").textContent=mine[6]>1?` · ${mine[6]} lasers`:""; }
   $("left").textContent=`${alive} / ${V.players.length} cannon${V.players.length===1?"":"s"} still blasting`;
   $("clock").textContent=fmt(V.s.t);
 }
 function handleEvents(ev){
   for (const e of ev){
-    if (e[0]==="pop"){ addBurst(e[2],e[3],10+e[4]*6,ROCK[e[4]]); }
+    if (e[0]==="pop"){ addBurst(e[2],e[3],10+e[4]*6,ROCK[e[4]]); if (e[5]===G.me && e[6]) addText(e[2],e[3]+2,`FINAL BLOW +${e[6]}`,"#ffd23f"); }
     if (e[0]==="power"){ const P=POWER[e[2]], who=e[1]===G.me?"":(G.players.get(e[1])?.name||"")+": "; addText(e[3],e[4],who+P[1],P[2]); addBurst(e[3],e[4],18,P[2]); }
     if (e[0]==="shield" && e[1]===G.me) addText(G.myX??50,6,"SHIELD SAVED YOU!","#3ee8ff");
     if (e[0]==="out"){ const x=e[1]===G.me?(G.myX??50):(G.snaps.at(-1)?.s.p.find(p=>p[0]===e[1])?.[1]??50); addBurst(x,1.5,26,"#ff5a6a");
@@ -359,7 +361,7 @@ function showResults(rank,lasted){
   $("champ").innerHTML=`<div style="font-size:60px;line-height:1">🏆</div><div class="t">${w.pid===G.me?"You were the top blaster!":"Top blaster"}</div><h2>${esc(w.name)}</h2>`;
   $("rTeam").textContent=`Your team blasted ${total.toLocaleString()} points of asteroid and held on for ${fmt(lasted)}!`;
   const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
-    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">⏱ ${fmt(e.time||0)}</span><span class="tm">${e.score}</span></div>`;
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">💥 ${e.lastHits??0} · ⏱ ${fmt(e.time||0)}</span><span class="tm">${e.score}</span></div>`;
   $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
   const mi=rank.findIndex(e=>e.pid===G.me);
   $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].score} points · ⏱ ${fmt(rank[mi].time||0)}</span>`:"";

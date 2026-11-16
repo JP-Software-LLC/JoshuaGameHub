@@ -303,7 +303,7 @@
   <section class="hero wrap">
     <span class="eyebrow rise d1"><i></i>BROWSER · MULTIPLAYER · FREE</span>
     <h1 class="rise d2">Small games.<br><span class="g">Big rivalries.</span></h1>
-    <p class="lede rise d3">Twelve quick multiplayer games for up to 40 players. No downloads, no accounts.</p>
+    <p class="lede rise d3">Thirteen quick multiplayer games for up to 40 players. No downloads, no accounts.</p>
     <form class="joinbox rise d4" id="joinForm" autocomplete="off"><span>Have a room code?</span><input id="joinCode" maxlength="4" placeholder="ABCD" aria-label="Room code"><button class="btn" type="submit">JOIN</button></form><a class="teachcta" href="#teachers">🍎 Teacher? Run a game for your whole class →</a>
     <span class="joinerr" id="joinErr" role="status"></span>
   </section>
@@ -347,7 +347,7 @@
   <section class="wrap sec teach" id="teachers" aria-label="For teachers">
     <div class="sechead"><div><span class="kicker">🍎 FOR TEACHERS</span><h2>WHOLE-CLASS GAMES</h2></div><p>Up to 40 students · free · nothing to install</p></div>
     <div class="tintro">
-      <p class="tlead">Ten of our games are made for the whole class. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
+      <p class="tlead">Eleven of our games are made for the whole class. You run the room from your screen or projector, your class plays on their own devices, and <b>you don't play</b>, so the leaderboard is all about them. Great for warm-ups, brain breaks and quick-fire maths practice.</p>
       <div class="tsteps">
         <div class="tstep"><div><b>Pick a game from the list</b><span>Press <b>🍎 Start as teacher</b>. You get a 4-letter room code.</span></div></div>
         <div class="tstep"><div><b>Put the code on the board</b><span>Students open <b>joshuagamehub.website</b>, type a name, and enter the code in "Have a room code?".</span></div></div>
@@ -396,6 +396,7 @@ const GAMES=[
   { id:"typing-cowboys", teach:true, kind:"typing", cat:"Brainy", title:"TYPING COWBOYS", path:"/typing-cowboys/", blurb:"Type words right to gallop your horse to the finish!", tags:["Up to 40","Online","Typing"], badge:"NEW", thumb:"typing" },
   { id:"star-cannons", teach:true, kind:"cannons", cat:"Party", title:"STAR CANNONS", path:"/star-cannons/", blurb:"Team up and laser bouncing asteroids. Don't get squashed!", tags:["Up to 40","Online","Team"], badge:"NEW", thumb:"cannons" },
   { id:"dart-party", teach:true, kind:"darts", cat:"Party", title:"DART PARTY", path:"/dart-party/", blurb:"Walk, aim and throw darts. First to pop 20 points wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"darts" },
+  { id:"sky-climb", teach:true, kind:"sky", cat:"Racing", title:"SKY CLIMB", path:"/sky-climb/", blurb:"Flap your way to the top. Bump friends up or knock them down!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"sky" },
 ];
 
 // ------------------------------------------------------------
@@ -537,6 +538,20 @@ function arrowThumb(){
   return c;
 }
 // Memory Tiles thumbnail: a 5×5 board, a few tiles flipped to show pictures, the "FIND" card
+function skyThumb(){
+  const ledge=(x,y,w,c)=>`<rect x="${x}" y="${y}" width="${w}" height="12" rx="6" fill="${c}"/><rect x="${x}" y="${y-2}" width="${w}" height="4" fill="#7bd65a"/>`;
+  const bird=(x,y,c,f)=>`<ellipse cx="${x-16}" cy="${y-6}" rx="12" ry="6" fill="#fff" transform="rotate(${-25*f} ${x-16} ${y-6})"/><ellipse cx="${x+16}" cy="${y-6}" rx="12" ry="6" fill="#fff" transform="rotate(${25*f} ${x+16} ${y-6})"/><circle cx="${x}" cy="${y}" r="16" fill="${c}" stroke="#fff" stroke-width="3"/><circle cx="${x+6}" cy="${y-4}" r="5" fill="#fff"/><circle cx="${x+8}" cy="${y-4}" r="2.5" fill="#1f2a44"/><path d="M${x+13} ${y} l8 3 l-8 3z" fill="#ff9f1c"/>`;
+  const bee=(x,y)=>`<ellipse cx="${x}" cy="${y}" rx="16" ry="12" fill="#ffd23f"/><rect x="${x-6}" y="${y-11}" width="4" height="22" fill="#1f2a44"/><rect x="${x+3}" y="${y-11}" width="4" height="22" fill="#1f2a44"/><ellipse cx="${x-3}" cy="${y-14}" rx="7" ry="9" fill="#fff" opacity=".8"/>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380"><defs><linearGradient id="skg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3a8c"/><stop offset=".55" stop-color="#4aa8e8"/><stop offset="1" stop-color="#bfe6ff"/></linearGradient></defs>
+    <rect width="540" height="380" fill="url(#skg)"/>
+    ${Array.from({length:12},(_,i)=>`<rect x="${i*45}" y="18" width="22" height="10" fill="${i%2?"#111":"#fff"}"/><rect x="${i*45+22}" y="18" width="23" height="10" fill="${i%2?"#fff":"#111"}"/>`).join("")}
+    <ellipse cx="420" cy="300" rx="70" ry="22" fill="#fff" opacity=".55"/><ellipse cx="120" cy="170" rx="60" ry="18" fill="#fff" opacity=".4"/>
+    ${ledge(40,300,150,"#c98b4f")}${ledge(300,240,140,"#ffb347")}${ledge(90,160,120,"#c98b4f")}${ledge(330,100,130,"#c98b4f")}
+    <rect x="230" y="190" width="70" height="18" rx="5" fill="#8a94a6" stroke="#5b6475" stroke-width="2"/>
+    ${bee(440,180)}${bird(130,270,"#ff6f91",1)}${bird(150,236,"#18b8a8",-1)}${bird(370,200,"#ffc93c",1)}${bird(200,120,"#a855f7",-1)}
+    <rect x="0" y="352" width="540" height="28" fill="#6cc552"/></svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
+}
 function dartsThumb(){
   const cols=["#ef4b5b","#3b82f6","#22c55e","#f59e0b","#a855f7","#ec4899"];
   const bal=(x,y,r,c)=>`<path d="M${x} ${y+r*1.15} q ${r*.4} ${r*.7} ${-r*.1} ${r*1.4}" stroke="#23324a" stroke-opacity=".5" stroke-width="2" fill="none"/><ellipse cx="${x}" cy="${y}" rx="${r*.88}" ry="${r*1.08}" fill="${c}"/><path d="M${x-r*.18} ${y+r*1.2} L${x+r*.18} ${y+r*1.2} L${x} ${y+r*1.02}Z" fill="${c}"/><ellipse cx="${x-r*.3}" cy="${y-r*.4}" rx="${r*.18}" ry="${r*.32}" fill="#fff" opacity=".55" transform="rotate(-28 ${x-r*.3} ${y-r*.4})"/>`;
@@ -649,6 +664,7 @@ for (const g of GAMES){
   if (g.thumb==="typing") el.querySelector(".thumb").prepend(typingThumb());
   if (g.thumb==="cannons") el.querySelector(".thumb").prepend(cannonsThumb());
   if (g.thumb==="darts") el.querySelector(".thumb").prepend(dartsThumb());
+  if (g.thumb==="sky") el.querySelector(".thumb").prepend(skyThumb());
   lib.appendChild(el);
 }
 const live=GAMES.filter(g=>!g.soon).length;
@@ -819,16 +835,20 @@ const FEATURES={
     roles:[["<span class=ico>⌨️</span>","TYPE","#f5b82e","Spell the word."],["<span class=ico>🐴</span>","GALLOP","#38bdf8","Right word = one step."],["<span class=ico>🏁</span>","FINISH","#22c55e","~1 min at 20 wpm."]],
     cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Any keyboard","📱 Phone keyboard works","⏱ ~1–2 min races"] },
   "star-cannons":{ acc:"#3ee8ff", chips:["Up to 40","Online + bots","Team"], logo:"STAR CANNONS", sub:"BLAST · DODGE · TEAM UP", tag:"40-PLAYER TEAM GAME",
-    desc:"Everyone's laser cannon shares one floor under a sky full of bouncing asteroids. Blast them into smaller pieces for points and grab power-ups by shooting them first. Get squashed and you're out. How long can your team hold on?",
+    desc:"Everyone's laser cannon shares one floor under a sky full of bouncing asteroids. Blast them into smaller pieces for points (the final blow earns a bonus) and grab power-ups by shooting them first, like +1 laser that stays for the whole game. Get squashed and you're out. How long can your team hold on?",
     roles:[["<span class=ico>🚀</span>","BLAST","#3ee8ff","Points for every hit."],["<span class=ico>☄️</span>","DODGE","#ff4fd8","Don't get squashed."],["<span class=ico>✨</span>","POWER UP","#ffd23f","Shoot it first to grab it."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO + BOTS","solo"]], meta:["⌨ Arrow keys / A D","📱 Touch and drag","⏱ Lasts until the last cannon"] },
   "dart-party":{ acc:"#ef4b5b", chips:["Up to 40","Online + bots","Party"], logo:"DART PARTY", sub:"WALK · AIM · POP!", tag:"BALLOON FAIR",
     desc:"The whole party starts together in the middle of the fairground. Walk to aim: you always face the way you move. Throw a dart straight ahead (2-second reload) and pop drifting balloons for points. Gold balloons are worth 5. First to 20 points wins!",
     roles:[["<span class=ico>🚶</span>","WALK + AIM","#3b82f6","WASD turns you."],["<span class=ico>🎯</span>","THROW","#ef4b5b","Enter. 2 s reload."],["<span class=ico>🎈</span>","POP","#ffc83d","First to 20 wins."]],
     cta:[["▶ PLAY ONLINE","public"],["PRIVATE PARTY","private"],["SOLO VS BOTS","solo"]], meta:["⌨ WASD + Enter","📱 Joystick + THROW button","⏱ ~1–2 min games"] },
+  "sky-climb":{ acc:"#18b8a8", chips:["Up to 40","Online + bots","Racing"], logo:"SKY CLIMB", sub:"FLAP · BUMP · REACH THE TOP", tag:"40-PLAYER FLYING RACE",
+    desc:"Everyone starts on the same floor. Flap with Space and steer with the arrows to climb past ledges, stone blocks and buzzing critters. Bump a friend from below to push them up, or land on them to knock them down. The game waits until everyone reaches the top!",
+    roles:[["<span class=ico>🪽</span>","FLAP","#18b8a8","Space to rise."],["<span class=ico>🐝</span>","DODGE","#ffc93c","Buzzers stun you."],["<span class=ico>🤸</span>","BUMP","#ff6f91","Below = up, above = down."]],
+    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Space + arrow keys","📱 Touch buttons","⏱ ~4 min games"] },
 };
 const ROT_MS=9000; let rotTimer=0, userPicked=false;
-const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb, typing:typingThumb, cannons:cannonsThumb, darts:dartsThumb })[g.thumb]();
+const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb, typing:typingThumb, cannons:cannonsThumb, darts:dartsThumb, sky:skyThumb })[g.thumb]();
 function renderTabs(){
   $("ftabs").innerHTML=GAMES.filter(g=>!g.soon).map(g=>`<button class="ftab" role="tab" data-id="${g.id}" data-kind="${g.kind}" aria-selected="${g.id===featured}" style="--acc:${FEATURES[g.id].acc};--rot:${ROT_MS}ms">${g.title}<span class="dot" hidden></span><span class="bar"></span></button>`).join("");
 }
@@ -869,6 +889,7 @@ const CLASS_GAMES=[
   { id:"typing-cowboys", ico:"🤠", skill:"Typing and spelling", len:"~1–2 min race", view:"Live standings on your screen", desc:"Students type words to gallop their cowboy to the finish. Wrong words don't count against them." },
   { id:"star-cannons", ico:"🚀", skill:"Teamwork and quick reactions", len:"~2–4 min", view:"Watch the whole game on your screen", desc:"The whole class shares one floor of laser cannons against bouncing asteroids. Last cannon standing ends it." },
   { id:"dart-party", ico:"🎈", skill:"Aiming and quick thinking", len:"~1–2 min", view:"Watch the whole field on your screen", desc:"Students walk to aim and throw darts at drifting balloons. First to 20 points ends the game." },
+  { id:"sky-climb", ico:"🪽", skill:"Persistence and coordination", len:"~4 min", view:"Watch the climb on your screen", desc:"Students flap and steer up a sky full of ledges and critters. The game waits until everyone reaches the top." },
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
 ];

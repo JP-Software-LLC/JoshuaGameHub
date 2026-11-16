@@ -10,7 +10,7 @@
   const GAMES=[
     ["/clean-getaway/","Clean Getaway","🏦"],["/arrow-blitz/","Arrow Blitz","🏹"],["/math-race/","Math Race","➗"],
     ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/bear-attack/","Bear Attack!","🐻"],
-    ["/splat/","SPLAT!","🎯"],["/memory-tiles/","Memory Tiles","🧠"],["/odds-evens/","Odds or Evens","✂️"],["/typing-cowboys/","Typing Cowboys","🤠"],["/star-cannons/","Star Cannons","🚀"],["/dart-party/","Dart Party","🎈"],
+    ["/splat/","SPLAT!","🎯"],["/memory-tiles/","Memory Tiles","🧠"],["/odds-evens/","Odds or Evens","✂️"],["/typing-cowboys/","Typing Cowboys","🤠"],["/star-cannons/","Star Cannons","🚀"],["/dart-party/","Dart Party","🎈"],["/sky-climb/","Sky Climb","🪽"],
   ];
   const here=location.pathname.replace(/index\.html$/,"");
 

@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS game_sessions (
   id           BIGSERIAL PRIMARY KEY,
   class_id     BIGINT NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   saved_by     BIGINT REFERENCES teachers(id) ON DELETE SET NULL,
-  game         TEXT NOT NULL,                      -- math · arrows · rush · hurdle · bear · memory · typing · cannons · darts
+  game         TEXT NOT NULL,                      -- math · arrows · rush · hurdle · bear · memory · typing · cannons · darts · sky
   mode         TEXT,                               -- e.g. Math Race question type
   room_code    TEXT,
   started_at   TIMESTAMPTZ,

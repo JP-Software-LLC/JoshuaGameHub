@@ -13,6 +13,7 @@
 //   Typing Cowboys:  start{} pos{d=words,x=0} finish{time,extra=words missed}
 //   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
 //   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
+//   Sky Climb:       start{} in{x=-1|0|1} (steer, on change) fire{} (flap)
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
 //                   floor{grid,theme} s{s:snapshot,e:events} error{code,msg}
 "use strict";
@@ -30,8 +31,9 @@ const { MemoryRoom }=require("./memoryroom");
 const { TypingRoom }=require("./typingroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
+const { SkyRoom }=require("./skyroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
