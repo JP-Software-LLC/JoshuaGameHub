@@ -103,6 +103,7 @@
   .pad{display:grid;grid-template-columns:repeat(3,46px);grid-auto-rows:46px;gap:7px}
   .k{border-radius:11px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:20px;color:#8fb9ff;background:#1f2228;border:1px solid #15233d;box-shadow:0 3px 0 #0b0c0e;transition:transform .05s,background .05s}
   .k.zero{grid-column:1/3}
+  .k.bs{font-size:18px}
   .k.down{background:var(--bad);color:#fff;transform:translateY(2px);box-shadow:0 1px 0 #0b0c0e}
   .shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
   @keyframes shake{10%,90%{transform:translateX(-3px)}20%,80%{transform:translateX(6px)}30%,50%,70%{transform:translateX(-10px)}40%,60%{transform:translateX(10px)}}
@@ -133,7 +134,7 @@
 </style>
 <script src="/assets/hub-frame.js" defer></script>
 </head>
-<body>
+<body data-ck-board="code">
 <canvas id="cv"></canvas>
 <button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 
@@ -227,9 +228,9 @@ const laneOf=pid=>(G.players.get(pid)?.color??0)+1;
 //  INPUT — legs (← →, or the big buttons) and digits for the quiz
 // ============================================================
 const KEYS={};
-for (const d of ["7","8","9","4","5","6","1","2","3","0"]){
-  const k=document.createElement("div"); k.className="k"+(d==="0"?" zero":""); k.textContent=d; KEYS[d]=k; $("pad").appendChild(k);
-  k.addEventListener("pointerdown",e=>{ e.preventDefault(); k.classList.add("down"); digit(d); });
+for (const d of ["7","8","9","4","5","6","1","2","3","0","⌫"]){
+  const k=document.createElement("div"); k.className="k"+(d==="0"?" zero":d==="⌫"?" bs":""); k.textContent=d; KEYS[d]=k; $("pad").appendChild(k);
+  k.addEventListener("pointerdown",e=>{ e.preventDefault(); k.classList.add("down"); d==="⌫"?backspace():digit(d); });
   const up=()=>k.classList.remove("down"); k.addEventListener("pointerup",up); k.addEventListener("pointerleave",up); k.addEventListener("pointercancel",up);
 }
 function legDown(side){
@@ -245,6 +246,7 @@ addEventListener("keydown",e=>{
   if (screen!=="race") return;
   if (e.code==="ArrowLeft"||e.code==="KeyA"){ e.preventDefault(); if (!e.repeat) legDown("L"); }
   else if (e.code==="ArrowRight"||e.code==="KeyD"){ e.preventDefault(); if (!e.repeat) legDown("R"); }
+  else if (e.key==="Backspace"){ e.preventDefault(); KEYS["⌫"].classList.add("down"); setTimeout(()=>KEYS["⌫"].classList.remove("down"),90); backspace(); }
   else { const d=digitOf(e); if (d!=null){ e.preventDefault(); KEYS[d].classList.add("down"); if (!e.repeat) digit(d); } }
 });
 addEventListener("keyup",e=>{ const d=digitOf(e); if (d!=null) KEYS[d].classList.remove("down"); });
@@ -273,10 +275,10 @@ function digit(d){
   else if (ev==="cleared"){ renderQuiz(); $("quiz").classList.remove("on"); flash("JUMP!"); }
   else if (ev==="wrong"){
     $("prob").classList.add("bad"); renderQuiz(r.wrong); const c=$("qcard"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
-    flash("TRIP!"); G.trippedAt.add(r.h); if (navigator.vibrate) navigator.vibrate(150);
-    setTimeout(()=>{ if (G.run&&G.run.state==="trip") $("quiz").classList.remove("on"); },1100);
+    flash("TRY AGAIN!"); if (navigator.vibrate) navigator.vibrate(80);
   } else renderQuiz();
 }
+function backspace(){ const r=G.run; if (r && HURDLE.back(r)) renderQuiz(); }
 
 // ============================================================
 //  RENDER — side view of a school track
@@ -458,6 +460,7 @@ function frame(now){
         const ev=HURDLE.step(G.run,DT);
         if (ev==="hurdle" && !DEMO) openQuiz();
         if (ev==="go") $("quiz").classList.remove("on");
+        if (ev==="retry" && !DEMO){ $("prob").classList.remove("bad"); renderQuiz(); }
         if (ev==="finish") onFinish();
         for (const b of G.bots){ if (b.run.state==="done") continue; HURDLE.botStep(b.bot,b.run,DT); HURDLE.step(b.run,DT); }
       }
@@ -476,8 +479,9 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 
-function beginRace({ seed, players, me, inMs, mode }){
-  Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), run:HURDLE.newRunner(seed), startAt:performance.now()+inMs, snaps:[], others:new Map(),
+function beginRace({ seed, players, me, inMs, mode, digits }){
+  G.digits=digits||"1";
+  Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), run:HURDLE.newRunner(seed,G.digits), startAt:performance.now()+inMs, snaps:[], others:new Map(),
     finished:new Map(), bots:[], done:false, resultShown:false, sentAt:0, acc:0, trippedAt:new Set(), qlog:[] });
   countShown=-1; $("done").classList.remove("on"); $("quiz").classList.remove("on");
   $("hzs").innerHTML=T.hurdles.map(h=>`<i class="hz" style="left:calc((100% - 22px) * ${h/T.dist})"></i>`).join("");
@@ -501,7 +505,7 @@ $("bSolo").onclick=()=>{
   const names=["Zoom","Skip","Dash","Hops","Lightning","Pogo","Sprint"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
   beginRace({ seed, players, me:1, inMs:3000, mode:"solo" });
-  G.bots=names.map((n,i)=>({ pid:i+2, bot:HURDLE.makeBot(seed+i*101,0.15+0.7*i/(names.length-1)), run:HURDLE.newRunner(seed) }));
+  G.bots=names.map((n,i)=>({ pid:i+2, bot:HURDLE.makeBot(seed+i*101,0.15+0.7*i/(names.length-1)), run:HURDLE.newRunner(seed,G.digits) }));
   G.demoBot=DEMO?HURDLE.makeBot(seed+7,0.7):null;
 };
 function soloResults(){
@@ -565,8 +569,9 @@ function onNet(m){
       if (m.game!=="hurdle"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
       Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
-    case "go": beginRace({ seed:m.seed, players:m.players, me:Net.pid, inMs:m.in, mode:"online" });
+    case "go": beginRace({ seed:m.seed, players:m.players, me:Net.pid, inMs:m.in, mode:"online", digits:m.digits });
       if (m.you && m.you.d>0){ G.run.d=m.you.d; G.run.h=T.hurdles.filter(h=>h<m.you.d).length; G.run.t=Math.max(0,-m.in/1000); } break;   // rejoin mid-race
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); break;   // a classmate joined mid-game
     case "ps": if (G.mode==="online"){ G.snaps.push({ t:performance.now(), p:m.p }); if (G.snaps.length>20) G.snaps.shift(); } break;
     case "fin": if (m.pid!==Net.pid) G.finished.set(m.pid,m.time); break;
     case "results": if (G.mode==="online") showResults(m.rank); break;

@@ -30,6 +30,7 @@
       this.rocks=[]; this.powers=[]; this.nextId=1; this.time=0; this.spawnT=1.5; this.powerT=T.powerEvery*0.7; this.freeze=0;
       this.events=[]; this.phase="playing";
     }
+    addPlayer(p){ if (!this.players.some(q=>q.id===p.id)) this.players.push({ id:p.id, name:p.name, bot:false, x:T.W*(0.1+this.r()*0.8), dir:0, alive:true, score:0, hits:0, outT:null, shield:0, safe:2, rapid:0, lasers:1, lastHits:0 }); }
     setInput(id,dir){ const p=this.players.find(q=>q.id===id); if (p) p.dir=Math.max(-1,Math.min(1,dir||0)); }
     alive(){ return this.players.filter(p=>p.alive); }
     // difficulty rises steadily; by ~180 s rocks are big, tough and frequent

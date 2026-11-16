@@ -126,3 +126,13 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - The rotating featured showcase is gone. Each library card's picture becomes a LIVE BOT MATCH when focused (mouse hover / keyboard focus; on touch screens, the card nearest the middle while scrolling): an iframe of the game page at `?demo=1` (960×676, scaled to fit). One feed at a time, removed on leave, reloaded every 75 s. Games opt in with `demo:true` in GAMES.
 - `?demo=1` makes `hub-frame.js` hide the bar, menus, buttons and touch controls and block input; each game's own `DEMO` hook starts a bots-only solo/practice match (your seat played by a bot or autoplayer) and restarts it after results. No WebSocket, no server load beyond cached static files.
 - No demo: SPLAT! (online-only, no offline bots) and Odds or Evens (smart-board turns); they keep their pictures.
+
+## Classroom flow rules
+- Landing page asks "Who's playing?": Student · Teacher · (small) Play as Guest. The choice is saved as `jgh_mode`; every game's Back button returns to `/#<mode>`.
+- Student view: name first (first name, last initial, nickname → `jgh_student`), then one big focused code box. In teacher rooms ClassKit sends this profile automatically, so students never see the name popup.
+- Student mode replaces each game's menu with: name · how to play · Join friends + code · Make a game · Quick join (ClassKit `studentMenu`).
+- Teacher view: compact list of whole-class games, each with "Open a Lobby" (`?play=teacher`).
+- Teacher rooms: students without a name show as "⏳ Joining…"; Start runs a 10 s countdown on every screen (press again to start now); a live leaderboard + join code shows on the teacher's screen (top 3 or 15% only), each student sees their own score.
+- Late joiners: Math Race/Arrow Blitz jump into the current round, races start from 0, Word Rush/Darts/Sky/Cannons add a new player; Bear Attack and Memory Tiles wait for the next game.
+- Math Race + Hurdle Dash: teacher picks 1 digit (default), 1 & 2 digits, or 2 digits. Backspace works. Hurdle Dash: no falling; a wrong answer shows the right one and gives a new sum.
+- Any screen that appears ignores taps for 1 s (hub-frame tap guard).

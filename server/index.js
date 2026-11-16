@@ -14,6 +14,8 @@
 //   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
 //   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
 //   Sky Climb:       start{} in{x=-1|0|1} (steer, on change) fire{} (flap)
+//   Teacher Mode:    digits{d="1"|"12"|"2"} (Math Race, Hurdle Dash) · prog{round,n} (live score) · start{} twice = skip the 10 s countdown
+//                    server sends board{code,rows:[{pid,name,v}]} each second while playing; lobby carries closeIn + pending players
 // Server → client:  welcome{token,name} joined{code,slot} lobby{...} start{players,tick}
 //                   floor{grid,theme} s{s:snapshot,e:events} error{code,msg}
 "use strict";
@@ -117,6 +119,8 @@ async function onMessage(c,m){
     case "input":  return toRoom(c,{ t:"input", d:String(m.d) });
     case "start":  return toRoom(c,{ t:"start" });
     case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
+    case "digits": return toRoom(c,{ t:"digits", d:String(m.d||"").slice(0,3) });
+    case "prog":   return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
       let acct=null;
       if (c.teacherId){ acct={ teacherId:c.teacherId, classId:null };

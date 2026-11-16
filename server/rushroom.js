@@ -20,7 +20,7 @@ const DIST=env("RUSH_DIST",RUSH.T.dist);
 class RushRoom extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
     super(code, isPublic, bus, instanceId, onClose, new.target.KIND, MAX_PLAYERS);
-    this.dist=new.target.DIST;
+    this.dist=new.target.DIST; this.digits=new.target.DIGITS?"1":null;     // Hurdle Dash: how many digits in each sum
     this.players=new Map();   // pid -> {pid,cid,name,token,connected,color,d,x,fin}
     this.nextPid=1; this.host=0; this.autoAt=0; this.relay=null; this.endTimer=null;
   }
@@ -34,7 +34,7 @@ class RushRoom extends RoomBase {
 
   lobby(){
     return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
-      host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
+      digits:this.digits, host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
   }
   handle(msg){
     const p=this.byCid(msg.cid);
@@ -42,6 +42,9 @@ class RushRoom extends RoomBase {
       case "join": return this.join(msg);
       case "start": if (p && p.pid===this.host && this.state==="lobby") this.startRace(); return;
       case "teacher": return this.makeTeacher(p,msg.acct);
+      case "digits":
+        if (p && p.pid===this.host && this.state==="lobby" && this.digits && ["1","12","2"].includes(msg.d)){ this.digits=msg.d; this.lobby(); }
+        return;
       case "iam": return this.handleIam(p,msg);
       case "pos":
         if (!p || this.state!=="playing" || p.fin!=null) return;
@@ -71,16 +74,19 @@ class RushRoom extends RoomBase {
     if (p) Object.assign(p,{ cid,name,connected:true });
     else {
       if (this.players.size>=MAX_PLAYERS) return this.send({ t:"error", code:"full", msg:"That race is full (40 racers)." },cid);
-      if (this.state!=="lobby") return this.send({ t:"error", code:"full", msg:"That race has already started." },cid);
       p={ pid:this.nextPid++, cid, name, token, connected:true, color:this.freeColor(), d:0, x:0, fin:null };
       this.players.set(p.pid,p);
+      if (this.state==="playing"){ p.late=true; this.send({ t:"addp", p:{ pid:p.pid, name:p.name, color:p.color, connected:true } }); }   // joins mid-race from the start line
     }
     if (!this.host || !this.players.get(this.host)?.connected) this.host=p.pid;
     this.emptySince=0; this.saveSession(token);
     this.send({ t:"joined", code:this.code, game:this.kind, pid:p.pid },cid);
     this.register(); this.lobby(); this.scheduleAuto();
     if (this.teacher && p.pid!==this.teacher) this.askIdentity(p);
-    if (this.state==="playing") this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
+    if (this.state==="playing"){
+      if (p.late && p.d===0){ p.late=false; this.send({ ...this.goMsg(), in:COUNTDOWN_MS },cid); }   // late joiner: their own 3-2-1, then race from 0
+      else this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
+    }
   }
   racers(){ return [...this.players.values()].filter(p=>p.pid!==this.teacher); }
   scheduleAuto(){
@@ -89,7 +95,12 @@ class RushRoom extends RoomBase {
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startRace(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
   }
-  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, teacher:this.teacher, players:this.roster().filter(p=>p.pid!==this.teacher) }; }
+  liveRows(){
+    return this.racers().map(p=>({ pid:p.pid, name:p.name, fin:p.fin, d:p.d }))
+      .sort((a,b)=>(a.fin==null)-(b.fin==null) || (a.fin!=null?a.fin-b.fin:b.d-a.d))
+      .map(r=>({ pid:r.pid, name:r.name, v:r.fin!=null?`🏁 ${Math.round(r.fin)}s`:`${Math.round(100*r.d/this.dist)}%` }));
+  }
+  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, digits:this.digits, teacher:this.teacher, players:this.roster().filter(p=>p.pid!==this.teacher) }; }
   startRace(){
     if (this.state!=="lobby" || this.racers().filter(p=>p.connected).length<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;

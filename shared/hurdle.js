@@ -1,8 +1,9 @@
 // Hurdle Dash — shared rules (browser: window.HURDLE, Node: require).
 // Run by tapping Left / Right in turn. At each of 10 hurdles one addition question pops up
 // (Math Race rules: answer is checked the moment it has enough digits, no Enter).
-// Right → jump it with a small speed boost. Wrong → trip, 3 s on the ground, then run on from a standstill.
-// (One question per hurdle so a deliberate miss can never beat answering: a miss costs 3 s plus the restart.)
+// Right → jump it with a small speed boost. Wrong → no falling: you stay at the hurdle, see the right answer
+// for a moment, then get a new sum. You can only jump a hurdle by answering correctly.
+// The teacher picks how many digits each number has: "1" (1–9), "12" (1–99), "2" (10–99).
 // Every racer gets the same questions at each hurdle (seeded per race).
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -18,24 +19,25 @@ const T = {
   vmax: 9.5,
   stumble: 0.6,                       // same key twice → keep 60 % of your speed
   questions: 1,
-  tripT: 3.0,                         // seconds on the ground after a wrong answer
+  tripT: 3.0,                         // (unused: nobody falls any more)
+  wrongT: 1.5,                        // after a wrong answer: show the right one this long, then a new sum
   jumpT: 0.55, jumpV: 7.0,            // clearing a hurdle: short hop, land with a little speed boost
   stopBefore: 0.9,                    // runners stop this far in front of a hurdle for the quiz
 };
 
 function rng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-// Same generator as Math Race: 1–2 digit addition, answers always 2 or 3 digits.
-function questionStream(seed){
-  const r=rng(seed), num=()=>r()<0.3 ? 1+(r()*9|0) : 10+(r()*90|0);
+// Addition. digits: "1" both numbers 1–9 · "12" each 1–99 · "2" both 10–99.
+function questionStream(seed, digits){
+  const r=rng(seed), one=()=>1+(r()*9|0), two=()=>10+(r()*90|0);
+  const num=digits==="2"?two:digits==="12"?()=>(r()<0.4?one():two()):one;
   let prev=null;
   return ()=>{ for(;;){ const a=num(), b=num(), s=a+b;
-    if (s<10) continue;
     if (prev && prev.a===a && prev.b===b) continue;
     return prev={ a, b, s, len:String(s).length }; } };
 }
 
 // states: run · quiz · trip · jump · done
-function newRunner(seed){ return { seed, d:0, v:0, t:0, state:"run", last:"", strides:0, stumbles:0, h:0, qi:0, q:null, typed:"", stream:null,
+function newRunner(seed, digits){ return { seed, digits:digits||"1", lock:0, d:0, v:0, t:0, state:"run", last:"", strides:0, stumbles:0, h:0, qi:0, q:null, typed:"", stream:null,
   left:0, clean:0, trips:0, finishT:0, wrong:null }; }
 
 // a stride. side: "L" | "R". Returns "stride" | "stumble" | "".
@@ -47,7 +49,7 @@ function tap(r, side){
 }
 // a digit while the quiz is up. Returns "" | "right" | "cleared" | "wrong".
 function answer(r, digit){
-  if (r.state!=="quiz") return "";
+  if (r.state!=="quiz" || r.lock>0) return "";
   r.typed+=digit;
   if (r.typed.length<r.q.len) return "";
   if (+r.typed===r.q.s){
@@ -56,9 +58,11 @@ function answer(r, digit){
     r.q=r.stream(); return "right";
   }
   r.wrong={ q:r.q, typed:r.typed }; r.typed="";
-  r.state="trip"; r.left=T.tripT; r.trips++; r.v=0;
+  r.trips++; r.lock=T.wrongT;                                       // stay at the hurdle; a new sum comes after the pause
   return "wrong";
 }
+// Backspace while the quiz is up
+function back(r){ if (r.state!=="quiz" || r.lock>0 || !r.typed) return false; r.typed=r.typed.slice(0,-1); return true; }
 // advance time. Returns an event string or "".
 function step(r, dt){
   if (r.state==="done") return "";
@@ -71,8 +75,10 @@ function step(r, dt){
     r.d+=r.v*dt;
     if (next!=null && r.d>=next-T.stopBefore){                      // reached a hurdle → quiz
       r.d=next-T.stopBefore; r.v=0; r.state="quiz"; r.qi=0; r.typed=""; r.wrong=null;
-      r.stream=questionStream(r.seed*31+r.h*7919+1); r.q=r.stream(); ev="hurdle";
+      r.stream=questionStream(r.seed*31+r.h*7919+1, r.digits); r.q=r.stream(); ev="hurdle";
     }
+  } else if (r.state==="quiz"){
+    if (r.lock>0){ r.lock-=dt; if (r.lock<=0){ r.lock=0; r.wrong=null; r.q=r.stream(); ev="retry"; } }
   } else if (r.state==="trip" || r.state==="jump"){
     r.left-=dt;
     const hx=T.hurdles[r.h];
@@ -105,5 +111,5 @@ function botStep(bot, run, dt){
   }
 }
 
-return { T, rng, questionStream, newRunner, tap, answer, step, makeBot, botStep };
+return { T, rng, questionStream, newRunner, tap, answer, back, step, makeBot, botStep };
 });

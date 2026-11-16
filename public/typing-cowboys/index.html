@@ -93,7 +93,7 @@
 </style>
 <script src="/assets/hub-frame.js" defer></script>
 </head>
-<body>
+<body data-ck-board="code">
 <canvas id="cv"></canvas>
 <button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 
@@ -419,6 +419,7 @@ function onNet(m){
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
     case "go": beginRace({ seed:m.seed, players:m.players, me:Net.pid, inMs:m.in, mode:"online" });
       if (m.you && m.you.d>0){ G.run.d=Math.round(m.you.d); G.run.i=G.run.d; renderWord(); } break;   // rejoin mid-race
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); if (G.others && m.p.pid!==G.me) G.others.set(m.p.pid,0); break;   // a classmate joined mid-game
     case "ps": if (G.mode==="online") for (const [pid,d] of m.p) if (pid!==G.me) G.others.set(pid,d); break;
     case "fin": if (m.pid!==Net.pid) G.finished.set(m.pid,m.time); break;
     case "results": if (G.mode==="online") showResults(m.rank); break;

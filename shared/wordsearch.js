@@ -101,6 +101,7 @@ class Game {
     this.time=0; this.phase="play"; this.events=[];
     for (const p of this.players) if (p.bot) p.next=this.botDelay(p);
   }
+  addPlayer(p){ if (!this.players.some(q=>q.id===p.id)) this.players.push({ id:p.id, name:p.name, bot:false, score:0, words:0, last:0, tries:0, next:0, lazy:1 }); }
   botDelay(p){ return (18+Math.random()*30)*p.lazy; }
   left(){ return this.found.filter(f=>!f).length; }
   claim(id,a){

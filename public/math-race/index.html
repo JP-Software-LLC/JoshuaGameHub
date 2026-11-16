@@ -103,6 +103,7 @@
     background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--b7);box-shadow:0 4px 0 #0b0c0e,inset 0 1px 0 rgba(143,185,255,.06);
     user-select:none;-webkit-user-select:none;transition:transform .06s,background .06s,color .06s,box-shadow .06s}
   .k.zero{grid-column:1/3}
+  .k.bs{font-size:22px}
   .k.down{background:var(--key);color:#fff;border-color:var(--key);transform:translateY(3px);box-shadow:0 1px 0 #0b0c0e,0 0 24px rgba(229,72,77,.45)}
   body:not(.touch) .k{cursor:default}
 
@@ -253,14 +254,25 @@ const MODES=[["add","+ Add"],["sub","− Subtract"],["mul","× Multiply"],["div"
 const MODE_NAME={ add:"Addition", sub:"Subtraction", mul:"Multiplication", div:"Division", money:"Money" };
 const cash=c=>"$"+Math.floor(c/100)+"."+String(c%100).padStart(2,"0");
 function rng(seed){ let a=seed>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-function questionStream(seed, mode="add"){
+// digits (teacher's choice, both numbers in each sum): "1" = 1–9 · "12" = a mix of 1- and 2-digit · "2" = 10–99.
+// Practice (no teacher) uses "12", the original Math Race mix.
+function questionStream(seed, mode="add", digits="12"){
   const r=rng(seed), int=(lo,hi)=>lo+(r()*(hi-lo+1)|0), num=()=>r()<0.3 ? int(1,9) : int(10,99);
+  const D=digits==="1"||digits==="2"?digits:"12";
   let prev="";
   const make={
-    add(){ const a=num(), b=num(), s=a+b; return s<10?null:{ top:a, bottom:b, op:"+", s }; },               // answers 2–3 digits
-    sub(){ const a=int(20,99), b=int(1,a-10); return { top:a, bottom:b, op:"−", s:a-b }; },   // answers ≥ 10
-    mul(){ const a=int(2,12), b=int(2,12); return { top:a, bottom:b, op:"×", s:a*b }; },
-    div(){ const b=int(2,12), q=int(2,12); if (b*q>99) return null; return { top:b*q, bottom:b, op:"÷", s:q }; },                    // always divides evenly
+    add(){ if (D==="1"){ const a=int(1,9), b=int(1,9); return { top:a, bottom:b, op:"+", s:a+b }; }
+      if (D==="2"){ const a=int(10,99), b=int(10,99); return { top:a, bottom:b, op:"+", s:a+b }; }
+      const a=num(), b=num(), s=a+b; return s<10?null:{ top:a, bottom:b, op:"+", s }; },               // answers 2–3 digits
+    sub(){ if (D==="1"){ const a=int(2,9), b=int(1,a-1); return { top:a, bottom:b, op:"−", s:a-b }; }
+      if (D==="2"){ const a=int(20,99), b=int(10,a-1); return { top:a, bottom:b, op:"−", s:a-b }; }
+      const a=int(20,99), b=int(1,a-10); return { top:a, bottom:b, op:"−", s:a-b }; },   // answers ≥ 10
+    mul(){ if (D==="1"){ const a=int(2,9), b=int(2,9); return { top:a, bottom:b, op:"×", s:a*b }; }
+      if (D==="2"){ const a=int(10,20), b=int(10,15); return { top:a, bottom:b, op:"×", s:a*b }; }             // 2-digit × 2-digit, kept to a sensible size
+      const a=int(2,12), b=int(2,12); return { top:a, bottom:b, op:"×", s:a*b }; },
+    div(){ if (D==="1"){ const b=int(1,9), q=int(1,Math.floor(9/b)); if (b===1&&q===1) return null; return { top:b*q, bottom:b, op:"÷", s:q }; }
+      if (D==="2"){ const b=int(10,49), q=int(2,9); if (b*q>99) return null; return { top:b*q, bottom:b, op:"÷", s:q }; }
+      const b=int(2,12), q=int(2,12); if (b*q>99) return null; return { top:b*q, bottom:b, op:"÷", s:q }; },                    // always divides evenly
     money(){ const a=int(1,199)*5, b=int(1,199)*5; return { top:cash(a), bottom:cash(b), op:"+", s:a+b, money:true }; },   // type the cents: $4.75 → 475
   }[mode]||null;
   return ()=>{ for(;;){ const q=(make||(()=>null))()||null; if (!q) { if (!make) return { top:0, bottom:0, op:"+", s:0, len:1 }; continue; }
@@ -286,14 +298,15 @@ const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store
 //  KEYPAD — mirrors physical keys (red while held). Tappable on touch screens.
 // ============================================================
 const KEYS={};
-for (const d of ["7","8","9","4","5","6","1","2","3","0"]){
-  const k=document.createElement("div"); k.className="k"+(d==="0"?" zero":""); k.textContent=d; KEYS[d]=k; $("pad").appendChild(k);
-  k.addEventListener("pointerdown",e=>{ if (e.pointerType==="mouse") return; e.preventDefault(); k.classList.add("down"); typeDigit(d); });
+for (const d of ["7","8","9","4","5","6","1","2","3","0","⌫"]){
+  const k=document.createElement("div"); k.className="k"+(d==="0"?" zero":d==="⌫"?" bs":""); k.textContent=d; KEYS[d]=k; $("pad").appendChild(k);
+  k.addEventListener("pointerdown",e=>{ if (e.pointerType==="mouse"&&d!=="⌫") return; e.preventDefault(); k.classList.add("down"); d==="⌫"?backDigit():typeDigit(d); });
   const up=()=>k.classList.remove("down"); k.addEventListener("pointerup",up); k.addEventListener("pointercancel",up); k.addEventListener("pointerleave",up);
 }
 const digitOf=e=>{ const m=/^(?:Digit|Numpad)(\d)$/.exec(e.code); return m?m[1]:(/^\d$/.test(e.key)?e.key:null); };
 addEventListener("keydown",e=>{
   if (e.target.tagName==="INPUT") return;
+  if (e.key==="Backspace"){ e.preventDefault(); KEYS["⌫"].classList.add("down"); setTimeout(()=>KEYS["⌫"].classList.remove("down"),90); backDigit(); return; }
   const d=digitOf(e); if (d==null) return;
   e.preventDefault(); KEYS[d].classList.add("down");
   if (!e.repeat) typeDigit(d);
@@ -305,10 +318,10 @@ addEventListener("blur",()=>Object.values(KEYS).forEach(k=>k.classList.remove("d
 //  ROUND (runs entirely in the browser)
 // ============================================================
 const R={ mode:"add", active:false, n:0, of:3, startAt:0, endAt:0, score:0, q:null, next:null, typed:"", lockUntil:0, practice:false, sent:false };
-function beginRound({ n, of, seed, inMs, dur, practice, mode }){
+function beginRound({ n, of, seed, inMs, dur, practice, mode, digits }){
   R.log=[];
   Object.assign(R,{ mode:mode||"add", active:false, n, of, practice, score:0, typed:"", lockUntil:0, sent:false,
-    next:questionStream(seed, mode||"add"), startAt:performance.now()+inMs });
+    next:questionStream(seed, mode||"add", digits||"12"), startAt:performance.now()+inMs });
   R.endAt=R.startAt+dur; R.dur=dur;
   newQuestion();
   $("hRound").textContent=practice?"Solo":`${n}/${of}`; $("hScore").textContent="0"; $("hTime").textContent=Math.round(dur/1000);
@@ -335,6 +348,7 @@ function typeDigit(d){
   if (R.log.length<300) R.log.push({ q:qtxt, a:R.q.s, g:R.typed, ok:+R.typed===R.q.s, ms });
   if (+R.typed===R.q.s){                            // correct: no Enter needed
     R.score++; $("hScore").textContent=R.score;
+    if (!R.practice && Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"prog", round:R.n, n:R.score }));   // teacher's live leaderboard
     newQuestion(); flash($("arena"));                // next question immediately: no input is ever lost
   } else {                                          // wrong: shake + 3 s penalty
     $("prob").classList.add("bad"); shake($("arena"));
@@ -342,6 +356,7 @@ function typeDigit(d){
     R.lockUntil=performance.now()+PENALTY_MS;
   }
 }
+function backDigit(){ if (!R.active || R.lockUntil || !R.typed) return; R.typed=R.typed.slice(0,-1); renderAns(); }
 function retrigger(el,cls){ el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 const shake=el=>retrigger(el,"shake"), flash=el=>retrigger(el,"flash");
 function endRound(){
@@ -500,7 +515,7 @@ function onNet(m){
       break;
     case "round":
       if (Net.lobby && Net.lobby.teacher===Net.pid) teacherWatch(m);           // the teacher watches; doesn't play
-      else beginRound({ n:m.n, of:m.of, seed:m.seed, inMs:m.in, dur:m.dur, practice:false, mode:m.mode });
+      else beginRound({ n:m.n, of:m.of, seed:m.seed, inMs:m.in, dur:m.dur, practice:false, mode:m.mode, digits:m.digits });
       break;
     case "results": showResults(m); break;
     case "final": showFinal(m); break;

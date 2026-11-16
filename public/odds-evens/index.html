@@ -134,7 +134,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const SCREENS=["sMenu","sSetup","sPairs","sTurn","sDone","sFinal"];
 const show=id=>{ SCREENS.forEach(s=>$(s).hidden=s!==id); const t=id==="sMenu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t); };
-const ROUND_S=15, GAP_S=10, RIGHT=10, WRONG=-5;
+const ROUND_S=15, GAP_S=13, RIGHT=10, WRONG=-5;
 const S={ range:100, pairs:[], idx:0, solo:false };
 
 // ============================================================

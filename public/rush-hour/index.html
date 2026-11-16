@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
+  #tags{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+  #tags .tag{position:absolute;left:0;top:0;padding:3px 9px;border-radius:999px;background:rgba(21,32,51,.82);color:#fff;font:700 14px system-ui,sans-serif;white-space:nowrap;border:2px solid #fff;will-change:transform}
   :root{ --ink:#152033; --ink2:#55657d; --card:#fff; --line:#e4ebf4; --go:#ff7a1a; --go2:#d65a00; --sun:#ffd23f; --sky:#7ec8f2; --ok:#22c55e;
     --h:"Russo One",system-ui,sans-serif; --b:"Nunito",system-ui,sans-serif; }
   *{box-sizing:border-box}
@@ -113,7 +115,7 @@
 </style>
 <script src="/assets/hub-frame.js" defer></script>
 </head>
-<body>
+<body data-ck-board="code">
 <canvas id="view"></canvas>
 <button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 
@@ -124,6 +126,7 @@
   <div class="hbox" id="speed">0<small>KM/H</small></div>
   <div id="boostGlow"></div><div id="hitFlash"></div>
   <div id="msg"></div><div id="pop"></div>
+  <div id="tags" aria-hidden="true"></div>
   <div id="done"><div class="card"><h2 id="dTitle">FINISHED!</h2><b id="dTime">0:00.0</b><p id="dNote">Waiting for the others…</p></div></div>
   <div class="pad"><button data-k="left" aria-label="Left lane">◀</button><button data-k="brake" aria-label="Brake">▼</button><button data-k="right" aria-label="Right lane">▶</button></div>
 </div>
@@ -341,7 +344,25 @@ const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store
 function flashMsg(t){ const m=$("msg"); m.textContent=t; m.classList.remove("show"); void m.offsetWidth; m.classList.add("show"); }
 function popMsg(t,color){ const m=$("pop"); m.textContent=t; m.style.color=color; m.style.textShadow=`0 4px 0 rgba(21,32,51,.35)`; m.classList.remove("show"); void m.offsetWidth; m.classList.add("show"); }
 
+// nicknames floating over the other cars, so you know who you're close to (nearest few only)
+const tagV=new THREE.Vector3(), tagEls=new Map();
+function drawTags(car){
+  const box=$("tags"), want=[];
+  for (const [pid,m] of G.ghostMeshes){ if (!m.visible) continue; const dd=Math.abs(-m.position.z-car.d); if (dd<90) want.push({ pid, m, dd }); }
+  want.sort((a,b)=>a.dd-b.dd); const show=new Set();
+  for (const w of want.slice(0,8)){
+    tagV.set(w.m.position.x,1.9,w.m.position.z).project(camera); if (tagV.z>1||Math.abs(tagV.x)>1.1||Math.abs(tagV.y)>1.1) continue;
+    const pl=G.players.get(w.pid); if (!pl) continue;
+    let e=tagEls.get(w.pid); if (!e){ e=document.createElement("span"); e.className="tag"; box.appendChild(e); tagEls.set(w.pid,e); }
+    if (e.textContent!==pl.name) e.textContent=pl.name;
+    e.style.borderColor=pcol(pl.color);
+    e.style.transform=`translate(-50%,-100%) translate(${(tagV.x+1)/2*innerWidth}px,${(1-tagV.y)/2*innerHeight}px)`;
+    e.style.opacity=String(Math.max(0.35,1-w.dd/90)); show.add(w.pid);
+  }
+  for (const [pid,e] of tagEls) if (!show.has(pid)){ e.remove(); tagEls.delete(pid); }
+}
 function clearWorld(){
+  for (const e of tagEls.values()) e.remove(); tagEls.clear();
   for (const g of G.ghostMeshes.values()) scene.remove(g); G.ghostMeshes.clear();
   if (G.myMesh) scene.remove(G.myMesh); G.myMesh=null;
   if (finishArch) scene.remove(finishArch); finishArch=null;
@@ -461,6 +482,7 @@ function render(now){
   camera.fov=baseF+Math.min(12,car.v*0.12)+boostF*8; camera.updateProjectionMatrix();
   $("boostGlow").style.opacity=boostF;
   renderer.render(scene,camera);
+  drawTags(car);
   // HUD
   $("speed").firstChild.nodeValue=Math.round(car.v*3.6);
   $("clock").textContent=fmt(Math.max(0,G.done?car.finishT:rt));
@@ -573,6 +595,7 @@ function onNet(m){
       Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
     case "go": beginRace({ seed:m.seed, dist:m.dist, players:m.players, me:Net.pid, inMs:m.in, mode:"online", resume:m.you }); break;
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); break;   // a classmate joined mid-game
     case "ps": if (G.mode==="online"){ G.snaps.push({ t:performance.now(), p:m.p }); if (G.snaps.length>20) G.snaps.shift(); for (const q of m.p) if (q[0]!==G.me) G.others.set(q[0],{ d:q[1] }); } break;
     case "fin": if (m.pid!==Net.pid) G.finished.set(m.pid,m.time); break;
     case "results": if (G.mode==="online") showResults(m.rank); break;

@@ -86,6 +86,7 @@
       this.players=players.map((p,i)=>Object.assign(newFlyer(p.id,p.name,(i+0.5)*T.W/n),{ bot:!!p.bot, lazy:p.lazy||0 }));   // one floor, spread out, no overlaps
       this.time=0; this.events=[]; this.phase="playing";
     }
+    addPlayer(p){ if (!this.players.some(q=>q.id===p.id)) this.players.push(Object.assign(newFlyer(p.id,p.name,T.W*(0.2+Math.random()*0.6)),{ bot:false, lazy:0 })); }   // late joiner: from the ground
     setInput(id,x){ const p=this.players.find(q=>q.id===id); if (p) p.ix=Math.max(-1,Math.min(1,+x||0)); }
     flap(id){ const p=this.players.find(q=>q.id===id); if (p) p.flap=true; }
     step(dt){

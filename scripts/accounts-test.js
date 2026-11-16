@@ -6,7 +6,7 @@ const { spawn }=require("child_process");
 const path=require("path");
 const WebSocket=require("ws");
 const PORT=22100+(Math.random()*300|0), BASE=`http://127.0.0.1:${PORT}`;
-const srv=spawn(process.execPath,[path.join(__dirname,"..","server","index.js")],{ env:{ ...process.env, PORT, DATABASE_URL:"", ALLOW_DEV_LINKS:"1",
+const srv=spawn(process.execPath,[path.join(__dirname,"..","server","index.js")],{ env:{ ...process.env, PORT, DATABASE_URL:"", ALLOW_DEV_LINKS:"1", CLASS_CLOSE_MS:200,
   MATH_COUNTDOWN_MS:150, MATH_ROUND_MS:300, MATH_GRACE_MS:200, MATH_RESULTS_MS:150 }, stdio:["ignore","pipe","inherit"] });
 const fail=m=>{ console.error("FAIL:",m); srv.kill(); process.exit(1); };
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));

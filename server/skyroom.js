@@ -57,9 +57,12 @@ class SkyRoom extends RoomBase {
     if (p) Object.assign(p,{ cid,name,connected:true });
     else {
       if (this.players.size>=MAX_PLAYERS) return this.send({ t:"error", code:"full", msg:"That game is full (40 players)." },cid);
-      if (this.state!=="lobby") return this.send({ t:"error", code:"full", msg:"That game has already started." },cid);
       p={ pid:this.nextPid++, cid, name, token, connected:true, color:this.freeColor() };
       this.players.set(p.pid,p);
+      if (this.state==="playing" && this.game){                                     // late joiner: into the running game from 0, or wait for the next one
+        if (typeof this.game.addPlayer==="function"){ this.game.addPlayer({ id:p.pid, name }); this.send({ t:"addp", p:{ pid:p.pid, name, color:p.color, connected:true } }); }
+        else p.wait=true;
+      }
     }
     if (!this.host || !this.players.get(this.host)?.connected) this.host=p.pid;
     this.emptySince=0; this.saveSession(token);
@@ -67,7 +70,7 @@ class SkyRoom extends RoomBase {
     this.register(); this.lobby(); this.scheduleAuto();
     if (this.teacher && p.pid!==this.teacher) this.askIdentity(p);
     if (this.game){ const gp=this.game.players.find(q=>q.id===p.pid); if (gp) gp.gone=false; }
-    if (this.state==="playing" && this.game) this.send({ t:"start", players:this.roster().filter(q=>q.pid!==this.teacher), teacher:this.teacher, in:0, seed:this.game.seed, at:this.game.time },cid);   // rejoin mid-game
+    if (this.state==="playing" && this.game && !p.wait) this.send({ t:"start", players:this.roster().filter(q=>q.pid!==this.teacher), teacher:this.teacher, in:0, seed:this.game.seed, at:this.game.time },cid);   // rejoin mid-game
   }
   scheduleAuto(){
     if (this.state!=="lobby" || this.teacher) return;
@@ -78,6 +81,7 @@ class SkyRoom extends RoomBase {
   startGame(){
     if (this.state!=="lobby" || this.connectedCount()-(this.teacher?1:0)<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
+    for (const q of this.players.values()) q.wait=false;
     this.state="playing"; this.register(); this.lobby();
     this.game=new SKY.Game([...this.players.values()].filter(p=>p.pid!==this.teacher).map(p=>({ id:p.pid, name:p.name })),crypto.randomInt(1,2**31-1));
     this.send({ t:"start", players:this.roster().filter(p=>p.pid!==this.teacher), teacher:this.teacher, in:COUNTDOWN_MS, seed:this.game.seed });

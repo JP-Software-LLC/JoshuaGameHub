@@ -265,6 +265,7 @@
 <canvas id="confetti"></canvas>
 
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -389,15 +390,15 @@ function setSheet(up){
 }
 function phaseBanner(){
   const t=nm(S.thrower), you=amThrower();
-  if (S.phase==="intro") banner(you?`🎈 You have the water balloon!`:`🎈 <span style="color:${col(S.thrower)}">${esc(t)}</span> has the water balloon!`,false);
+  if (S.phase==="intro") banner(you?`🎈 You have the water balloon! <small>Your friends will hide behind the barrels. Then you pick a barrel to throw at!</small>`:`🎈 <span style="color:${col(S.thrower)}">${esc(t)}</span> has the water balloon! <small>Get ready to hide: tap a barrel (or press ← ↑ →) so you don't get splatted!</small>`,false);
   else if (S.phase==="hide"){
     const tag=`<small>Throw ${S.throwN} of 3</small>`;
     if (you) banner(`🙈 No peeking! They're hiding… ${tag}`,true);
-    else if (amHiding()) banner(`Hide! Pick a barrel ← ↑ → ${tag}`,true);
+    else if (amHiding()) banner(`Hide! Tap a barrel to hide behind it (or press ← ↑ →) ${tag}`,true);
     else banner(`💧 You're drying off. Watch the fun! ${tag}`,true);
   }
   else if (S.phase==="throw"){
-    if (you) banner(`🎯 Throw! Pick a barrel ← ↑ →`,true);
+    if (you) banner(`🎯 Throw! Tap the barrel you think they're behind (or press ← ↑ →)`,true);
     else banner(`😬 <span style="color:${col(S.thrower)}">${esc(t)}</span> is aiming…`,true);
   }
 }

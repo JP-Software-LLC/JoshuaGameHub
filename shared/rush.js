@@ -20,7 +20,7 @@ const T = {
   carLen: 4.2, carW: 1.9,
   rowGap: [80, 125],   // metres between traffic rows
   twoLaneRows: 0.25,   // share of rows that block two lanes (never three)
-  boostGap: [70, 110], // a glowing strip every 70–110 m
+  boostGap: [36, 60],  // a glowing strip every 36–60 m (lots of boosts)
   boostV: 12, boostT: 1.0,                          // +12 m/s fading over 1 s
   rearKeep: 0.32,      // rear-ending: drop to 32 % of the VEHICLE's speed…
   stunT: 0.6,          // …with half acceleration for 0.6 s

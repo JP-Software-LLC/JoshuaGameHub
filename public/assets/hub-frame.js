@@ -23,6 +23,10 @@
     ["/splat/","SPLAT!","🎯"],["/memory-tiles/","Memory Tiles","🧠"],["/odds-evens/","Odds or Evens","✂️"],["/typing-cowboys/","Typing Cowboys","🤠"],["/star-cannons/","Star Cannons","🚀"],["/dart-party/","Dart Party","🎈"],["/sky-climb/","Sky Climb","🪽"],["/word-rush/","Word Rush","🔤"],
   ];
   const here=location.pathname.replace(/index\.html$/,"");
+  // which hub view the player came from (landing page: Student · Teacher · Guest); "Back" returns there
+  const MODE=(()=>{ try{ return localStorage.getItem("jgh_mode")||""; }catch{ return ""; } })();
+  const HOME=MODE?"/#"+MODE:"/";
+  window.JGH={ mode:MODE, home:HOME };
 
   // fonts + favicon + theme colour, shared with the hub
   const head=document.head;
@@ -73,8 +77,18 @@
     background:rgba(7,8,12,.82)!important;border:1px solid rgba(242,201,76,.45)!important;color:#f2c94c!important;
     box-shadow:0 3px 0 rgba(0,0,0,.5)!important;backdrop-filter:blur(8px);font-size:15px!important;cursor:pointer;transform:none!important}
   #exitBtn:hover,#exitBtn:focus-visible{background:#f2c94c!important;color:#1a1408!important;outline:none!important}
-  #exitBtn svg{width:12px!important;height:12px!important}
-  body.jgh-on #exitBtn{display:none!important}`;
+  #exitBtn svg{width:16px!important;height:16px!important}
+  body.jgh-on #exitBtn{display:none!important}
+  /* big, obvious way back: kids look for it */
+  #exitBtn{width:auto!important;height:46px!important;padding:0 16px 0 12px!important;gap:8px;grid-auto-flow:column;font:700 17px "Space Grotesk",system-ui,sans-serif!important;border-radius:14px!important;border-width:2px!important}
+  #exitBtn::after{content:"Leave"}
+  #jgh-bar .jgh-back{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px 0 14px;border-radius:12px;
+    background:#f2c94c;color:#1a1408;font:700 17px "Space Grotesk",system-ui,sans-serif;box-shadow:0 3px 0 #b8862b;white-space:nowrap}
+  #jgh-bar .jgh-back:hover,#jgh-bar .jgh-back:focus-visible{filter:brightness(1.08);outline:none}
+  :root{--jgh-h:58px}
+  /* a screen that just appeared ignores taps for a second (stops accidental presses as a round ends) */
+  .jgh-wait button,.jgh-wait a,.jgh-wait input{pointer-events:none!important}
+  .jgh-wait button,.jgh-wait a.btn{opacity:.55;transition:opacity .2s}`;
   const st=document.createElement("style"); st.id="jgh-style"; st.textContent=css; head.appendChild(st);
 
   function build(){
@@ -82,17 +96,18 @@
     const teacher=here.startsWith("/teacher");
     const bar=document.createElement("header"); bar.id="jgh-bar"; bar.setAttribute("data-off","");
     bar.innerHTML=`
-      <a class="jgh-brand" href="/" aria-label="Joshua Game Hub home">
+      ${teacher&&!ALWAYS?"":`<a class="jgh-back" href="${HOME}" aria-label="Back to the games">← Back to games</a>`}
+      <a class="jgh-brand" href="${HOME}" aria-label="Joshua Game Hub home">
         <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect width="16" height="16" rx="3" fill="#07080c"/><rect x="3" y="5" width="10" height="6" fill="#58c27d"/><rect x="3" y="7" width="10" height="1" fill="#2f7d4a"/><rect x="7" y="6" width="2" height="4" fill="#f2c94c"/></svg>
         <b>JOSHUA <span>GAME</span> HUB</b></a>
       <div class="jgh-crumb"><i></i><strong>${cur?cur[2]+" "+cur[1]:teacher?"🍎 Teacher dashboard":""}</strong></div>
       <nav class="jgh-nav">
         <button type="button" id="jgh-more" aria-expanded="false" aria-haspopup="true">All games ▾</button>
-        ${teacher?"":'<a class="jgh-t jgh-hide" href="/teacher/">🍎 Teachers</a>'}
+        ${teacher||MODE==="student"?"":'<a class="jgh-t jgh-hide" href="/teacher/">🍎 Teachers</a>'}
       </nav>`;
     const menu=document.createElement("div"); menu.id="jgh-menu"; menu.hidden=true;
     menu.innerHTML=GAMES.map(g=>`<a href="${g[0]}"${cur&&cur[0]===g[0]?' aria-current="page"':""}><span>${g[2]}</span>${g[1]}</a>`).join("")
-      +`<hr><a href="/"><span>🏠</span>Game hub home</a><a href="/teacher/"><span>🍎</span>Teacher dashboard</a>`;
+      +`<hr><a href="${HOME}"><span>🏠</span>Game hub home</a><a href="/teacher/"><span>🍎</span>Teacher dashboard</a>`;
     document.body.prepend(menu); document.body.prepend(bar);
     const more=bar.querySelector("#jgh-more");
     const close=()=>{ menu.hidden=true; more.setAttribute("aria-expanded","false"); };
@@ -101,6 +116,16 @@
     document.addEventListener("keydown",e=>{ if (e.key==="Escape"&&!menu.hidden){ close(); e.stopImmediatePropagation(); } },true);
 
     const ex=document.getElementById("exitBtn");
+    // on a game's menu the exit button means "back to the hub": go to the view they came from
+    if (ex) ex.addEventListener("click",e=>{ if (/^Back to game hub/.test(ex.title||"")){ e.stopImmediatePropagation(); e.preventDefault(); location.href=HOME; } },true);
+    document.addEventListener("click",e=>{ const a=e.target.closest&&e.target.closest('a[href="../"],a[href="/"]'); if (a && !a.closest("#jgh-bar")){ e.preventDefault(); location.href=HOME; } },true);
+    // tap guard: any screen that becomes visible ignores taps for 1 s
+    const vis=el=>!el.hidden && getComputedStyle(el).display!=="none" && getComputedStyle(el).visibility!=="hidden";
+    const seen=new WeakMap();
+    const guard=()=>{ document.querySelectorAll(".screen,.scr,section[id],.overlay,.panel-ov").forEach(el=>{ const v=vis(el), was=seen.get(el);
+      if (v && was===false){ el.classList.add("jgh-wait"); clearTimeout(el._jw); el._jw=setTimeout(()=>el.classList.remove("jgh-wait"),1000); }
+      seen.set(el,v); }); };
+    let gq=0; guard(); new MutationObserver(()=>{ if (!gq) gq=requestAnimationFrame(()=>{ gq=0; guard(); }); }).observe(document.body,{ subtree:true, attributes:true, attributeFilter:["class","hidden"] });
     const sync=()=>{
       const on=ALWAYS||(ex&&/^Back to game hub/.test(ex.title||""));
       bar.toggleAttribute("data-off",!on); document.body.classList.toggle("jgh-on",!!on); document.body.classList.toggle("jgh-pad",PAD);

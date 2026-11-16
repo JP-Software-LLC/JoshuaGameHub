@@ -5,5 +5,5 @@
 const { RushRoom }=require("./rushroom");
 const HURDLE=require("../shared/hurdle.js");
 class HurdleRoom extends RushRoom {}
-HurdleRoom.KIND="hurdle"; HurdleRoom.DIST=HURDLE.T.dist;
+HurdleRoom.KIND="hurdle"; HurdleRoom.DIST=HURDLE.T.dist; HurdleRoom.DIGITS=true;
 module.exports={ HurdleRoom };

@@ -245,6 +245,7 @@ function complete(){
   if (R.clean) R.streak++; else R.streak=0;                   // a sequence with a slip doesn't count for the streak
   const bonus=R.streak>=STREAK_FOR_BONUS?Math.round(base*BONUS):0;
   R.score+=base+bonus; R.done++;
+  if (!R.practice && Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"prog", round:R.n, n:R.score }));   // teacher's live leaderboard
   const g=$("gain"); g.innerHTML=`+${base+bonus}${bonus?`<small>FLAWLESS ×${R.streak} BONUS</small>`:""}`; retrigger(g,"show");
   R.len++; renderHud(); newSeq();
 }

@@ -398,6 +398,7 @@ function onNet(m){
       Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
     case "start": beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online", teacher:m.teacher }); break;
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); break;   // a classmate joined mid-game
     case "s": if (G.mode==="online"){ G.snaps.push({ at:performance.now(), s:m.s }); if (G.snaps.length>12) G.snaps.shift(); handleEvents(m.e||[]); } break;
     case "results": if (G.mode==="online") showResults(m.rank); break;
     case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;

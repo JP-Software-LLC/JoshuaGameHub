@@ -27,6 +27,7 @@
       this.balloons=[]; this.darts=[]; this.nextId=1; this.time=0; this.spawnT=0.5; this.events=[]; this.phase="playing"; this.winner=0;
       this.target=T.target;
     }
+    addPlayer(p){ if (!this.players.some(q=>q.id===p.id)) this.players.push({ id:p.id, name:p.name, bot:false, x:T.W/2, y:T.H/2, ix:0, iy:0, face:this.players.length%8, cool:0.5, fire:false, score:0, pops:0, thrown:0 }); }
     setInput(id,x,y){ const p=this.players.find(q=>q.id===id); if (!p) return; const l=Math.hypot(x,y); p.ix=l>1?x/l:x; p.iy=l>1?y/l:y; }
     fire(id){ const p=this.players.find(q=>q.id===id); if (p) p.fire=true; }
     spawnBalloon(){

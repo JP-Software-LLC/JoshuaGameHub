@@ -7,7 +7,7 @@ const WebSocket=require("ws");
 const PORT=21700+(Math.random()*200|0);
 const srv=spawn(process.execPath,[path.join(__dirname,"..","server","index.js")],{ env:{ ...process.env, PORT,
   MATH_COUNTDOWN_MS:200, MATH_ROUND_MS:400, MATH_GRACE_MS:200, MATH_RESULTS_MS:200, ARROW_ROUND_MS:400,
-  RUSH_COUNTDOWN_MS:200, RUSH_AFTER_FIRST_MS:400, BEAR_COUNTDOWN_MS:200, MEM_COUNTDOWN_MS:200, WORDS_COUNTDOWN_MS:200 }, stdio:["ignore","pipe","inherit"] });
+  RUSH_COUNTDOWN_MS:200, RUSH_AFTER_FIRST_MS:400, BEAR_COUNTDOWN_MS:200, MEM_COUNTDOWN_MS:200, WORDS_COUNTDOWN_MS:200, CLASS_CLOSE_MS:200 }, stdio:["ignore","pipe","inherit"] });
 const fail=m=>{ console.error("FAIL:",m); srv.kill(); process.exit(1); };
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function client(name){
@@ -94,6 +94,20 @@ srv.stdout.on("data",async d=>{
       const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)) fail("memory: teacher listed as a player");
       if (T.msgs.some(m=>m.t==="me")) fail("memory: teacher was given a tile");
       close([T,...kids]); }
+    // students still typing their names show as pending · Start counts down first · digits filter · late joiners · live leaderboard
+    { const { T, kids, code }=await room("math",async (T,kids)=>{
+        const L=T.msgs.filter(m=>m.t==="lobby").pop();
+        if (L.players.filter(p=>p.pending).length!==2) fail("pending: students without a name should show as pending");
+        kids[0].send({ t:"iam", first:"Ann", last:"B", nick:"Rocket" }); await sleep(150);
+        const L2=T.msgs.filter(m=>m.t==="lobby").pop(); if (L2.players.find(p=>p.pid===kids[0].pid).pending) fail("pending: named student still pending");
+        kids[0].send({ t:"digits", d:"2" }); T.send({ t:"digits", d:"2" }); await sleep(100); });
+      await T.wait(m=>m.t==="lobby"&&m.closeIn>0);                                 // countdown shown before the race
+      const r1=await kids[0].wait(m=>m.t==="round"&&m.n===1); if (r1.digits!=="2") fail("digits: teacher's choice not sent");
+      const late=client("Late"); await late.ready; await late.wait(m=>m.t==="welcome"); late.send({ t:"join", code });
+      await late.wait(m=>m.t==="joined"); const lr=await late.wait(m=>m.t==="round"); if (lr.n!==1||lr.dur>400||lr.dur<=0) fail("late join: should jump into the current round "+JSON.stringify(lr));
+      kids[0].send({ t:"prog", round:1, n:5 }); kids[1].send({ t:"prog", round:1, n:2 });
+      const b=await T.wait(m=>m.t==="board"&&m.rows.length===3&&m.rows[0].v==="5 correct"); if (b.code!==code||b.rows[0].pid!==kids[0].pid) fail("board: wrong live leaderboard");
+      close([T,...kids,late]); }
     // public rooms refuse Teacher Mode
     { const P=client("Pub"); await P.ready; await P.wait(m=>m.t==="welcome"); P.send({ t:"quick", game:"memory" }); await P.wait(m=>m.t==="joined");
       P.send({ t:"teacher" }); await sleep(250); if (P.msgs.filter(m=>m.t==="lobby").pop().teacher) fail("public room accepted a teacher"); P.ws.close(); }

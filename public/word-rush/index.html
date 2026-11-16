@@ -428,6 +428,7 @@ function onNet(m){
       Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
     case "start": beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online", teacher:m.teacher, board:m.board, found:m.found, left:m.left }); break;
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); break;   // a classmate joined mid-game
     case "f": if (G.mode==="online" && G.board){ onFound(m.i,m.pid,m.a,m.pts); if (G.pending && m.pid!==G.me && sameLine(G.pending.a,m.a)){ G.pending=null; toast(`${esc(nameOf(m.pid))} got there first!`); if (document.body.classList.contains("slim")) flash("Too slow!"); } } break;
     case "miss": if (G.mode==="online"){ G.misses.push({ a:m.a, at:performance.now() }); G.pending=null; } break;
     case "wordsOk": $("cNote").textContent=m.n?`✓ ${m.n} words ready${m.title?" · "+m.title:""}${m.skipped.length?` · skipped ${m.skipped.length} (need 3–15 letters): ${m.skipped.slice(0,4).join(", ")}`:""}`:(m.skipped.length?"Need at least 3 words of 3–15 letters. Using a random theme.":"Using a random theme."); break;
