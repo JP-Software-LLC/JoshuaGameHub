@@ -372,6 +372,7 @@ const GAMES=[
   { id:"star-cannons", demo:true, teach:true, kind:"cannons", cat:"Party", title:"STAR CANNONS", path:"/star-cannons/", blurb:"Team up and laser bouncing asteroids. Don't get squashed!", tags:["Up to 40","Online","Team"], badge:"NEW", thumb:"cannons" },
   { id:"dart-party", demo:true, teach:true, kind:"darts", cat:"Party", title:"DART PARTY", path:"/dart-party/", blurb:"Walk, aim and throw darts. First to pop 20 points wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"darts" },
   { id:"sky-climb", demo:true, teach:true, kind:"sky", cat:"Racing", title:"SKY CLIMB", path:"/sky-climb/", blurb:"Flap your way to the top. Bump friends up or knock them down!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"sky" },
+  { id:"word-rush", demo:true, teach:true, kind:"words", cat:"Brainy", title:"WORD RUSH", path:"/word-rush/", blurb:"One giant word search. First to drag across a word claims it!", tags:["Up to 40","Online","Words"], badge:"NEW", thumb:"words" },
 ];
 
 // ------------------------------------------------------------
@@ -555,6 +556,14 @@ function cannonsThumb(){
     ${cannon(150,"#3ee8ff")}${cannon(290,"#ffd23f")}${cannon(400,"#ff4fd8")}${cannon(470,"#7cf29c")}</svg>`;
   const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
 }
+function wordsThumb(){
+  const L="PLANETSXCOMETQGALAXYRORBITNMOONKSTARVESATURNLHROCKETUMARSDLE", C=10, Rw=6, cell=48, ox=30, oy=46;
+  let t=""; for (let r=0;r<Rw;r++) for (let c=0;c<C;c++) t+=`<text x="${ox+c*cell+cell/2}" y="${oy+r*cell+cell/2+11}" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" fill="#2b2f45">${L[(r*C+c)%L.length]}</text>`;
+  const cap=(r0,c0,r1,c1,col)=>`<line x1="${ox+c0*cell+cell/2}" y1="${oy+r0*cell+cell/2}" x2="${ox+c1*cell+cell/2}" y2="${oy+r1*cell+cell/2}" stroke="${col}" stroke-width="40" stroke-linecap="round" opacity=".55"/>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380"><rect width="540" height="380" fill="#ffd166"/><rect x="18" y="34" width="504" height="312" rx="18" fill="#fffaf0"/>
+    ${cap(0,0,0,5,"hsl(8,88%,50%)")}${cap(1,0,1,4,"hsl(188,88%,50%)")}${cap(2,1,5,1,"hsl(98,88%,50%)")}${cap(3,4,3,7,"hsl(278,88%,50%)")}${t}</svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml,"+encodeURIComponent(svg); return img;
+}
 function typingThumb(){
   const lane=(y,c,x,hat)=>`<rect x="20" y="${y}" width="500" height="58" fill="${c}"/><path d="M20 ${y+50} ${Array.from({length:21},(_,i)=>`q12 -14 24 0`).join(" ")}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="3"/>
     <g transform="translate(${x} ${y+36}) scale(46)"><ellipse cx="0.04" cy="-0.02" rx="0.5" ry="0.22" fill="#9a5a2c"/><path d="M0.36 -0.12 L0.55 -0.5 L0.72 -0.44 L0.56 -0.02Z" fill="#9a5a2c"/><ellipse cx="0.74" cy="-0.44" rx="0.2" ry="0.1" fill="#9a5a2c"/>
@@ -640,6 +649,7 @@ for (const g of GAMES){
   if (g.thumb==="cannons") el.querySelector(".thumb").prepend(cannonsThumb());
   if (g.thumb==="darts") el.querySelector(".thumb").prepend(dartsThumb());
   if (g.thumb==="sky") el.querySelector(".thumb").prepend(skyThumb());
+  if (g.thumb==="words") el.querySelector(".thumb").prepend(wordsThumb());
   lib.appendChild(el);
 }
 // ------------------------------------------------------------
@@ -758,6 +768,7 @@ const CLASS_GAMES=[
   { id:"typing-cowboys", ico:"🤠", skill:"Typing and spelling", len:"~1–2 min race", view:"Live standings on your screen", desc:"Students type words to gallop their cowboy to the finish. Wrong words don't count against them." },
   { id:"star-cannons", ico:"🚀", skill:"Teamwork and quick reactions", len:"~2–4 min", view:"Watch the whole game on your screen", desc:"The whole class shares one floor of laser cannons against bouncing asteroids. Last cannon standing ends it." },
   { id:"dart-party", ico:"🎈", skill:"Aiming and quick thinking", len:"~1–2 min", view:"Watch the whole field on your screen", desc:"Students walk to aim and throw darts at drifting balloons. First to 20 points ends the game." },
+  { id:"word-rush", ico:"🔤", skill:"Spelling, vocabulary and visual scanning", len:"~3–6 min", view:"The word bank on your big screen", desc:"Everyone gets the same giant word search. The first student to drag across a word claims it in their own colour, live on every screen." },
   { id:"sky-climb", ico:"🪽", skill:"Persistence and coordination", len:"~4 min", view:"Watch the climb on your screen", desc:"Students flap and steer up through gaps in stone floors, dodging buzzing critters. The game waits until everyone reaches the top." },
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },

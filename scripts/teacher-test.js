@@ -7,7 +7,7 @@ const WebSocket=require("ws");
 const PORT=21700+(Math.random()*200|0);
 const srv=spawn(process.execPath,[path.join(__dirname,"..","server","index.js")],{ env:{ ...process.env, PORT,
   MATH_COUNTDOWN_MS:200, MATH_ROUND_MS:400, MATH_GRACE_MS:200, MATH_RESULTS_MS:200, ARROW_ROUND_MS:400,
-  RUSH_COUNTDOWN_MS:200, RUSH_AFTER_FIRST_MS:400, BEAR_COUNTDOWN_MS:200, MEM_COUNTDOWN_MS:200 }, stdio:["ignore","pipe","inherit"] });
+  RUSH_COUNTDOWN_MS:200, RUSH_AFTER_FIRST_MS:400, BEAR_COUNTDOWN_MS:200, MEM_COUNTDOWN_MS:200, WORDS_COUNTDOWN_MS:200 }, stdio:["ignore","pipe","inherit"] });
 const fail=m=>{ console.error("FAIL:",m); srv.kill(); process.exit(1); };
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function client(name){
@@ -66,6 +66,17 @@ srv.stdout.on("data",async d=>{
       const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)||!st.seed) fail("sky: teacher listed as a player / no seed");
       const s=await T.wait(m=>m.t==="s"&&m.s.p); if (s.s.p.length!==2||s.s.p.some(q=>q[0]===T.pid)) fail("sky: teacher is flying");
       close([T,...kids]); }
+    { const { T, kids }=await room("words");
+      const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)||!st.board||st.board.words.length<20) fail("words: teacher listed as a player / no board");
+      if (st.players.map(p=>p.color).sort().join()!=="0,1") fail("words: students should get the first two colours");
+      const W=require("../shared/wordsearch.js");   // claim a real word: find it in the sent grid
+      const B={ ...st.board }, word=B.words[0]; let hit=null;
+      for (let r=0;r<B.rows&&!hit;r++) for (let c=0;c<B.cols&&!hit;c++) for (const [dr,dc] of W.DIRS){ const a=[r,c,r+dr*(word.length-1),c+dc*(word.length-1)]; if (W.readLine(B,a)===word){ hit=a; break; } }
+      await sleep(300); T.send({ t:"claim", a:hit }); kids[0].send({ t:"claim", a:hit }); kids[1].send({ t:"claim", a:hit });
+      const f=await T.wait(m=>m.t==="f"); if (f.pid!==kids[0].pid) fail("words: first claimer should get the word (teacher can't claim)");
+      await sleep(200); if (T.msgs.filter(m=>m.t==="f").length!==1) fail("words: a word was claimed twice");
+      if (!kids[1].msgs.some(m=>m.t==="miss")) fail("words: second claimer not told they missed");
+      close([T,...kids]); }
     { const { T, kids }=await room("darts");
       const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)) fail("darts: teacher listed as a player");
       const s=await T.wait(m=>m.t==="s"&&m.s.p); if (s.s.p.length!==2||s.s.p.some(q=>q[0]===T.pid)) fail("darts: teacher on the field");
@@ -81,7 +92,7 @@ srv.stdout.on("data",async d=>{
     // public rooms refuse Teacher Mode
     { const P=client("Pub"); await P.ready; await P.wait(m=>m.t==="welcome"); P.send({ t:"quick", game:"memory" }); await P.wait(m=>m.t==="joined");
       P.send({ t:"teacher" }); await sleep(250); if (P.msgs.filter(m=>m.t==="lobby").pop().teacher) fail("public room accepted a teacher"); P.ws.close(); }
-    console.log("OK: teacher mode — math, arrows, rush, hurdle, typing, bear, cannons, darts, sky, memory: teacher runs it, never plays or ranks, auto-start off, students can't take over, public rooms refuse");
+    console.log("OK: teacher mode — math, arrows, rush, hurdle, typing, bear, cannons, darts, sky, words, memory: teacher runs it, never plays or ranks, auto-start off, students can't take over, public rooms refuse");
     srv.kill(); setTimeout(()=>process.exit(0),200);
   } catch(e){ fail(e.message); }
 });

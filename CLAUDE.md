@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) **Dart Party** (up to 40, walk-to-aim dart throwing at balloons) and **Sky Climb** (up to 40, flap-to-fly race to the top with player bumping).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) **Dart Party** (up to 40, walk-to-aim dart throwing at balloons) **Sky Climb** (up to 40, flap-to-fly race to the top with player bumping) and **Word Rush** (up to 40, live shared word search).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -114,6 +114,12 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Flap = Space/↑/W, steer ←→. World wraps left↔right. Each row (every 11 units) is a SOLID stone floor with 2–3 gaps to fly through (gaps narrow higher up); extra floating stone chunks are never placed above/below a gap so every gap stays flyable. Only ~1 row in 10 has a one-way ledge (fly up through, land on top). 1–3 buzzers per row. Buzzers stun 0.9 s and knock you down. Nobody is ever out.
 - Player bumps: hit someone from below → they're pushed UP; land on someone from above → they're pushed DOWN; side hits bounce. Everyone starts spread along the floor.
 - Finish at `T.goal` = 640. Game ends when every connected player is up (or 7 min). Perfect bots ~2.5–3 min; aimed at ~4 min for real classes. Results by finish time, unfinished by best height; top max(3, 15 %).
+
+## Word Rush rules
+- `public/word-rush/`. One giant 30×18 word search (`shared/wordsearch.js`, served at /wordsearch.js; also solo vs bots) + `server/wordroom.js`. 28 words from one kid-safe theme (Animals, Space, Food, Sports, Nature, School), any of 8 directions. Filler letters are re-rolled until no blocklisted word appears in any direction.
+- Drag across a word (snaps to 8 directions). The client checks locally, then sends claim{a:[r0,c0,r1,c1]}; the server awards the FIRST valid claim and broadcasts f{i,pid,a,pts} so it lights up on every screen in the finder's colour; late claimers get miss{}. Points = word length. Ends when every word is found or after 6 min. Results top max(3, 15 %).
+- Player colours: `WORDS.color(i)` "star pattern": hue order 0°,180°,90°,270°,45°… (van der Corput), new lightness every 12 players; `WORDS.ink(i)` picks readable text. The teacher never takes a colour.
+- Teacher mode: the teacher's screen shows board + a big word bank (`body.big`); students' screens drop the bank (`body.slim`) so the board fills the screen and they read the words off the big screen.
 
 ## Hub live previews (?demo=1)
 - The rotating featured showcase is gone. Each library card's picture becomes a LIVE BOT MATCH when focused (mouse hover / keyboard focus; on touch screens, the card nearest the middle while scrolling): an iframe of the game page at `?demo=1` (960×676, scaled to fit). One feed at a time, removed on leave, reloaded every 75 s. Games opt in with `demo:true` in GAMES.

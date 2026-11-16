@@ -32,8 +32,9 @@ const { TypingRoom }=require("./typingroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
+const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -130,6 +131,7 @@ async function onMessage(c,m){
     case "finish": return toRoom(c,{ t:"finish", time:+m.time, extra:m.extra|0, log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "fire":   return toRoom(c,{ t:"fire" });
+    case "claim":  return toRoom(c,{ t:"claim", a:Array.isArray(m.a)?m.a.slice(0,4).map(v=>v|0):[] });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
   }

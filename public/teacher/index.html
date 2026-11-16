@@ -87,7 +87,7 @@ async function api(path,method="GET",body){
   if (!r.ok){ const e=new Error(j.error||"Something went wrong."); e.status=r.status; throw e; }
   return j;
 }
-const GAMES={ math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb" };
+const GAMES={ math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
 const MODES={ add:"Addition", sub:"Subtraction", mul:"Multiplication", div:"Division", money:"Money" };
 const gameName=(g,m)=>(GAMES[g]||g)+(m&&MODES[m]?` · ${MODES[m]}`:"");
 const when=d=>new Date(d).toLocaleString(undefined,{ month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
@@ -99,6 +99,7 @@ function scoreText(g,r){
   if (g==="math") return `${r.score} correct`;
   if (g==="arrows") return `${r.score} pts`;
   if (g==="rush"||g==="hurdle") return s.finished?fmtTime(s.time)+(g==="hurdle"&&s.extra!=null?` · ${s.extra}/10 clean`:""):`${s.percent??0}% (didn't finish)`;
+  if (g==="words") return `${s.words??0} of ${s.of??"?"} words · ${s.points??r.score} pts`;
   if (g==="sky") return s.finished?fmtTime(s.time):`${s.percent??0}% of the way up`;
   if (g==="darts") return `${s.points??r.score} pts · ${s.pops??0} balloons`+(s.won?" · 🏆 reached the goal":"");
   if (g==="cannons") return `${s.points??r.score} pts · ${s.seconds}s`;
