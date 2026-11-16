@@ -136,3 +136,8 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Late joiners: Math Race/Arrow Blitz jump into the current round, races start from 0, Word Rush/Darts/Sky/Cannons add a new player; Bear Attack and Memory Tiles wait for the next game.
 - Math Race + Hurdle Dash: teacher picks 1 digit (default), 1 & 2 digits, or 2 digits. Backspace works. Hurdle Dash: no falling; a wrong answer shows the right one and gives a new sum.
 - Any screen that appears ignores taps for 1 s (hub-frame tap guard).
+
+## Site analytics (/admin/)
+- `server/stats.js`: own-server daily counts only (no cookies, no third parties, nothing per person), flushed to `daily_stats` once a minute. Metrics: `view:<page>[?play]` (pages POST `/api/hit` from hub-frame.js / the hub, since pages may come from the web service), `mode:<student|teacher|guest>` (hub button presses), `room:<game>:<public|private>`, `teach:<game>`, `play:<game>` (games started, detected in `RoomBase.register`), `join:<game>`, `peak` (most connections at once). Only whitelisted pages/modes are stored.
+- `/admin/` page reads `GET /api/admin/stats?days=N`: signed-in teacher whose email is in `ADMIN_EMAILS` (game service env, comma list). Tested by `scripts/stats-test.js`.
+- `EMAIL_VERIFY=off` (game service env, temporary): typing an email on /teacher/ signs straight in, no link. Remove it once RESEND_API_KEY + MAIL_FROM are set.

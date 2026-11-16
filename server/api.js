@@ -4,6 +4,8 @@
 const db=require("./db");
 const A=require("./auth");
 const C=require("./classdata");
+const STATS=require("./stats");
+const ADMINS=()=>new Set(String(process.env.ADMIN_EMAILS||"").toLowerCase().split(/[,\s]+/).filter(Boolean));
 
 const PENDING_TTL=24*3600;            // unsaved Teacher Mode games are kept for 24 h
 const json=(res,status,body)=>{ res.writeHead(status,{ "content-type":"application/json","cache-control":"no-store",...CORS }); res.end(JSON.stringify(body)); };
@@ -24,7 +26,11 @@ function makeApi(bus){
     return role;
   }
   const routes=[
-    ["GET","/api/config",async()=>({ googleClientId:process.env.GOOGLE_CLIENT_ID||null, emailEnabled:A.emailEnabled() })],
+    ["GET","/api/config",async()=>({ googleClientId:process.env.GOOGLE_CLIENT_ID||null, emailEnabled:A.emailEnabled(), noVerify:A.noVerify() })],
+    // ---- analytics: the hub reports which view was picked; site admins (ADMIN_EMAILS) read the totals
+    ["POST","/api/hit",async(req,b)=>{ if (b.mode) STATS.mode(String(b.mode)); if (b.view!==undefined) STATS.view(b.view,String(b.play||"")); return { ok:true }; }],
+    ["GET","/api/admin/stats",async req=>{ const t=await needTeacher(req); if (!ADMINS().has(String(t.email).toLowerCase())) throw A.httpErr(403,"This page is only for site admins.");
+      return STATS.report(+new URL(req.url,"http://x").searchParams.get("days")||30); }],
     ["GET","/api/schools",async()=>({ schools:C.SCHOOLS })],
     // ---- auth
     ["POST","/api/auth/email",async(req,b)=>A.startEmailLogin(b.email,ipOf(req))],

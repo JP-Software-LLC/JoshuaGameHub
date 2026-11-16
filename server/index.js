@@ -52,7 +52,8 @@ const { CODE_CHARS, codeOK }=require("./codes");
 const { makeApi }=require("./api");
 const AUTH=require("./auth");
 const CD=require("./classdata");
-const DB=require("./db");      // kid-safe room codes
+const DB=require("./db");
+const STATS=require("./stats");      // kid-safe room codes
 const cleanName=s=>String(s||"").replace(/[^\p{L}\p{N} _.\-!?']/gu,"").trim().slice(0,14)||"Player";
 const cleanCode=s=>String(s||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
 
@@ -95,6 +96,7 @@ async function joinRoom(c,code){
   code=cleanCode(code);
   if (!code || !await bus.get(K.room(code))) return c.send(JSON.stringify({ t:"error", code:"noroom", msg:"No room with that code." }));
   await attach(c,code);
+  { const r=await bus.get(K.room(code)); if (r) STATS.add("join:"+(r.kind||"cg")); }
   await bus.publish(K.in(code),{ t:"join", cid:c.id, name:c.name, token:c.token });
 }
 const gameOf=m=>KINDS[m.game]?m.game:"cg";
@@ -174,7 +176,7 @@ wss.on("connection",ws=>{
   if (conns.size>=MAX_CONN){ ws.close(1013,"server full"); return; }
   const c={ id:id(9), ws, name:null, token:null, code:null, alive:true,
     send:s=>{ if (ws.readyState===1) ws.send(s); } };
-  conns.add(c);
+  conns.add(c); STATS.conns(conns.size);
   ws.on("pong",()=>{ c.alive=true; });
   ws.on("message",raw=>{ let m; try{ m=JSON.parse(raw); }catch{ return; } onMessage(c,m).catch(e=>console.error("[msg]",e)); });
   ws.on("close",async ()=>{
@@ -186,5 +188,5 @@ wss.on("connection",ws=>{
 setInterval(()=>{ for (const c of conns){ if (!c.alive){ c.ws.terminate(); continue; } c.alive=false; c.ws.ping(); } },10000);
 
 server.listen(PORT,()=>console.log(`[game] listening on :${PORT} · instance ${INSTANCE.slice(0,8)} · bus=${bus.kind}`));
-const shutdown=()=>{ console.log("[game] shutting down"); for (const r of rooms.values()) r.close(); server.close(); setTimeout(()=>process.exit(0),500); };
+const shutdown=()=>{ console.log("[game] shutting down"); STATS.flush(); for (const r of rooms.values()) r.close(); server.close(); setTimeout(()=>process.exit(0),500); };
 process.on("SIGTERM",shutdown); process.on("SIGINT",shutdown);

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Site Analytics · Joshua Game Hub</title>
+<style>
+  :root{ --bg:#0b0d12; --p1:#141922; --edge:#2a3344; --ink:#eef1f6; --dim:#97a2b3; --acc:#ff6b6b; --acc2:#ffb3b3; --bar:#5b8def; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,sans-serif}
+  main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+  a{color:var(--acc2)}
+  h1{font-size:26px;margin:0 0 4px} h2{font-size:18px;margin:28px 0 10px}
+  .sub{color:var(--dim);margin:0 0 18px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  select{background:var(--p1);color:var(--ink);border:1px solid var(--edge);border-radius:10px;padding:8px 10px;font:inherit}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .tile{background:var(--p1);border:1px solid var(--edge);border-radius:14px;padding:14px}
+  .tile b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+  .tile span{color:var(--dim);font-size:13px}
+  .card{background:var(--p1);border:1px solid var(--edge);border-radius:14px;padding:14px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--edge);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--dim);font-weight:600;font-size:13px}
+  .chart{display:flex;align-items:flex-end;gap:2px;height:140px}
+  .chart div{flex:1;background:var(--bar);border-radius:3px 3px 0 0;min-height:1px}
+  .axis{display:flex;justify-content:space-between;color:var(--dim);font-size:12px;margin-top:6px}
+  .msg{background:var(--p1);border:1px solid var(--edge);border-radius:14px;padding:20px}
+  .note{color:var(--dim);font-size:13px;margin-top:24px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><h1>Site analytics</h1><p class="sub">Daily totals counted on our own server. No cookies, no outside trackers, nothing about any one person.</p></div>
+    <select id="days" aria-label="Time range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
+  </div>
+  <div id="out"><div class="msg">Loading…</div></div>
+  <p class="note">Days are UTC. Numbers update about once a minute. "Peak online" is the most connections at once.</p>
+</main>
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const apiBase=()=>{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; return s?s.replace(/^ws/,"http").replace(/\/$/,""):""; };
+const token=()=>{ try{ return localStorage.getItem("jgh_auth"); }catch{ return null; } };
+const GAMES={ cg:"Clean Getaway", math:"Math Race", arrows:"Arrow Blitz", splat:"SPLAT!", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
+const PAGES={ "/":"Hub (home page)", "/teacher/":"Teacher dashboard", "/admin/":"This page" };
+const n=v=>(v||0).toLocaleString();
+
+async function load(){
+  const days=$("days").value;
+  if (!token()) return $("out").innerHTML=`<div class="msg">Please <a href="/teacher/">sign in on the teacher page</a> with an admin email first, then come back here.</div>`;
+  let d;
+  try{
+    const r=await fetch(apiBase()+"/api/admin/stats?days="+days,{ headers:{ authorization:"Bearer "+token() } });
+    d=await r.json().catch(()=>({}));
+    if (!r.ok) return $("out").innerHTML=`<div class="msg">${esc(d.error||"Something went wrong.")}${r.status===401?` <a href="/teacher/">Sign in</a>`:""}</div>`;
+  }catch{ return $("out").innerHTML=`<div class="msg">Couldn't reach the server.</div>`; }
+  render(d);
+}
+function render(d){
+  const sum={}, byDay={}, peak={};
+  for (const r of d.rows){
+    sum[r.metric]=(sum[r.metric]||0)+r.n;
+    if (r.metric==="peak") peak[r.day]=r.n;
+    if (r.metric.startsWith("view:")) byDay[r.day]=(byDay[r.day]||0)+r.n;
+  }
+  const tot=p=>Object.entries(sum).filter(([k])=>k.startsWith(p)).reduce((a,[,v])=>a+v,0);
+  // every day in range, oldest first
+  const dayList=[]; for (let i=d.days-1;i>=0;i--){ const t=new Date(Date.now()-i*864e5); dayList.push(t.toISOString().slice(0,10)); }
+  const max=Math.max(1,...dayList.map(x=>byDay[x]||0));
+  const games=Object.keys(GAMES).map(k=>({ k, rooms:(sum[`room:${k}:public`]||0)+(sum[`room:${k}:private`]||0), teach:sum["teach:"+k]||0, play:sum["play:"+k]||0, join:sum["join:"+k]||0 }))
+    .sort((a,b)=>b.join-a.join||b.play-a.play);
+  const pages=Object.entries(sum).filter(([k])=>k.startsWith("view:")).map(([k,v])=>{ const [p,q]=k.slice(5).split("?"); return { p, q, v }; }).sort((a,b)=>b.v-a.v);
+  const label=p=>{ if (PAGES[p]) return PAGES[p]; const slug=p.replace(/\//g,""); return slug.split("-").map(w=>w[0].toUpperCase()+w.slice(1)).join(" "); };
+  const T=d.totals||{};
+  $("out").innerHTML=`
+  <div class="tiles">
+    <div class="tile"><b>${n(tot("view:"))}</b><span>Page views</span></div>
+    <div class="tile"><b>${n(tot("play:"))}</b><span>Games started</span></div>
+    <div class="tile"><b>${n(tot("join:"))}</b><span>Players joined a room</span></div>
+    <div class="tile"><b>${n(tot("teach:"))}</b><span>Teacher Mode games</span></div>
+    <div class="tile"><b>${n(Math.max(0,...Object.values(peak)))}</b><span>Peak online</span></div>
+  </div>
+  <h2>Page views per day</h2>
+  <div class="card"><div class="chart">${dayList.map(x=>`<div style="height:${(byDay[x]||0)/max*100}%" title="${x}: ${n(byDay[x])} views"></div>`).join("")}</div>
+    <div class="axis"><span>${dayList[0]}</span><span>busiest day: ${n(max===1&&!Object.keys(byDay).length?0:max)}</span><span>${dayList[dayList.length-1]}</span></div></div>
+  <h2>Who's playing? (hub button presses)</h2>
+  <div class="tiles">
+    <div class="tile"><b>${n(sum["mode:student"])}</b><span>Student</span></div>
+    <div class="tile"><b>${n(sum["mode:teacher"])}</b><span>Teacher</span></div>
+    <div class="tile"><b>${n(sum["mode:guest"])}</b><span>Guest</span></div>
+  </div>
+  <h2>Games</h2>
+  <div class="card"><table><tr><th>Game</th><th>Rooms opened</th><th>Teacher Mode</th><th>Games started</th><th>Players joined</th></tr>
+    ${games.map(g=>`<tr><td>${esc(GAMES[g.k])}</td><td>${n(g.rooms)}</td><td>${n(g.teach)}</td><td>${n(g.play)}</td><td>${n(g.join)}</td></tr>`).join("")}</table></div>
+  <h2>Pages</h2>
+  <div class="card"><table><tr><th>Page</th><th>Opened as</th><th>Views</th></tr>
+    ${pages.length?pages.map(x=>`<tr><td>${esc(label(x.p))}</td><td>${esc(x.q||"—")}</td><td>${n(x.v)}</td></tr>`).join(""):`<tr><td colspan="3">No views yet.</td></tr>`}</table></div>
+  <h2>Teacher accounts (all time)</h2>
+  <div class="tiles">
+    <div class="tile"><b>${n(T.teachers)}</b><span>Teachers (${n(T.new_teachers)} new in range)</span></div>
+    <div class="tile"><b>${n(T.classes)}</b><span>Classes</span></div>
+    <div class="tile"><b>${n(T.students)}</b><span>Students in classes</span></div>
+    <div class="tile"><b>${n(T.saved_games)}</b><span>Saved class games</span></div>
+  </div>`;
+}
+$("days").addEventListener("change",load);
+load();
+</script>
+</body>
+</html>

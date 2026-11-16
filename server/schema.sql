@@ -93,3 +93,11 @@ CREATE TABLE IF NOT EXISTS session_results (
   PRIMARY KEY (session_id, student_id)
 );
 CREATE INDEX IF NOT EXISTS session_results_student ON session_results(student_id);
+
+-- site analytics: daily totals only (see server/stats.js). Nothing here identifies a person.
+CREATE TABLE IF NOT EXISTS daily_stats (
+  day     DATE NOT NULL,
+  metric  TEXT NOT NULL,
+  n       BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, metric)
+);

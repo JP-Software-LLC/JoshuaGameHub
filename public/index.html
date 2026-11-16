@@ -904,10 +904,14 @@ const VIEWS=["home","student","teacher","guest"];
 const ls={ get(k){ try{ return localStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} } };
 const ss={ get(k){ try{ return sessionStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ sessionStorage.setItem(k,v); }catch{} } };
 function profile(){ try{ const p=JSON.parse(ls.get("jgh_student")||"null"); return p&&p.first&&p.last&&p.nick?p:null; }catch{ return null; } }
+// anonymous count of which view was picked (no name, no id): server/stats.js
+function hit(mode,view){ try{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||"", base=s?s.replace(/^ws/,"http").replace(/\/$/,""):"";
+  fetch(base+"/api/hit",{ method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(view?{ view }:{ mode }), keepalive:true }).catch(()=>{}); }catch{} }
+hit(null,"/");
 function setView(v,push){
   if (!VIEWS.includes(v)) v="home";
   VIEWS.forEach(x=>document.body.classList.toggle("v-"+x,x===v));
-  if (v!=="home"){ ls.set("jgh_mode",v); ss.set("jgh_view",v); } else ss.set("jgh_view","home");
+  if (v!=="home"){ if (push) hit(v); ls.set("jgh_mode",v); ss.set("jgh_view",v); } else ss.set("jgh_view","home");
   if (push && location.hash!=="#"+v) history.pushState(null,"","#"+v);
   if (v==="student") studentView();
   scrollTo(0,0);

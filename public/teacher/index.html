@@ -153,13 +153,14 @@ function renderSignIn(error){
     <h1>🍎 Teacher sign in</h1><p class="sub">${why}<br><b style="color:var(--ink)">Free. No password needed.</b></p>
     <div id="gbtn"></div>${CFG.googleClientId?`<div class="or">or use your email</div>`:""}
     <label for="email">School email</label><input id="email" type="email" autocomplete="email" placeholder="you@school.org">
-    <button class="btn" id="send" style="width:100%;margin-top:12px">Email me a sign-in link</button>
+    <button class="btn" id="send" style="width:100%;margin-top:12px">${CFG.noVerify?"Sign in":"Email me a sign-in link"}</button>
     <p class="msg ${error?"err":""}" id="msg">${esc(error||"")}</p>
     <p class="muted" style="margin:14px 0 0">Students never need an account. They just type a first name, last initial and nickname when they join your game.</p></div>`;
   $("send").onclick=async()=>{
     const email=$("email").value.trim(); if (!email) return;
     $("send").disabled=true; $("msg").className="msg"; $("msg").textContent="Sending…";
     try{ const r=await api("/api/auth/email","POST",{ email });
+      if (r.token){ store.set("jgh_auth",r.token); return route(); }
       if (r.devLink){ $("msg").className="msg ok"; $("msg").innerHTML=`Dev mode: <a href="${esc(r.devLink)}">click here to sign in</a>`; }
       else { $("msg").className="msg ok"; $("msg").textContent=r.delivered?"Check your inbox for a sign-in link (it works for 15 minutes).":"Sign-in emails aren't set up yet on this server. Ask the site owner."; } }
     catch(e){ $("msg").className="msg err"; $("msg").textContent=e.message; }

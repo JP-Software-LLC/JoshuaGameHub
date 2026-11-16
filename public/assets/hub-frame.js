@@ -6,6 +6,12 @@
    - While playing, only the hub-styled exit button shows, so nothing covers the game.
    - data-always on the script tag keeps the bar visible (teacher dashboard). */
 (function(){
+  // anonymous page-view count (no name, no id, no cookie): server/stats.js. Hub previews are not counted.
+  if (!/[?&]demo=1/.test(location.search)) addEventListener("load",()=>{ try{
+    const s=(window.CG_CONFIG&&CG_CONFIG.server)||"", base=s?s.replace(/^ws/,"http").replace(/\/$/,""):"";
+    fetch(base+"/api/hit",{ method:"POST", headers:{ "content-type":"application/json" }, keepalive:true,
+      body:JSON.stringify({ view:location.pathname, play:new URLSearchParams(location.search).get("play")||"" }) }).catch(()=>{});
+  }catch{} });
   // ?demo=1: the hub's live bot-match preview. No bar, no buttons, no input: the game page starts a
   // bots-only match itself (each game checks the same flag) and we just hide everything that isn't the game.
   if (/[?&]demo=1/.test(location.search)){

@@ -29,12 +29,15 @@ async function sendEmail(to,subject,text,html){
   if (!r.ok){ console.error("[mail] send failed",r.status,await r.text().catch(()=>"" )); throw new Error("Could not send email right now."); }
   return { delivered:true };
 }
+const noVerify=()=>String(process.env.EMAIL_VERIFY||"").toLowerCase()==="off";
 const emailEnabled=()=>!!(process.env.RESEND_API_KEY&&process.env.MAIL_FROM);
 
 async function startEmailLogin(email,ip){
   email=cleanEmail(email);
   if (!validEmail(email)) throw httpErr(400,"Please enter a valid email address.");
   if (limited("e:"+email,5,15*60e3)||limited("i:"+ip,20,15*60e3)) throw httpErr(429,"Too many sign-in emails. Please wait a few minutes.");
+  // EMAIL_VERIFY=off (temporary, until sign-in emails are set up): typing an email signs straight in
+  if (noVerify()){ const t=await db.one(`insert into teachers(email) values($1) on conflict(email) do update set last_login_at=now() returning *`,[email]); return newSession(t); }
   const token=newToken();
   await db.q("insert into login_links(token_hash,email,expires_at) values($1,$2,now()+($3||' minutes')::interval)",[hash(token),email,String(LINK_MIN)]);
   const link=`${APP_URL()}/teacher/?login=${token}`;
@@ -76,4 +79,4 @@ const logout=token=>db.q("delete from auth_sessions where token_hash=$1",[hash(t
 const publicTeacher=t=>({ id:+t.id, email:t.email, displayName:t.display_name||"", schoolId:t.school_id||null, google:!!t.google_sub });
 function httpErr(status,msg){ const e=new Error(msg); e.status=status; return e; }
 
-module.exports={ hash, newToken, cleanEmail, validEmail, limited, sendEmail, emailEnabled, startEmailLogin, verifyEmailLogin, googleLogin, teacherFromToken, logout, publicTeacher, httpErr, APP_URL };
+module.exports={ noVerify, hash, newToken, cleanEmail, validEmail, limited, sendEmail, emailEnabled, startEmailLogin, verifyEmailLogin, googleLogin, teacherFromToken, logout, publicTeacher, httpErr, APP_URL };

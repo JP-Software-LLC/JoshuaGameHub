@@ -5,6 +5,7 @@
 "use strict";
 const crypto=require("crypto");
 const CD=require("./classdata");
+const STATS=require("./stats");
 
 const ROOM_TTL=60;              // registry key expiry, refreshed while the room lives
 const EMPTY_GRACE_MS=45000;     // keep a mid-game room with nobody connected this long (reconnects)
@@ -25,6 +26,7 @@ class RoomBase {
   }
   // subclasses implement: handle(msg), humanCount(), connectedCount(), canReconnect(), cleanup()
   async open(){
+    STATS.add(`room:${this.kind}:${this.isPublic?"public":"private"}`);
     await this.bus.subscribe(K.in(this.code), this.onIn);
     await this.register();
     this.keepAlive=setInterval(()=>{ this.register(); this.checkEmpty(); }, 5000);
@@ -52,6 +54,8 @@ class RoomBase {
   }
   async register(){
     if (this.closed) return;
+    if (this.state==="playing" && this.statState!=="playing") STATS.add("play:"+this.kind);
+    this.statState=this.state;
     const humans=this.humanCount();
     await this.bus.set(K.room(this.code),{ owner:this.instanceId, kind:this.kind, pub:this.isPublic, state:this.state, humans, max:this.max }, ROOM_TTL);
     if (this.isPublic && this.state==="lobby" && humans<this.max) await this.bus.sadd(K.open(this.kind),this.code);
@@ -61,6 +65,7 @@ class RoomBase {
   // The teacher is left out of the game, the rankings and the player counts, and auto-start is off.
   makeTeacher(p,acct){
     if (!p || p.pid!==this.host || this.state!=="lobby" || this.isPublic) return;
+    STATS.add("teach:"+this.kind);
     this.teacher=p.pid; clearTimeout(this.autoTimer); this.autoAt=0;
     this.teacherAcct={ teacherId:acct&&acct.teacherId||null, classId:acct&&acct.classId||null };   // signed-in teacher + class, if any
     this.startedAt=Date.now();
