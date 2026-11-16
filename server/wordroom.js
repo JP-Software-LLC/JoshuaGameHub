@@ -34,6 +34,11 @@ class WordRoom extends RoomBase {
       case "teacher": this.makeTeacher(p,msg.acct); this.recolor(); return;
       case "iam": return this.handleIam(p,msg);
       case "claim": return this.claim(p,msg.a);
+      case "words":                                                               // teacher's own word list (lobby only)
+        if (!p || p.pid!==this.teacher || this.state!=="lobby") return;
+        { const c=WORDS.cleanList(msg.text,msg.title); this.custom=c.words.length>=3?{ title:c.title, words:c.words }:null;
+          this.send({ t:"wordsOk", n:this.custom?c.words.length:0, title:c.title, skipped:c.skipped },p.cid); }
+        return;
       case "leave": case "drop":
         if (!p) return;
         if (this.state==="playing" && msg.t==="drop") p.connected=false;
@@ -78,7 +83,7 @@ class WordRoom extends RoomBase {
     if (this.state!=="lobby" || this.connectedCount()-(this.teacher?1:0)<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
     this.state="playing"; this.register(); this.lobby();
-    this.game=new WORDS.Game([...this.players.values()].filter(p=>p.pid!==this.teacher).map(p=>({ id:p.pid, name:p.name })));
+    this.game=new WORDS.Game([...this.players.values()].filter(p=>p.pid!==this.teacher).map(p=>({ id:p.pid, name:p.name })),0,this.teacher?this.custom:null);
     this.send(this.startMsg(COUNTDOWN_MS));
     this.goAt=Date.now()+COUNTDOWN_MS;
     this.goTimer=setTimeout(()=>{ this.timer=setInterval(()=>this.tick(),250); },COUNTDOWN_MS);

@@ -2,7 +2,7 @@
 // One giant grid for everyone. The first player to drag across a word claims it in their colour.
 (function(root,factory){ if (typeof module==="object"&&module.exports) module.exports=factory(); else root.WORDS=factory(); })(this,function(){
 "use strict";
-const T={ cols:30, rows:18, words:28, time:360, minLen:3 };   // 540 letters · 6-minute limit
+const T={ cols:30, rows:18, words:28, time:360, minLen:3, maxLen:15, maxCustom:40 };   // 540 letters · 6-minute limit
 
 // kid-friendly themed word banks (4–9 letters so they fit and are easy to read)
 const THEMES={
@@ -29,14 +29,16 @@ function color(i){ i=Math.max(0,i|0); const lap=Math.floor(i/12), h=(vdc(i)*360+
 // dark text on light colours (yellows, greens, cyans and the light lap), white on the rest
 function ink(i){ i=Math.max(0,i|0); const lap=Math.floor(i/12)%4, h=(vdc(i)*360+8)%360; return lap===2||(lap!==1&&h>=40&&h<=200)?"#1d2033":"#fff"; }
 
-function makeBoard(seed){
+// custom: optional teacher word list { title, words:[...] } (already cleaned with cleanList)
+function makeBoard(seed,custom){
   const R=rng(seed), C=T.cols, H=T.rows, g=new Array(C*H).fill(""), word=new Array(C*H).fill(false);
-  const names=Object.keys(THEMES), theme=names[R()*names.length|0];
-  const pool=THEMES[theme].slice(); for (let i=pool.length-1;i>0;i--){ const j=R()*(i+1)|0; [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const names=Object.keys(THEMES), theme=custom&&custom.words.length?(custom.title||"Our words"):names[R()*names.length|0];
+  const pool=custom&&custom.words.length?custom.words.slice():THEMES[theme].slice();
+  const want=custom&&custom.words.length?Math.min(T.maxCustom,custom.words.length):T.words; for (let i=pool.length-1;i>0;i--){ const j=R()*(i+1)|0; [pool[i],pool[j]]=[pool[j],pool[i]]; }
   pool.sort((a,b)=>b.length-a.length);                                   // long words first: they're hardest to fit
   const words=[];
   for (const w of pool){
-    if (words.length>=T.words) break;
+    if (words.length>=want) break;
     for (let tries=0;tries<300;tries++){
       const [dr,dc]=DIRS[R()*(tries<200?8:4)|0];                          // a few backwards words, mostly forwards
       const r0=R()*H|0, c0=R()*C|0, r1=r0+dr*(w.length-1), c1=c0+dc*(w.length-1);
@@ -80,10 +82,20 @@ function match(board,found,a){
   return board.words.findIndex((w,i)=>{ w=w.w||w; return !found[i]&&(w===s||w===rev); });            // words may be {w,a} (server) or plain strings (client)
 }
 
+// a teacher's pasted list -> clean unique words (letters only, 3–15 long, at most 40), plus what was skipped
+function cleanList(text,title){
+  const words=[], skipped=[];
+  for (const raw of String(text||"").split(/[\n,;]+/)){
+    const w=raw.toUpperCase().replace(/[^A-Z]/g,""); if (!raw.trim()) continue;
+    if (w.length<T.minLen||w.length>T.maxLen){ skipped.push(raw.trim().slice(0,20)); continue; }
+    if (!words.includes(w) && words.length<T.maxCustom) words.push(w);
+  }
+  return { title:String(title||"").replace(/[^\p{L}\p{N} '&!?.,-]/gu,"").trim().slice(0,30), words, skipped };
+}
 class Game {
-  constructor(players,seed){
+  constructor(players,seed,custom){
     this.seed=seed||((Math.random()*2**31)|0)+1;
-    this.board=makeBoard(this.seed);
+    this.board=makeBoard(this.seed,custom);
     this.found=this.board.words.map(()=>null);                 // index -> { id, a, t }
     this.players=players.map(p=>({ id:p.id, name:p.name, bot:!!p.bot, score:0, words:0, last:0, tries:0, next:0, lazy:p.lazy||1 }));
     this.time=0; this.phase="play"; this.events=[];
@@ -120,5 +132,5 @@ class Game {
       .map(p=>({ id:p.id, name:p.name, score:p.score, words:p.words }));
   }
 }
-return { T, THEMES, BLOCK, DIRS, color, ink, makeBoard, lineCells, readLine, match, Game };
+return { T, THEMES, BLOCK, DIRS, color, ink, cleanList, makeBoard, lineCells, readLine, match, Game };
 });

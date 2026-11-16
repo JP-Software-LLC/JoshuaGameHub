@@ -131,6 +131,7 @@ async function onMessage(c,m){
     case "finish": return toRoom(c,{ t:"finish", time:+m.time, extra:m.extra|0, log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "fire":   return toRoom(c,{ t:"fire" });
+    case "words":  return toRoom(c,{ t:"words", text:String(m.text||"").slice(0,1200), title:String(m.title||"").slice(0,40) });
     case "claim":  return toRoom(c,{ t:"claim", a:Array.isArray(m.a)?m.a.slice(0,4).map(v=>v|0):[] });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));

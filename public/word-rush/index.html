@@ -157,6 +157,12 @@
   <div class="count" id="lCount">1 / 40 players</div>
   <div class="grid" id="lGrid"></div>
   <p class="note" id="lNote"></p>
+  <div id="custom" hidden style="display:flex;flex-direction:column;gap:8px;text-align:left">
+    <div class="lbl">Your own words <span style="text-transform:none;letter-spacing:0;font-weight:600">(optional · leave empty for a random theme)</span></div>
+    <input class="f" id="cTitle" maxlength="30" placeholder="Title, e.g. Week 5 spelling" autocomplete="off" style="font-size:16px;padding:9px 14px">
+    <textarea class="f" id="cWords" rows="5" placeholder="One word per line, or separated by commas. 3–15 letters, up to 40 words." style="font-size:16px;padding:10px 14px;resize:vertical;font-family:inherit;text-transform:uppercase"></textarea>
+    <div style="display:flex;gap:10px;align-items:center"><button class="btn blue" id="bWords" type="button" style="flex:0 0 auto;padding:10px 16px;font-size:16px">Use these words</button><span id="cNote" style="font-weight:600;color:var(--ink2);font-size:14px"></span></div>
+  </div>
   <div class="row"><button class="btn" id="bStart">Start!</button><button class="btn alt" id="bLeave" style="flex:0 0 auto">Leave</button></div>
 </div></section>
 
@@ -424,6 +430,7 @@ function onNet(m){
     case "start": beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online", teacher:m.teacher, board:m.board, found:m.found, left:m.left }); break;
     case "f": if (G.mode==="online" && G.board){ onFound(m.i,m.pid,m.a,m.pts); if (G.pending && m.pid!==G.me && sameLine(G.pending.a,m.a)){ G.pending=null; toast(`${esc(nameOf(m.pid))} got there first!`); if (document.body.classList.contains("slim")) flash("Too slow!"); } } break;
     case "miss": if (G.mode==="online"){ G.misses.push({ a:m.a, at:performance.now() }); G.pending=null; } break;
+    case "wordsOk": $("cNote").textContent=m.n?`✓ ${m.n} words ready${m.title?" · "+m.title:""}${m.skipped.length?` · skipped ${m.skipped.length} (need 3–15 letters): ${m.skipped.slice(0,4).join(", ")}`:""}`:(m.skipped.length?"Need at least 3 words of 3–15 letters. Using a random theme.":"Using a random theme."); break;
     case "results": if (G.mode==="online") showResults(m.rank,m.total); break;
     case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
   }
@@ -453,14 +460,19 @@ function teacherLobby(L){
   $("lCount").textContent=`${kids.length} / ${L.max-1} students`;
   $("lKind").textContent="🍎 Teacher mode · private game";
   $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
-  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start, then put the board and word bank on the big screen. Students' screens show only the puzzle, so they look up at yours for the words.":`🍎 ${t?t.name:"Your teacher"} will start the game. The word bank will be on the big screen!`;
+  $("custom").hidden=!iTeach; $("custom").style.display=iTeach?"flex":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play: press Start, then put the word bank on the big screen. Students have the puzzle on their own screens and look up at yours for the words.":`🍎 ${t?t.name:"Your teacher"} will start the game. The word bank will be on the big screen!`;
 }
+// teacher's own word list: sent to the room, remembered on this computer for next time
+$("cWords").value=store.get("wr_words")||""; $("cTitle").value=store.get("wr_title")||"";
+function sendWords(){ store.set("wr_words",$("cWords").value); store.set("wr_title",$("cTitle").value); Net.send({ t:"words", text:$("cWords").value, title:$("cTitle").value }); }
+$("bWords").onclick=sendWords;
 function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:GAME });
 $("bPrivate").onclick=()=>goOnline({ t:"create", game:GAME });
 $("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Party codes are 4 letters."); goOnline({ t:"join", code:c }); };
 $("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
-$("bStart").onclick=()=>Net.send({ t:"start" });
+$("bStart").onclick=()=>{ if (Net.lobby&&Net.lobby.teacher===Net.pid) sendWords(); Net.send({ t:"start" }); };
 $("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
 $("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:GAME }); });
 

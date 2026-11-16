@@ -18,7 +18,7 @@ function client(name){
   c.ready=new Promise(r=>ws.on("open",()=>{ c.send({ t:"hello", name }); r(); }));
   return c;
 }
-async function room(kind){
+async function room(kind,before){
   const T=client("Teacher"); await T.ready; await T.wait(m=>m.t==="welcome"); T.send({ t:"create", game:kind });
   const j=await T.wait(m=>m.t==="joined"); T.pid=j.pid; T.send({ t:"teacher" });
   const kids=[];
@@ -30,6 +30,7 @@ async function room(kind){
   if (L.autoIn) fail(kind+": auto-start should be off in Teacher Mode");
   kids[0].send({ t:"start" }); await sleep(250);
   if (T.msgs.some(m=>["round","go","start"].includes(m.t)&&m.t!=="lobby")) fail(kind+": a student was able to start");
+  if (before) await before(T,kids);
   T.send({ t:"start" });
   return { T, kids, code:j.code };
 }
@@ -66,8 +67,12 @@ srv.stdout.on("data",async d=>{
       const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)||!st.seed) fail("sky: teacher listed as a player / no seed");
       const s=await T.wait(m=>m.t==="s"&&m.s.p); if (s.s.p.length!==2||s.s.p.some(q=>q[0]===T.pid)) fail("sky: teacher is flying");
       close([T,...kids]); }
-    { const { T, kids }=await room("words");
-      const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)||!st.board||st.board.words.length<20) fail("words: teacher listed as a player / no board");
+    { const { T, kids }=await room("words",async (T,kids)=>{
+        kids[0].send({ t:"words", text:"cat,dog" });                                     // students can't set the list
+        T.send({ t:"words", title:"Week 5", text:"photosynthesis\nchlorophyll, sunlight;  oxygen\nx\nwaytoolongwordforthegrid\nOXYGEN" });
+        const ok=await T.wait(m=>m.t==="wordsOk"); if (ok.n!==4||ok.skipped.length!==2) fail("words: list not cleaned "+JSON.stringify(ok));
+        if (kids[0].msgs.some(m=>m.t==="wordsOk")) fail("words: student set the list"); });
+      const st=await T.wait(m=>m.t==="start"); if (st.teacher!==T.pid||st.players.some(p=>p.pid===T.pid)||!st.board||st.board.words.length!==4||st.board.theme!=="Week 5") fail("words: teacher listed as a player / custom list not used");
       if (st.players.map(p=>p.color).sort().join()!=="0,1") fail("words: students should get the first two colours");
       const W=require("../shared/wordsearch.js");   // claim a real word: find it in the sent grid
       const B={ ...st.board }, word=B.words[0]; let hit=null;
