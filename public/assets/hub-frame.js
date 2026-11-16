@@ -6,6 +6,16 @@
    - While playing, only the hub-styled exit button shows, so nothing covers the game.
    - data-always on the script tag keeps the bar visible (teacher dashboard). */
 (function(){
+  // ?demo=1: the hub's live bot-match preview. No bar, no buttons, no input: the game page starts a
+  // bots-only match itself (each game checks the same flag) and we just hide everything that isn't the game.
+  if (/[?&]demo=1/.test(location.search)){
+    const st=document.createElement("style");
+    st.textContent=`#exitBtn,#hint,#touchHint,.tb,#stick,#throwBtn,#legs,.legs,#tL,#tR,#tF,#pad,#quiz,#confetti,#jgh-bar,#jgh-menu{display:none!important}
+      html,body{pointer-events:none!important;cursor:default!important}
+      #menu,#lobby,#sMenu{visibility:hidden!important}`;
+    document.head.appendChild(st);
+    return;
+  }
   const me=document.currentScript, ALWAYS=me&&me.hasAttribute("data-always"), PAD=me&&me.hasAttribute("data-pad");
   const GAMES=[
     ["/clean-getaway/","Clean Getaway","🏦"],["/arrow-blitz/","Arrow Blitz","🏹"],["/math-race/","Math Race","➗"],

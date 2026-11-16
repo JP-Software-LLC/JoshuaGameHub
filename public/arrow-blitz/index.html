@@ -181,6 +181,7 @@
 <script src="../assets/classkit.js"></script>
 <script>
 "use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
@@ -407,6 +408,10 @@ $("exitBtn").onclick=exitGame;
 addEventListener("DOMContentLoaded",()=>{ const p=new URLSearchParams(location.search), q=p.get("play"), j=p.get("join"); if (!q&&!j) return; history.replaceState(null,"",location.pathname);
   if (j){ $("codeIn").value=j.toUpperCase(); $("bJoin").click(); }
   else if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="practice") $("bPractice").click(); });
+
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bPractice").click(); let idle=0;
+  setInterval(()=>{ if (R.active){ idle=0; const want=R.seq[R.pos]; press(Math.random()<0.05?DIRS[(DIRS.indexOf(want)+1)%4]:want); }
+    else if (++idle>22){ idle=0; $("bPractice").click(); } },260); });
 </script>
 </body>
 </html>

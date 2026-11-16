@@ -109,8 +109,8 @@
 <section class="screen on" id="menu"><div class="card">
   <h1 class="logo">SKY <span>CLIMB</span><small>FLAP · BUMP · REACH THE TOP</small></h1>
   <div class="how">
-    <div><b>🪽</b>Space to flap, ← → to steer. Land on ledges to rest</div>
-    <div><b>🐝</b>Dodge the buzzers and stone blocks on the way up</div>
+    <div><b>🪽</b>Space to flap, ← → to steer. Find the gaps in the stone floors</div>
+    <div><b>🐝</b>Dodge the buzzers and floating stones on the way up</div>
     <div><b>🤸</b>Bump a friend from below to push them up. Land on them and they drop!</div>
   </div>
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
@@ -145,6 +145,7 @@
 <script src="../sky.js"></script>
 <script>
 "use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
@@ -333,7 +334,7 @@ function handleEvents(ev){
     if (e[0]==="boost"){ if (e[1]===G.me||e[2]===G.me) G.adopt=true; const p=posOf(e[1]); if (p && e[1]===G.me) G.texts.push({ x:p[0], y:p[1]+2, t:"BOOST!", col:"#7cf29c", life:1 }); }
     if (e[0]==="squash"){ if (e[1]===G.me||e[2]===G.me) G.adopt=true; const p=posOf(e[1]); if (p && e[1]===G.me) G.texts.push({ x:p[0], y:p[1]+2, t:"BONK!", col:"#ff6f91", life:1 }); }
     if (e[0]==="boing"){ if (e[1]===G.me||e[2]===G.me) G.adopt=true; }
-    if (e[0]==="fin"){ G.finished.set(e[1],e[2]); if (e[1]===G.me){ $("done").classList.add("on"); $("dNote").textContent=`${fmt1(e[2])} · `+(G.mode==="solo"?"nice flying!":"waiting for everyone to reach the top…"); flash("TOP!"); confetti(); } }
+    if (e[0]==="fin"){ G.finished.set(e[1],e[2]); if (e[1]===G.me){ $("done").classList.add("on"); $("dNote").textContent=`${fmt1(e[2])} · `+(G.mode==="solo"?"nice flying!":"waiting for everyone to reach the top…"); flash("TOP!"); confetti(); if (G.mode==="solo") setTimeout(soloResults,3500); } }
     if (e[0]==="over" && G.mode==="solo") setTimeout(soloResults,1500);
   }
 }
@@ -354,7 +355,7 @@ $("bSolo").onclick=()=>{
   const names=["Tweety","Puff","Zoom","Kiwi","Sunny"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
   const seed=(Math.random()*2**31)|0;
-  G.local=new SKY.Game([{ id:1, name }, ...names.map((n,i)=>({ id:i+2, name:n, bot:true, lazy:0.35+i*0.15 }))],seed);
+  G.local=new SKY.Game([{ id:1, name, bot:DEMO }, ...names.map((n,i)=>({ id:i+2, name:n, bot:true, lazy:0.05+i*0.07 }))],seed);
   beginGame({ players, me:1, inMs:3000, mode:"solo", seed });
 };
 function soloResults(){
@@ -472,6 +473,8 @@ addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.s
   if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
 addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
   $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bSolo").click(); let rs=0; setInterval(()=>{ if (screen==="results"){ if (++rs>5){ rs=0; $("bSolo").click(); } } else rs=0; },1000); });
 </script>
 </body>
 </html>

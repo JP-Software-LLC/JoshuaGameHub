@@ -165,6 +165,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 "use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
@@ -398,7 +399,7 @@ function raceTime(now){ return (now-G.startAt)/1000; }
 function leaderD(){ let L=G.car.d; for (const o of G.others.values()) L=Math.max(L,o.d); for (const b of G.bots) L=Math.max(L,b.car.d); return L; }
 function simStep(){
   const lane=Math.sign(G.input.lane); G.input.lane-=lane;
-  const ev=RUSH.step(G.car,G.track,DT,{ lane, brake:G.input.brake },leaderD());
+  const ev=RUSH.step(G.car,G.track,DT,DEMO&&G.demoBot?RUSH.botInput(G.demoBot,G.car,G.track,DT):{ lane, brake:G.input.brake },leaderD());
   for (const b of G.bots) if (!b.car.done) RUSH.step(b.car,G.track,DT,RUSH.botInput(b.bot,b.car,G.track,DT),leaderD());
   if (ev==="rear"){ popMsg("BUMP!","#ff5d5d"); G.shake=0.5; $("hitFlash").style.opacity=1; setTimeout(()=>$("hitFlash").style.opacity=0,120); }
   else if (ev==="side"){ popMsg("SCRAPE!","#ffb020"); G.shake=0.25; }
@@ -507,6 +508,7 @@ $("bSolo").onclick=()=>{
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
   beginRace({ seed, dist:T.dist, players, me:1, inMs:3000, mode:"solo" });
   G.bots=names.map((n,i)=>({ pid:i+2, bot:RUSH.makeBot(seed+i*101,0.25+0.6*i/(names.length-1)), car:RUSH.newCar() }));
+  G.demoBot=DEMO?RUSH.makeBot(seed+7,0.7):null;
 };
 function soloResults(){
   if (G.resultShown || screen!=="race") return;
@@ -668,6 +670,8 @@ addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.s
 // hub "Have a code?" deep link: ?join=CODE
 addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
   $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bSolo").click(); let rs=0; setInterval(()=>{ if (screen==="results"){ if (++rs>5){ rs=0; $("bSolo").click(); } } else rs=0; },1000); });
 </script>
 </body>
 </html>

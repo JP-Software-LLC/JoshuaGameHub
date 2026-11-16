@@ -168,6 +168,7 @@
 <script src="../memory.js"></script>
 <script>
 "use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
@@ -268,6 +269,7 @@ let last=performance.now();
     if (G.mode==="solo" && G.local && now>=G.soloAt){
       if (G.local.phase==="idle") G.local.start();
       G.local.players.forEach((p,i)=>{ if (G.bots[i]) MEMORY.botThink(G.local,p,G.bots[i],dt); });
+    if (DEMO){ const m=G.local.players[0]; if (m && (m.x!==G.x||m.y!==G.y)){ G.x=m.x; G.y=m.y; markMe(); showMine(); } }
       G.local.step(dt);
       for (const e of G.local.drainEvents()){ if (e.type==="over"){ setTimeout(()=>showFinal(G.local.ranking().map(r=>({ ...r, pid:r.id, color:G.players.get(r.id).color }))),600); } else onEvent(e); }
     }
@@ -294,7 +296,7 @@ $("bSolo").onclick=()=>{
   const names=["Pip","Luna","Rex","Mochi","Ziggy","Bea","Nova"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
   G.local=new MEMORY.Game(players.map(p=>({ id:p.pid, name:p.name })));
-  G.bots=G.local.players.map((p,i)=>i?MEMORY.makeBot(Date.now()+i,0.45+0.45*(i-1)/6):null);
+  G.bots=G.local.players.map((p,i)=>i||DEMO?MEMORY.makeBot(Date.now()+i,i?0.45+0.45*(i-1)/6:0.85):null);
   beginGame({ players, me:1, inMs:3000, mode:"solo" }); G.soloAt=performance.now()+3000;
   const meP=G.local.players[0]; G.x=meP.x; G.y=meP.y; markMe(); showMine();
 };
@@ -412,6 +414,8 @@ $("exitBtn").onclick=exitGame;
 addEventListener("DOMContentLoaded",()=>{ const p=new URLSearchParams(location.search), q=p.get("play"), j=p.get("join"); if (!q&&!j) return; history.replaceState(null,"",location.pathname);
   if (j){ $("codeIn").value=j.toUpperCase(); $("bJoin").click(); }
   else if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
+
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bSolo").click(); let rs=0; setInterval(()=>{ if (screen==="results"){ if (++rs>5){ rs=0; $("bSolo").click(); } } else rs=0; },1000); });
 </script>
 </body>
 </html>

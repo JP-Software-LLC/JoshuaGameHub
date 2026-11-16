@@ -152,6 +152,7 @@
 <script src="../typing.js"></script>
 <script>
 "use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
@@ -514,6 +515,10 @@ addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.s
   if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
 addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
   $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bSolo").click(); let rs=0;
+  setInterval(()=>{ if (screen==="results"){ if (++rs>25){ rs=0; $("bSolo").click(); } return; } rs=0;
+    if (!racing()) return; const w=curWord(), v=$("typeIn").value; $("typeIn").value=v.length<w.length?w.slice(0,v.length+1):w; $("typeIn").dispatchEvent(new Event("input")); },200); });
 </script>
 </body>
 </html>

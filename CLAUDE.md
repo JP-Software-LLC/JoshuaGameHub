@@ -111,6 +111,11 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 
 ## Sky Climb rules
 - `public/sky-climb/`. Server-authoritative: `shared/sky.js` (served at /sky.js; also solo + own-flyer prediction) + `server/skyroom.js`. Client sends in{x:-1|0|1} (steer) and fire{} (flap). start{} carries `seed`; the level (ledges, stone blocks, buzzers) is a pure function of (seed, time) so clients draw it locally; snapshots carry only players.
-- Flap = Space/↑/W, steer ←→. World wraps left↔right. Ledges are one-way (fly up through, land on top; moving ones carry you). Stone blocks are solid. Buzzers stun 0.9 s and knock you down. Nobody is ever out.
+- Flap = Space/↑/W, steer ←→. World wraps left↔right. Each row (every 11 units) is a SOLID stone floor with 2–3 gaps to fly through (gaps narrow higher up); extra floating stone chunks are never placed above/below a gap so every gap stays flyable. Only ~1 row in 10 has a one-way ledge (fly up through, land on top). 1–3 buzzers per row. Buzzers stun 0.9 s and knock you down. Nobody is ever out.
 - Player bumps: hit someone from below → they're pushed UP; land on someone from above → they're pushed DOWN; side hits bounce. Everyone starts spread along the floor.
-- Finish at `T.goal` = 640. Game ends when every connected player is up (or 7 min). Perfect bots ~1.5–3 min; aimed at ~4 min for real classes. Results by finish time, unfinished by best height; top max(3, 15 %).
+- Finish at `T.goal` = 640. Game ends when every connected player is up (or 7 min). Perfect bots ~2.5–3 min; aimed at ~4 min for real classes. Results by finish time, unfinished by best height; top max(3, 15 %).
+
+## Hub live previews (?demo=1)
+- The rotating featured showcase is gone. Each library card's picture becomes a LIVE BOT MATCH when focused (mouse hover / keyboard focus; on touch screens, the card nearest the middle while scrolling): an iframe of the game page at `?demo=1` (960×676, scaled to fit). One feed at a time, removed on leave, reloaded every 75 s. Games opt in with `demo:true` in GAMES.
+- `?demo=1` makes `hub-frame.js` hide the bar, menus, buttons and touch controls and block input; each game's own `DEMO` hook starts a bots-only solo/practice match (your seat played by a bot or autoplayer) and restarts it after results. No WebSocket, no server load beyond cached static files.
+- No demo: SPLAT! (online-only, no offline bots) and Odds or Evens (smart-board turns); they keep their pictures.

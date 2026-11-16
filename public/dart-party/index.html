@@ -141,6 +141,7 @@
 <script src="../darts.js"></script>
 <script>
 "use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
@@ -339,7 +340,7 @@ $("bSolo").onclick=()=>{
   const name=myName(); Net.close();
   const names=["Pip","Bubbles","Ziggy","Rosie","Max"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
-  G.local=new DARTS.Game([{ id:1, name }, ...names.map((n,i)=>({ id:i+2, name:n, bot:true }))]);
+  G.local=new DARTS.Game([{ id:1, name, bot:DEMO }, ...names.map((n,i)=>({ id:i+2, name:n, bot:true }))]);
   G.local.players.forEach((p,i)=>{ if (p.bot) p.lazy=0.7+i*0.25; });   // friendlier solo bots
   beginGame({ players, me:1, inMs:3000, mode:"solo", trees:G.local.trees });
 };
@@ -454,6 +455,8 @@ addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.s
   if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
 addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
   $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bSolo").click(); let rs=0; setInterval(()=>{ if (screen==="results"){ if (++rs>5){ rs=0; $("bSolo").click(); } } else rs=0; },1000); });
 </script>
 </body>
 </html>

@@ -138,6 +138,12 @@
   .thumb{position:relative;aspect-ratio:27/19;background:#000;overflow:hidden}
   .thumb canvas{width:100%;height:100%;object-fit:cover;image-rendering:pixelated;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
   .card:hover .thumb canvas,.card:hover .thumb img{transform:scale(1.06)}
+  .thumb .livefeed{position:absolute;left:0;top:0;width:960px;height:676px;border:0;transform-origin:0 0;pointer-events:none;opacity:0;transition:opacity .35s;z-index:1;background:#000}
+  .thumb .livefeed.on{opacity:1}
+  .thumb .feedtag{position:absolute;left:10px;top:10px;z-index:3;display:none;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;background:rgba(7,8,12,.8);border:1px solid rgba(255,255,255,.18);font:600 11px var(--sans);color:#ffd7d7;letter-spacing:.5px}
+  .thumb .feedtag i{width:7px;height:7px;border-radius:50%;background:#ff5a5a;animation:ping 2s infinite}
+  .card.feeding .feedtag{display:inline-flex}
+  .card.feeding .badge{opacity:0}
   .thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(7,8,12,.85))}
   .play-ic{position:absolute;right:12px;bottom:12px;z-index:2;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
     background:var(--gold);color:#1a1408;box-shadow:0 6px 18px rgba(0,0,0,.5);transform:scale(.8);opacity:0;transition:.25s}
@@ -308,37 +314,6 @@
     <span class="joinerr" id="joinErr" role="status"></span>
   </section>
 
-  <section class="wrap feature rise d4" aria-label="Featured games" id="feature">
-    <div class="ftabs" id="ftabs" role="tablist" aria-label="Featured game"></div>
-    <div class="show" id="show">
-      <div class="glare"></div>
-      <div class="stagewrap">
-        <canvas id="demo" aria-label="Live demo: bots playing Clean Getaway"></canvas>
-        <div class="fprev" id="fprev" hidden></div>
-        <span class="tag-live" id="tagLive"><i></i><span id="tagTxt">LIVE BOT DEMO</span></span>
-        <div class="demo-pop" id="pop"></div>
-        <div class="demo-hud" id="demoHud"><div><b id="dThief">—</b><span id="dFloor">—</span></div><div style="text-align:right"><b>CASH LEFT</b><span id="dCash">—</span></div></div>
-      </div>
-      <div class="info">
-        <div class="chips" id="fChips"><span class="chip hot">FEATURED</span><span class="chip">1–5 players</span><span class="chip">Online + bots</span><span class="chip">Chase</span></div>
-        <h2 class="logo" id="fLogo">CLEAN GETAWAY<small>A FIVE-PLAYER BANK HEIST</small></h2>
-        <p class="desc" id="fDesc">Everyone gets a turn as the Thief. Sweep every cash stack off a procedurally generated bank floor while four Guards close in. Grab a gold bar to fire an EMP and turn the chase around.</p>
-        <div class="roles" id="fRoles">
-          <div class="role"><canvas data-spr="thief0" width="16" height="16"></canvas><div><b style="color:var(--gold)">THIEF</b><br><span>Clear the floor. 1 life.</span></div></div>
-          <div class="role"><canvas data-spr="guard0" width="16" height="16"></canvas><div><b style="color:#7fa4ff">GUARDS</b><br><span>Team up and corner them.</span></div></div>
-          <div class="role"><canvas data-spr="gold" width="16" height="16"></canvas><div><b style="color:var(--cyan)">EMP</b><br><span>Stun guards. Tackle back.</span></div></div>
-        </div>
-        <div class="cta" id="fCta">
-          <a class="btn" href="/clean-getaway/?play=public" id="playBtn">▶ PLAY ONLINE</a>
-          <a class="btn ghost" href="/clean-getaway/?play=private">PRIVATE ROOM</a>
-          <a class="btn ghost" href="/clean-getaway/?play=bots">VS BOTS</a>
-        </div>
-        <div class="meta" id="fMeta"><span>⌨ Arrows / WASD</span><span>📱 Swipe on mobile</span><span>⏱ ~6 min matches</span></div>
-      </div>
-    </div>
-  </section>
-
-
   <section class="wrap sec" id="games">
     <div class="sechead"><div style="display:flex;flex-direction:column;gap:12px"><h2>LIBRARY</h2><div class="filters" id="filters" role="group" aria-label="Filter games"></div></div><p id="libCount"></p></div>
     <div class="grid" id="lib"></div>
@@ -384,19 +359,19 @@ $("yr").textContent=new Date().getFullYear();
 //  Game registry: add an entry here for each new game.
 // ------------------------------------------------------------
 const GAMES=[
-  { id:"clean-getaway", kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
-  { id:"math-race", teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
+  { id:"clean-getaway", demo:true, kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
+  { id:"math-race", demo:true, teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
   { id:"splat", kind:"splat", cat:"Party", title:"SPLAT!", path:"/splat/", blurb:"Hide behind a barrel. Dodge the water balloon!", tags:["2–6 players","Online","Party"], thumb:"splat" },
-  { id:"rush-hour", teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
-  { id:"bear-attack", teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
-  { id:"hurdle-dash", teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
-  { id:"arrow-blitz", teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
-  { id:"memory-tiles", teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
+  { id:"rush-hour", demo:true, teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
+  { id:"bear-attack", demo:true, teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
+  { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
+  { id:"arrow-blitz", demo:true, teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
+  { id:"memory-tiles", demo:true, teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
   { id:"odds-evens", teach:true, kind:"oddsevens", cat:"Brainy", title:"ODDS OR EVENS", path:"/odds-evens/", blurb:"Take turns at the smart board slicing the right numbers!", tags:["Up to 40","Smart board","Brainy"], badge:"NEW", thumb:"oddsevens" },
-  { id:"typing-cowboys", teach:true, kind:"typing", cat:"Brainy", title:"TYPING COWBOYS", path:"/typing-cowboys/", blurb:"Type words right to gallop your horse to the finish!", tags:["Up to 40","Online","Typing"], badge:"NEW", thumb:"typing" },
-  { id:"star-cannons", teach:true, kind:"cannons", cat:"Party", title:"STAR CANNONS", path:"/star-cannons/", blurb:"Team up and laser bouncing asteroids. Don't get squashed!", tags:["Up to 40","Online","Team"], badge:"NEW", thumb:"cannons" },
-  { id:"dart-party", teach:true, kind:"darts", cat:"Party", title:"DART PARTY", path:"/dart-party/", blurb:"Walk, aim and throw darts. First to pop 20 points wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"darts" },
-  { id:"sky-climb", teach:true, kind:"sky", cat:"Racing", title:"SKY CLIMB", path:"/sky-climb/", blurb:"Flap your way to the top. Bump friends up or knock them down!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"sky" },
+  { id:"typing-cowboys", demo:true, teach:true, kind:"typing", cat:"Brainy", title:"TYPING COWBOYS", path:"/typing-cowboys/", blurb:"Type words right to gallop your horse to the finish!", tags:["Up to 40","Online","Typing"], badge:"NEW", thumb:"typing" },
+  { id:"star-cannons", demo:true, teach:true, kind:"cannons", cat:"Party", title:"STAR CANNONS", path:"/star-cannons/", blurb:"Team up and laser bouncing asteroids. Don't get squashed!", tags:["Up to 40","Online","Team"], badge:"NEW", thumb:"cannons" },
+  { id:"dart-party", demo:true, teach:true, kind:"darts", cat:"Party", title:"DART PARTY", path:"/dart-party/", blurb:"Walk, aim and throw darts. First to pop 20 points wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"darts" },
+  { id:"sky-climb", demo:true, teach:true, kind:"sky", cat:"Racing", title:"SKY CLIMB", path:"/sky-climb/", blurb:"Flap your way to the top. Bump friends up or knock them down!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"sky" },
 ];
 
 // ------------------------------------------------------------
@@ -667,49 +642,46 @@ for (const g of GAMES){
   if (g.thumb==="sky") el.querySelector(".thumb").prepend(skyThumb());
   lib.appendChild(el);
 }
+// ------------------------------------------------------------
+//  Live bot-match previews: the focused card's picture turns into the real game page running
+//  bots only (?demo=1). Runs entirely in the browser: no server connection, just cached static files.
+//  Only one feed at a time; it's removed when the card loses focus.
+// ------------------------------------------------------------
+const FEED_OK=new Set(GAMES.filter(g=>g.demo).map(g=>g.id));
+let feedCard=null, feedTimer=0, feedReload=0;
+function stopFeed(){ clearTimeout(feedTimer); clearInterval(feedReload); if (!feedCard) return; feedCard.classList.remove("feeding"); feedCard.querySelector(".livefeed")?.remove(); feedCard=null; }
+function fitFeed(card){ const th=card.querySelector(".thumb"), fr=th.querySelector(".livefeed"); if (fr) fr.style.transform=`scale(${th.clientWidth/960})`; }
+function startFeed(card){
+  if (card===feedCard) return; stopFeed();
+  const g=GAMES.find(x=>x.path===card.getAttribute("href")); if (!g||!FEED_OK.has(g.id)||REDUCED||document.hidden) return;
+  feedCard=card;
+  feedTimer=setTimeout(()=>{                                    // small delay so skimming past cards doesn't load them all
+    if (feedCard!==card) return;
+    const th=card.querySelector(".thumb"), fr=document.createElement("iframe");
+    fr.className="livefeed"; fr.tabIndex=-1; fr.setAttribute("aria-hidden","true"); fr.title=g.title+" live bot match"; fr.setAttribute("scrolling","no");
+    fr.src=g.path+"?demo=1"; fr.onload=()=>{ setTimeout(()=>fr.classList.add("on"),350); };
+    th.appendChild(fr); fitFeed(card); card.classList.add("feeding");
+    feedReload=setInterval(()=>{ if (feedCard===card) fr.src=g.path+"?demo=1&r="+Date.now(); },75000);   // a fresh match now and then
+  },350);
+}
+for (const c of lib.querySelectorAll("a.card")){
+  c.querySelector(".thumb").insertAdjacentHTML("beforeend",'<span class="feedtag"><i></i>LIVE BOT MATCH</span>');
+  c.addEventListener("pointerenter",e=>{ if (e.pointerType==="mouse") startFeed(c); });
+  c.addEventListener("pointerleave",e=>{ if (e.pointerType==="mouse" && feedCard===c) stopFeed(); });
+  c.addEventListener("focus",()=>startFeed(c)); c.addEventListener("blur",()=>{ if (feedCard===c) stopFeed(); });
+}
+addEventListener("resize",()=>feedCard&&fitFeed(feedCard));
+document.addEventListener("visibilitychange",()=>{ if (document.hidden) stopFeed(); });
+// touch screens (no hover): play the card closest to the middle of the screen while scrolling
+if (!matchMedia("(hover:hover)").matches){
+  const seen=new Map();
+  const io=new IntersectionObserver(es=>{ for (const e of es) seen.set(e.target,e.intersectionRatio);
+    let best=null, br=0.75; for (const [el,r] of seen) if (r>br && !el.classList.contains("hide")){ br=r; best=el; }
+    if (best) startFeed(best); else stopFeed(); },{ threshold:[0,0.75,1], rootMargin:"-25% 0px -25% 0px" });
+  lib.querySelectorAll("a.card").forEach(c=>io.observe(c));
+}
 const live=GAMES.filter(g=>!g.soon).length;
 $("libCount").textContent=`${live} game${live===1?"":"s"} live · more on the way`;
-
-// ------------------------------------------------------------
-//  Live demo: four bots playing the real game sim
-// ------------------------------------------------------------
-const demo=$("demo"), dx=demo.getContext("2d");
-let game, T=24, demoVisible=true, popT=0;
-function sizeDemo(){
-  const p=demo.parentElement, k=Math.min(2,devicePixelRatio||1);
-  T=Math.max(8,Math.ceil(Math.max(p.clientWidth/CG.W,p.clientHeight/CG.H)*k));
-  demo.width=CG.W*T; demo.height=CG.H*T; dx.imageSmoothingEnabled=false;
-}
-function newDemo(){
-  const names=CG.BOT_NAMES.slice().sort(()=>Math.random()-.5);
-  game=new CG.Game([0,1,2,3,4].map(i=>({id:i,name:names[i],bot:true})));
-  game.start(); game.drainEvents();
-}
-function pop(text,color){ const p=$("pop"); p.textContent=text; p.style.borderColor=color; p.style.color=color; p.classList.add("on"); popT=1.3; }
-function demoEvents(){
-  for (const e of game.drainEvents()){
-    if (e.type==="caught") pop("BUSTED!","#e2554b");
-    else if (e.type==="cleared") pop("FLOOR ROBBED!","#58c27d");
-    else if (e.type==="emp") pop("EMP!","#7fd3ff");
-    else if (e.type==="tackle") pop("TACKLED!","#7fd3ff");
-    else if (e.type==="results") newDemo();
-  }
-}
-let demoInView=true, featured="clean-getaway";
-new IntersectionObserver(es=>{ demoInView=es[0].isIntersecting; demoVisible=demoInView&&featured==="clean-getaway"; }).observe(demo);
-addEventListener("resize",sizeDemo);
-newDemo(); sizeDemo();
-
-// 3D tilt + glare on the showcase
-const show=$("show");
-if (!REDUCED && matchMedia("(hover:hover)").matches){
-  show.addEventListener("pointermove",e=>{
-    const r=show.getBoundingClientRect(), px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
-    show.style.transform=`rotateX(${(0.5-py)*4}deg) rotateY(${(px-0.5)*5}deg)`;
-    show.style.setProperty("--mx",px*100+"%"); show.style.setProperty("--my",py*100+"%");
-  });
-  show.addEventListener("pointerleave",()=>{ show.style.transform=""; });
-}
 
 // ------------------------------------------------------------
 //  Background: receding neon grid + drifting pixel loot
@@ -751,19 +723,6 @@ function frame(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now; t+=dt;
   if (!document.hidden){
     drawBg(REDUCED?0:t);
-    if (demoVisible){
-      game.update(dt); demoEvents();
-      dx.fillStyle="#000"; dx.fillRect(0,0,demo.width,demo.height);
-      CGArt.drawFloor(dx,game.grid,CG.THEMES[game.themeIdx],T,t);
-      for (const a of game.actors) CGArt.drawActor(dx,a,T,t,game.power,false,CG.W);
-      if (game.state==="countdown"){ dx.fillStyle="rgba(0,0,0,.35)"; dx.fillRect(0,0,demo.width,demo.height); }
-      const th=game.players[game.thiefSlot];
-      $("dThief").textContent=`${th.name.toUpperCase()} IS THE THIEF`;
-      $("dThief").style.color=CGArt.COLORS[game.thiefSlot];
-      $("dFloor").textContent=CG.THEMES[game.themeIdx].name;
-      $("dCash").textContent=game.cashLeft;
-      if (popT>0){ popT-=dt; if (popT<=0) $("pop").classList.remove("on"); }
-    }
   }
   requestAnimationFrame(frame);
 }
@@ -782,100 +741,10 @@ async function pollLive(){
     if (typeof j.connections==="number"){ $("liveN").textContent=j.connections; $("live").hidden=false; }
     const per=j.games||{};
     document.querySelectorAll("#lib .card[data-kind]").forEach(c=>{ const b=c.querySelector(".liveb"); if (!b) return; const n=per[c.dataset.kind]||0; b.hidden=!n; b.querySelector("b").textContent=n; });
-    document.querySelectorAll("#ftabs .ftab").forEach(t=>{ const n=per[t.dataset.kind]||0; t.querySelector(".dot").hidden=!n; t.title=n?n+" playing now":""; });
   }catch{ /* server unreachable or same-origin static: hide the pill */ }
 }
 pollLive(); setInterval(pollLive,20000);
 
-addEventListener("keydown",e=>{ if (e.key==="Enter" && document.activeElement===document.body) location.href=$("fCta").querySelector("a").href; });
-
-// ------------------------------------------------------------
-//  Featured showcase: rotates through every game (pauses on hover / after you pick one)
-// ------------------------------------------------------------
-const spr=k=>`<canvas data-spr="${k}" width="16" height="16"></canvas>`;
-const FEATURES={
-  "clean-getaway":{ acc:"#f2c94c", chips:["1–5 players","Online + bots","Chase"], logo:"CLEAN GETAWAY", sub:"A FIVE-PLAYER BANK HEIST", tag:"LIVE BOT DEMO",
-    desc:"Everyone gets a turn as the Thief. Sweep every cash stack off a procedurally generated bank floor while four Guards close in. Grab a gold bar to fire an EMP and turn the chase around.",
-    roles:[[spr("thief0"),"THIEF","#f2c94c","Clear the floor. 1 life."],[spr("guard0"),"GUARDS","#7fa4ff","Team up and corner them."],[spr("gold"),"EMP","#7fd3ff","Stun guards. Tackle back."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE ROOM","private"],["VS BOTS","bots"]], meta:["⌨ Arrows / WASD","📱 Swipe on mobile","⏱ ~6 min matches"] },
-  "math-race":{ acc:"#5b9bff", chips:["Up to 40","Online","Brainy"], logo:"MATH RACE", sub:"SPEED SUMS FOR UP TO 40", tag:"3 ROUNDS × 1 MIN",
-    desc:"Add as fast as you can. Answers are checked the moment you type the last digit, with no Enter key, so the right answer flies you straight to the next one. A wrong one costs you 3 seconds.",
-    roles:[["<span class=ico>➕</span>","ADD FAST","#5b9bff","1–2 digit sums."],["<span class=ico>⚡</span>","NO ENTER","#8fb9ff","Right answer = next."],["<span class=ico>🏆</span>","LEADERBOARD","#cfe1ff","Top 15% each round."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE RACE","private"],["PRACTICE","practice"]], meta:["⌨ Number keys / numpad","📱 Tap the keypad","⏱ ~4 min games"] },
-  "splat":{ acc:"#3fa9f5", chips:["2–6 players","Online","Party"], logo:"SPLAT!", sub:"THE WATER BALLOON PARTY", tag:"FOR KIDS & GROWN-UPS",
-    desc:"Hide behind one of three barrels before the timer runs out, then watch the sheet drop. Everyone takes a turn with the water balloon. Stay dry for points, and SPLAT! your friends for more.",
-    roles:[["<span class=ico>🛢️</span>","HIDE","#3fa9f5","Pick a barrel ← ↑ →"],["<span class=ico>🎈</span>","THROW","#ff5d73","Everyone gets a turn."],["<span class=ico>🌞</span>","STAY DRY","#ffb627","Points for every dodge."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE PARTY","private"]], meta:["⌨ Arrow keys","📱 Tap a barrel","⏱ ~40 s per turn"] },
-  "rush-hour":{ acc:"#ff7a1a", chips:["Up to 40","Online + bots","Racing"], logo:"RUSH HOUR", sub:"WEAVE · BOOST · WIN", tag:"80-SECOND RACES",
-    desc:"Race up to 40 friends down a busy city highway. Change lanes to slip past cars, trucks and semis, hit the glowing strips for a boost, and be first across the finish line!",
-    roles:[["<span class=ico>🚗</span>","WEAVE","#ff7a1a","◀ ▶ change lanes."],["<span class=ico>⚡</span>","BOOST","#38e1ff","Hit the glowing strips."],["<span class=ico>🏁</span>","FINISH","#ffd23f","Be first across the finish line!"]],
-    cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrows · ▼ brake","📱 Buttons + swipes","⏱ ~80 s races"] },
-  "bear-attack":{ acc:"#ef4444", chips:["Up to 40","Online + bots","Party"], logo:"BEAR ATTACK!", sub:"LAST ONE ON THE ICE WINS", tag:"UP TO 40 PLAYERS",
-    desc:"Skate around a slippery ice sheet while a grumpy bear naps in the middle. When the red path lights up, get out of the way, because he's about to charge! Slide off the edge and you're FROZEN.",
-    roles:[["<span class=ico>⛸️</span>","SKATE","#7fd3ff","It's slippery!"],["<span class=ico>🐻</span>","DODGE","#ef4444","Watch the red path."],["<span class=ico>🧊</span>","SURVIVE","#cfeaff","The ice keeps shrinking."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrows / WASD","📱 Thumb joystick","⏱ ~1–2 min games"] },
-  "hurdle-dash":{ acc:"#f97316", chips:["Up to 40","Online + bots","Racing"], logo:"HURDLE DASH", sub:"RUN · THINK · JUMP", tag:"100 M · 10 HURDLES",
-    desc:"Sprint down the school track by tapping Left and Right in turn. At each of the 10 hurdles, answer a quick sum to leap it and get a burst of speed. Get it wrong and you trip, so stay sharp all the way to the line!",
-    roles:[["<span class=ico>🏃</span>","SPRINT","#f97316","Tap ← → in turn."],["<span class=ico>🧮</span>","THINK","#5b9bff","1 sum per hurdle."],["<span class=ico>💫</span>","DON'T TRIP","#facc15","Wrong = 3 s on the ground."]],
-    cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ ← → + number keys","📱 Big tap buttons","⏱ ~30–60 s races"] },
-  "arrow-blitz":{ acc:"#facc15", chips:["Up to 40","Online","Brainy"], logo:"ARROW BLITZ", sub:"ONE MINUTE · LONGER EVERY TIME", tag:"1-MINUTE GAMES",
-    desc:"Type the arrow sequence in order with your arrow keys. Every one you finish adds another arrow. A wrong key shakes the screen and starts that sequence over. Go three in a row without a slip for bonus points!",
-    roles:[["<span class=ico>⬆️</span>","TYPE","#facc15","Arrows turn yellow."],["<span class=ico>➕</span>","GROW","#5b9bff","3 → 4 → 5 arrows…"],["<span class=ico>🔥</span>","STREAK","#f97316","+50% after 3 flawless."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["PRACTICE","practice"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ 1 minute"] },
-  "memory-tiles":{ acc:"#ff5d9e", chips:["Up to 40","Online + bots","Brainy"], logo:"MEMORY TILES", sub:"LOOK · REMEMBER · STAND", tag:"LAST ONE STANDING",
-    desc:"Every tile flips to show a picture for a few seconds, then goes black. When you are told what to find, use the arrows to stand on a matching tile before time runs out. New pictures are added as the rounds go on, and you get a little less time to look.",
-    roles:[["<span class=ico>👀</span>","LOOK","#ffd23f","Pictures flash, then hide."],["<span class=ico>🏃</span>","STAND","#2ee6c5","7 s to reach a match."],["<span class=ico>👑</span>","SURVIVE","#ff5d9e","Last one in wins."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Arrow keys / WASD","📱 Tap the arrow pad","⏱ ~1–2 min games"] },
-  "odds-evens":{ acc:"#38bdf8", chips:["Up to 40","Smart board","Brainy"], logo:"ODDS OR EVENS", sub:"SLICE THE RIGHT NUMBERS", tag:"SMART BOARD GAME",
-    desc:"Students take turns at the board. Each one picks evens or odds, then has 15 seconds to swipe through the right numbers as they float up. Slice a wrong one and you lose points!",
-    roles:[["<span class=ico>🙋</span>","YOUR TURN","#fcd34d","One at a time."],["<span class=ico>✋</span>","SLICE","#38bdf8","+10 for the right type."],["<span class=ico>❌</span>","CAREFUL","#fb923c","−5 for a wrong one."]],
-    cta:[["🍎 PLAY WITH MY CLASS","teacher"],["TRY A ROUND","try"]], meta:["👆 Touch screen or smart board","🖱 Mouse works too","⏱ 15 s per student"] },
-  "typing-cowboys":{ acc:"#f5b82e", chips:["Up to 40","Online + bots","Typing"], logo:"TYPING COWBOYS", sub:"TYPE · GALLOP · WIN", tag:"CARNIVAL DERBY",
-    desc:"Every player rides a cowboy in their own lane, like the derby game at the fair. Type each word right and your horse gallops ahead. A wrong word costs nothing: your horse just waits. First to the finish line wins!",
-    roles:[["<span class=ico>⌨️</span>","TYPE","#f5b82e","Spell the word."],["<span class=ico>🐴</span>","GALLOP","#38bdf8","Right word = one step."],["<span class=ico>🏁</span>","FINISH","#22c55e","~1 min at 20 wpm."]],
-    cta:[["▶ RACE ONLINE","public"],["PRIVATE RACE","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Any keyboard","📱 Phone keyboard works","⏱ ~1–2 min races"] },
-  "star-cannons":{ acc:"#3ee8ff", chips:["Up to 40","Online + bots","Team"], logo:"STAR CANNONS", sub:"BLAST · DODGE · TEAM UP", tag:"40-PLAYER TEAM GAME",
-    desc:"Everyone's laser cannon shares one floor under a sky full of bouncing asteroids. Blast them into smaller pieces for points (the final blow earns a bonus) and grab power-ups by shooting them first, like +1 laser that stays for the whole game. Get squashed and you're out. How long can your team hold on?",
-    roles:[["<span class=ico>🚀</span>","BLAST","#3ee8ff","Points for every hit."],["<span class=ico>☄️</span>","DODGE","#ff4fd8","Don't get squashed."],["<span class=ico>✨</span>","POWER UP","#ffd23f","Shoot it first to grab it."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO + BOTS","solo"]], meta:["⌨ Arrow keys / A D","📱 Touch and drag","⏱ Lasts until the last cannon"] },
-  "dart-party":{ acc:"#ef4b5b", chips:["Up to 40","Online + bots","Party"], logo:"DART PARTY", sub:"WALK · AIM · POP!", tag:"BALLOON FAIR",
-    desc:"The whole party starts together in the middle of the fairground. Walk to aim: you always face the way you move. Throw a dart straight ahead (2-second reload) and pop drifting balloons for points. Gold balloons are worth 5. First to 20 points wins!",
-    roles:[["<span class=ico>🚶</span>","WALK + AIM","#3b82f6","WASD turns you."],["<span class=ico>🎯</span>","THROW","#ef4b5b","Enter. 2 s reload."],["<span class=ico>🎈</span>","POP","#ffc83d","First to 20 wins."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE PARTY","private"],["SOLO VS BOTS","solo"]], meta:["⌨ WASD + Enter","📱 Joystick + THROW button","⏱ ~1–2 min games"] },
-  "sky-climb":{ acc:"#18b8a8", chips:["Up to 40","Online + bots","Racing"], logo:"SKY CLIMB", sub:"FLAP · BUMP · REACH THE TOP", tag:"40-PLAYER FLYING RACE",
-    desc:"Everyone starts on the same floor. Flap with Space and steer with the arrows to climb past ledges, stone blocks and buzzing critters. Bump a friend from below to push them up, or land on them to knock them down. The game waits until everyone reaches the top!",
-    roles:[["<span class=ico>🪽</span>","FLAP","#18b8a8","Space to rise."],["<span class=ico>🐝</span>","DODGE","#ffc93c","Buzzers stun you."],["<span class=ico>🤸</span>","BUMP","#ff6f91","Below = up, above = down."]],
-    cta:[["▶ PLAY ONLINE","public"],["PRIVATE GAME","private"],["SOLO VS BOTS","solo"]], meta:["⌨ Space + arrow keys","📱 Touch buttons","⏱ ~4 min games"] },
-};
-const ROT_MS=9000; let rotTimer=0, userPicked=false;
-const thumbFor=g=>({ cg:thumbCanvas, math:mathThumb, splat:splatThumb, rush:rushThumb, bear:bearThumb, hurdle:hurdleThumb, arrows:arrowThumb, memory:memoryThumb, oddsevens:oddsThumb, typing:typingThumb, cannons:cannonsThumb, darts:dartsThumb, sky:skyThumb })[g.thumb]();
-function renderTabs(){
-  $("ftabs").innerHTML=GAMES.filter(g=>!g.soon).map(g=>`<button class="ftab" role="tab" data-id="${g.id}" data-kind="${g.kind}" aria-selected="${g.id===featured}" style="--acc:${FEATURES[g.id].acc};--rot:${ROT_MS}ms">${g.title}<span class="dot" hidden></span><span class="bar"></span></button>`).join("");
-}
-function setFeature(id){
-  featured=id; const g=GAMES.find(x=>x.id===id), F=FEATURES[id];
-  const isCG=id==="clean-getaway";
-  demoVisible=demoInView&&isCG;
-  $("show").style.setProperty("--acc",F.acc);
-  $("demo").style.visibility=isCG?"visible":"hidden"; $("demoHud").hidden=!isCG; $("pop").hidden=!isCG;
-  const fp=$("fprev"); fp.hidden=isCG; fp.innerHTML=""; if (!isCG) fp.appendChild(thumbFor(g));
-  $("tagTxt").textContent=F.tag;
-  $("fChips").innerHTML=`<span class="chip hot" style="background:${F.acc}">FEATURED</span>`+F.chips.map(c=>`<span class="chip">${c}</span>`).join("");
-  $("fLogo").innerHTML=`${F.logo}<small>${F.sub}</small>`;
-  $("fDesc").textContent=F.desc;
-  $("fRoles").innerHTML=F.roles.map(([ico,t,c,s])=>`<div class="role">${ico}<div><b style="color:${c}">${t}</b><br><span>${s}</span></div></div>`).join("");
-  $("fRoles").querySelectorAll("canvas[data-spr]").forEach(c=>c.getContext("2d").drawImage(CGArt.SPR[c.dataset.spr],0,0));
-  $("fCta").innerHTML=F.cta.map(([t,q],i)=>`<a class="btn${i?" ghost":""}" href="${g.path}?play=${q}">${t}</a>`).join("");
-  $("fMeta").innerHTML=F.meta.map(m=>`<span>${m}</span>`).join("");
-  for (const el of [$("fLogo"),$("fDesc"),$("fRoles"),$("fCta")]){ el.classList.remove("fswap"); void el.offsetWidth; el.classList.add("fswap"); }
-  renderTabs(); pollLive();
-}
-function nextFeature(){ const ids=GAMES.filter(g=>!g.soon).map(g=>g.id); setFeature(ids[(ids.indexOf(featured)+1)%ids.length]); }
-function arm(){ clearInterval(rotTimer); if (!userPicked && !REDUCED) rotTimer=setInterval(()=>{ if (!$("feature").classList.contains("paused")) nextFeature(); },ROT_MS); }
-$("ftabs").addEventListener("click",e=>{ const b=e.target.closest(".ftab"); if (!b) return; userPicked=true; clearInterval(rotTimer); setFeature(b.dataset.id); $("feature").classList.add("paused"); });
-$("feature").addEventListener("pointerenter",()=>$("feature").classList.add("paused"));
-$("feature").addEventListener("pointerleave",()=>{ if (!userPicked){ $("feature").classList.remove("paused"); renderTabs(); arm(); } });
-setFeature("clean-getaway"); arm();
 
 // ------------------------------------------------------------
 //  For teachers: one card per whole-class game, straight into Teacher mode
@@ -889,7 +758,7 @@ const CLASS_GAMES=[
   { id:"typing-cowboys", ico:"🤠", skill:"Typing and spelling", len:"~1–2 min race", view:"Live standings on your screen", desc:"Students type words to gallop their cowboy to the finish. Wrong words don't count against them." },
   { id:"star-cannons", ico:"🚀", skill:"Teamwork and quick reactions", len:"~2–4 min", view:"Watch the whole game on your screen", desc:"The whole class shares one floor of laser cannons against bouncing asteroids. Last cannon standing ends it." },
   { id:"dart-party", ico:"🎈", skill:"Aiming and quick thinking", len:"~1–2 min", view:"Watch the whole field on your screen", desc:"Students walk to aim and throw darts at drifting balloons. First to 20 points ends the game." },
-  { id:"sky-climb", ico:"🪽", skill:"Persistence and coordination", len:"~4 min", view:"Watch the climb on your screen", desc:"Students flap and steer up a sky full of ledges and critters. The game waits until everyone reaches the top." },
+  { id:"sky-climb", ico:"🪽", skill:"Persistence and coordination", len:"~4 min", view:"Watch the climb on your screen", desc:"Students flap and steer up through gaps in stone floors, dodging buzzing critters. The game waits until everyone reaches the top." },
   { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
   { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
 ];
