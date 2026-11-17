@@ -31,7 +31,7 @@ function questionStream(seed, digits){
   const r=rng(seed), one=()=>1+(r()*9|0), two=()=>10+(r()*90|0);
   const num=digits==="2"?two:digits==="12"?()=>(r()<0.4?one():two()):one;
   let prev=null;
-  return ()=>{ for(;;){ const a=num(), b=num(), s=a+b;
+  return ()=>{ for(;;){ let a=num(), b=num(); if (a<b) [a,b]=[b,a]; const s=a+b;           // bigger number on top
     if (prev && prev.a===a && prev.b===b) continue;
     return prev={ a, b, s, len:String(s).length }; } };
 }

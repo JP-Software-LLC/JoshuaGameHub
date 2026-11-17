@@ -103,3 +103,40 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   n       BIGINT NOT NULL DEFAULT 0,
   PRIMARY KEY (day, metric)
 );
+
+-- ---- schools (editable on /admin/schools/; first run is seeded from server/schools.json)
+CREATE TABLE IF NOT EXISTS schools (
+  id          TEXT PRIMARY KEY,                    -- never changes: stored on teachers and students
+  name        TEXT NOT NULL,
+  state       TEXT NOT NULL DEFAULT '',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE students ADD COLUMN IF NOT EXISTS school_id TEXT;
+
+-- ---- castles: every saved Teacher Mode game adds bricks to the castle of the teacher who ran it.
+-- Bricks only ever go up (deleting a game or class doesn't knock bricks off).
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS bricks BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS castle_games INT NOT NULL DEFAULT 0;
+ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS bricks INT NOT NULL DEFAULT 0;
+ALTER TABLE session_results ADD COLUMN IF NOT EXISTS bricks INT NOT NULL DEFAULT 0;
+-- running average of each game's raw score (all students, all saved games): an average result = 100 bricks in any game
+CREATE TABLE IF NOT EXISTS game_scale (
+  game   TEXT PRIMARY KEY,
+  n      DOUBLE PRECISION NOT NULL DEFAULT 0,
+  total  DOUBLE PRECISION NOT NULL DEFAULT 0
+);
+
+-- ---- tournaments: a school's castles race from 0 to `goal` bricks (only games saved after the start count). First to the goal wins.
+CREATE TABLE IF NOT EXISTS tournaments (
+  id          BIGSERIAL PRIMARY KEY,
+  school_id   TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  goal        INT NOT NULL,
+  started_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ended_at    TIMESTAMPTZ,                         -- set when someone wins or an admin stops it
+  winner_id   BIGINT REFERENCES teachers(id) ON DELETE SET NULL,
+  winner_name TEXT,                                -- kept even if the account goes away
+  created_by  BIGINT REFERENCES teachers(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS tournaments_school ON tournaments(school_id, started_at DESC);
+ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS saved_at TIMESTAMPTZ NOT NULL DEFAULT now();

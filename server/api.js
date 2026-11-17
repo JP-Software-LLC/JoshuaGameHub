@@ -38,26 +38,55 @@ function makeApi(bus){
     ["POST","/api/hit",async(req,b)=>{ if (b.mode) STATS.mode(String(b.mode)); if (b.view!==undefined) STATS.view(b.view,String(b.play||"")); return { ok:true }; }],
     ["GET","/api/admin/stats",async req=>{ await needAdmin(req); return STATS.report(+new URL(req.url,"http://x").searchParams.get("days")||30); }],
     // every teacher account, newest first, with what they've set up
-    ["GET","/api/admin/teachers",async req=>{ await needAdmin(req);
-      const rows=await db.all(`select t.id,t.email,t.display_name,t.school_id,(t.google_sub is not null) as google,t.created_at,t.last_login_at,
+    ["GET","/api/admin/teachers",async req=>{ await needAdmin(req); const schools=await C.loadSchools();
+      const rows=await db.all(`select t.id,t.email,t.display_name,t.school_id,(t.google_sub is not null) as google,t.created_at,t.last_login_at,t.bricks::float8 as bricks,t.castle_games,
         (select count(*) from class_members m where m.teacher_id=t.id and m.role='owner')::int as classes,
         (select count(*) from class_members m where m.teacher_id=t.id and m.role='coteacher')::int as shared,
         (select count(*) from students s join classes c on c.id=s.class_id where c.owner_id=t.id)::int as students,
         (select count(*) from game_sessions g join classes c on c.id=g.class_id where c.owner_id=t.id)::int as games,
         (select max(g.ended_at) from game_sessions g join class_members m on m.class_id=g.class_id where m.teacher_id=t.id) as last_game
         from teachers t order by t.created_at desc`);
-      return { teachers:rows.map(r=>{ const sc=C.schoolById(r.school_id); return { ...r, id:+r.id, school:sc?`${sc.name}, ${sc.state}`:"" }; }) }; }],
+      return { teachers:rows.map(r=>{ const sc=schools.find(x=>x.id===r.school_id); return { ...r, id:+r.id, bricks:+r.bricks, school:sc?`${sc.name}, ${sc.state}`:"" }; }) }; }],
+    // ---- schools list (teachers and students pick from it); admins add / rename / remove
+    ["GET","/api/admin/schools",async req=>{ await needAdmin(req); await C.loadSchools(true);
+      const rows=await db.all(`select s.id,s.name,s.state,s.created_at,(select count(*) from teachers t where t.school_id=s.id)::int as teachers,
+        (select count(*) from students st where st.school_id=s.id)::int as students,(select coalesce(sum(t.bricks),0) from teachers t where t.school_id=s.id)::float8 as bricks,
+        (select json_build_object('id',tn.id,'name',tn.name,'goal',tn.goal,'startedAt',tn.started_at) from tournaments tn where tn.school_id=s.id and tn.ended_at is null limit 1) as tournament,
+        (select json_build_object('name',tn.name,'winner',tn.winner_name,'endedAt',tn.ended_at) from tournaments tn where tn.school_id=s.id and tn.ended_at is not null order by tn.ended_at desc limit 1) as last_tournament
+        from schools s order by s.state,s.name`);
+      return { schools:rows }; }],
+    ["POST","/api/admin/schools",async(req,b)=>{ await needAdmin(req); const { name,state }=cleanSchool(b);
+      const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,30)||"school";
+      const id=`${slug}-${(state||"xx").toLowerCase()}-${A.newToken().replace(/[^a-z0-9]/gi,"").slice(0,4).toLowerCase()}`;
+      await db.q("insert into schools(id,name,state) values($1,$2,$3)",[id,name,state]); await C.loadSchools(true); return { school:{ id, name, state } }; }],
+    ["PATCH","/api/admin/schools/:id",async(req,b,p)=>{ await needAdmin(req); const { name,state }=cleanSchool(b);
+      const r=await db.one("update schools set name=$2,state=$3 where id=$1 returning id,name,state",[p.id,name,state]); if (!r) throw A.httpErr(404,"School not found.");
+      await C.loadSchools(true); return { school:r }; }],
+    ["DELETE","/api/admin/schools/:id",async(req,b,p)=>{ await needAdmin(req);
+      const n=await db.one("select count(*)::int n from teachers where school_id=$1",[p.id]);
+      if (n.n) throw A.httpErr(409,`${n.n} teacher${n.n>1?"s use":" uses"} this school, so it can't be removed. Rename it instead, or ask them to pick another school.`);
+      await db.q("update students set school_id=null where school_id=$1",[p.id]); await db.q("delete from schools where id=$1",[p.id]); await C.loadSchools(true); return { ok:true }; }],
+    // ---- school page (public): castles of the teachers at a school (display name + bricks only) + tournaments
+    ["GET","/api/school/:id",async(req,b,p)=>{ const r=await C.schoolPage(C.schoolId(p.id)); if (!r) throw A.httpErr(404,"School not found."); return r; }],
+    // ---- tournaments (admins): one running per school
+    ["POST","/api/admin/schools/:id/tournament",async(req,b,p)=>{ const a=await needAdmin(req); if (!await C.schoolById(p.id)) throw A.httpErr(404,"School not found.");
+      const name=String(b.name||"").replace(/[<>]/g,"").replace(/\s+/g," ").trim().slice(0,60)||"Castle Tournament", goal=Math.round(+b.goal);
+      if (!(goal>=100&&goal<=10000000)) throw A.httpErr(400,"Pick a goal between 100 and 10,000,000 bricks.");
+      if (await db.one("select id from tournaments where school_id=$1 and ended_at is null",[p.id])) throw A.httpErr(409,"This school already has a tournament running. End it first.");
+      const r=await db.one("insert into tournaments(school_id,name,goal,created_by) values($1,$2,$3,$4) returning id",[p.id,name,goal,a.id]); return { id:+r.id }; }],
+    ["POST","/api/admin/tournaments/:id/end",async(req,b,p)=>{ await needAdmin(req); const r=await db.one("update tournaments set ended_at=now() where id=$1 and ended_at is null returning id",[p.id]);
+      if (!r) throw A.httpErr(404,"No running tournament with that id."); return { ok:true }; }],
     // open a read-only session as that teacher (the /teacher/ page uses it in its own tab)
     ["POST","/api/admin/teachers/:id/view",async(req,b,p)=>{ const a=await needAdmin(req); return A.viewAsSession(p.id,a.id); }],
-    ["GET","/api/schools",async()=>({ schools:C.SCHOOLS })],
+    ["GET","/api/schools",async()=>({ schools:await C.loadSchools() })],
     // ---- auth
     ["POST","/api/auth/email",async(req,b)=>A.startEmailLogin(b.email,ipOf(req))],
     ["POST","/api/auth/email/verify",async(req,b)=>A.verifyEmailLogin(b.token)],
     ["POST","/api/auth/google",async(req,b)=>A.googleLogin(b.credential)],
     ["POST","/api/auth/logout",async req=>{ await A.logout(String(req.headers.authorization||"").replace(/^Bearer /,"")); return { ok:true }; }],
-    ["GET","/api/me",async req=>{ const t=await needTeacher(req); return { teacher:A.publicTeacher(t), school:C.schoolById(t.school_id), viewAs:!!t.viewed_by }; }],
+    ["GET","/api/me",async req=>{ const t=await needTeacher(req); return { teacher:A.publicTeacher(t), school:await C.schoolById(t.school_id), viewAs:!!t.viewed_by, castle:{ bricks:+t.bricks||0, games:t.castle_games||0 } }; }],
     ["PATCH","/api/me",async(req,b)=>{ const t=await needTeacher(req);
-      const name=String(b.displayName??t.display_name).replace(/[<>]/g,"").trim().slice(0,60), school=b.schoolId===undefined?t.school_id:(C.schoolById(b.schoolId)?b.schoolId:null);
+      const name=String(b.displayName??t.display_name).replace(/[<>]/g,"").trim().slice(0,60), school=b.schoolId===undefined?t.school_id:(await C.schoolById(b.schoolId)?b.schoolId:null);
       const u=await db.one("update teachers set display_name=$2, school_id=$3 where id=$1 returning *",[t.id,name,school]); return { teacher:A.publicTeacher(u) }; }],
     ["DELETE","/api/me",async req=>{ const t=await needTeacher(req); await db.q("delete from teachers where id=$1",[t.id]); return { ok:true }; }],   // cascades: owned classes, students, games
     // ---- classes
@@ -127,7 +156,7 @@ function makeApi(bus){
       return { game:rec.game, mode:rec.mode, endedAt:rec.endedAt, players:rec.results.length }; }],
     ["POST","/api/pending/:claim/save",async(req,b,p)=>{ const t=await needTeacher(req); await needRole(t,b.classId);
       const rec=await bus.get(pendingKey(p.claim)); if (!rec) throw A.httpErr(404,"Those results have expired (they're kept for 24 hours).");
-      const id=await C.saveSession(+b.classId,t.id,rec); await bus.del(pendingKey(p.claim)); return { sessionId:id }; }],
+      const r=await C.saveSession(+b.classId,t.id,rec); await bus.del(pendingKey(p.claim)); return { sessionId:r.id, bricks:r.bricks, won:r.won }; }],
   ];
   const compiled=routes.map(([m,pat,fn])=>({ m, fn, keys:(pat.match(/:\w+/g)||[]).map(k=>k.slice(1)), re:new RegExp("^"+pat.replace(/:\w+/g,"([A-Za-z0-9_-]+)")+"$") }));
   async function handle(req,res){
@@ -143,6 +172,11 @@ function makeApi(bus){
     json(res,404,{ error:"Not found." });
   }
   return { handle, pendingKey, PENDING_TTL };
+}
+function cleanSchool(b){
+  const name=String(b.name||"").replace(/[<>]/g,"").replace(/\s+/g," ").trim().slice(0,80), state=String(b.state||"").replace(/[^a-z]/gi,"").slice(0,2).toUpperCase();
+  if (name.length<3) throw A.httpErr(400,"Type the school's name.");
+  return { name, state };
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 module.exports={ makeApi };

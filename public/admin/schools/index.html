@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Schools · JGH Admin</title>
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<main>
+  <h1>Schools &amp; tournaments</h1>
+  <p class="sub">Teachers and students pick their school from this list. Each school has a public castle page, and you can start a tournament there: every teacher's castle races to a brick goal, and the first one to reach it wins.</p>
+  <div class="card" style="margin-bottom:18px">
+    <form id="add" class="row" autocomplete="off">
+      <input id="aName" placeholder="School name" maxlength="80" style="flex:1;min-width:220px" aria-label="School name">
+      <input id="aState" placeholder="State (TX)" maxlength="2" style="width:110px;text-transform:uppercase" aria-label="State, two letters">
+      <button class="btn" type="submit">+ Add school</button>
+    </form>
+    <p class="err" id="aErr"></p>
+  </div>
+  <div id="out"><div class="msg">Loading…</div></div>
+  <p class="note">A school can only be removed when no teacher uses it (rename it instead). Students who picked a removed school are asked to pick again. A school's id never changes, so renaming is always safe.</p>
+</main>
+
+<dialog id="dlg"><form method="dialog" id="dForm"><h3 id="dTitle"></h3><div id="dBody"></div><p class="err" id="dErr"></p>
+  <div class="row"><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn" id="dOk" value="ok">Save</button></div></form></dialog>
+
+<script src="../../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="/admin/admin.js"></script>
+<script>
+let SCHOOLS=[];
+async function load(){
+  if (!token()) return gate();
+  try{ SCHOOLS=(await api("/api/admin/schools")).schools; }catch(e){ return gate(e); }
+  const z=v=>v?n(v):`<span class="zero">0</span>`;
+  $("out").innerHTML=`<div class="card"><table><thead><tr><th>School</th><th>Teachers</th><th>Students</th><th>🧱 Bricks</th><th class="left">Tournament</th><th></th></tr></thead><tbody>
+    ${SCHOOLS.length?SCHOOLS.map(s=>{ const T=s.tournament, L=s.last_tournament;
+      return `<tr><td class="who left" style="min-width:200px"><b>${esc(s.name)}</b><span>${esc(s.state||"—")} · <a href="/school/?id=${encodeURIComponent(s.id)}" target="_blank" rel="noopener">castle page ↗</a></span></td>
+      <td>${z(s.teachers)}</td><td>${z(s.students)}</td><td>${z(s.bricks)}</td>
+      <td class="left" style="min-width:210px">${T?`<span class="tag live">⚔️ LIVE</span> <b>${esc(T.name)}</b><br><span class="zero">first to 🧱 ${n(T.goal)} · since ${ago(T.startedAt)}</span>`
+        :L?`<span class="zero">Last: ${esc(L.name)}${L.winner?` · 🏆 ${esc(L.winner)}`:" · stopped"}</span>`:`<span class="zero">—</span>`}</td>
+      <td><div class="row" style="justify-content:flex-end;flex-wrap:nowrap">${T?`<button class="btn ghost" data-end="${T.id}" data-name="${esc(T.name)}">End tournament</button>`:`<button class="btn purple" data-start="${esc(s.id)}">⚔️ Start tournament</button>`}
+        <button class="btn ghost" data-edit="${esc(s.id)}">Rename</button><button class="btn ghost" data-del="${esc(s.id)}" ${s.teachers?'disabled title="Teachers use this school"':""}>Remove</button></div></td></tr>`; }).join("")
+      :`<tr><td colspan="6">No schools yet. Add the first one above.</td></tr>`}</tbody></table></div>`;
+  $("out").querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>startTour(SCHOOLS.find(s=>s.id===b.dataset.start)));
+  $("out").querySelectorAll("[data-end]").forEach(b=>b.onclick=()=>endTour(b.dataset.end,b.dataset.name));
+  $("out").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>rename(SCHOOLS.find(s=>s.id===b.dataset.edit)));
+  $("out").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>remove(SCHOOLS.find(s=>s.id===b.dataset.del)));
+}
+// small form dialog: fields → onOk(values) (throw to show an error and keep it open)
+function ask(title,fields,okText,onOk){
+  $("dTitle").textContent=title; $("dOk").textContent=okText; $("dErr").textContent="";
+  $("dBody").innerHTML=fields.map(f=>`<label for="f_${f.k}">${esc(f.label)}</label><input id="f_${f.k}" value="${esc(f.v??"")}" ${f.attrs||""}>${f.help?`<div class="zero" style="font-size:12.5px;margin-top:4px">${f.help}</div>`:""}`).join("");
+  $("dForm").onsubmit=async e=>{ if (e.submitter&&e.submitter.value==="cancel") return; e.preventDefault();
+    const v=Object.fromEntries(fields.map(f=>[f.k,$("f_"+f.k).value.trim()]));
+    try{ $("dOk").disabled=true; await onOk(v); $("dlg").close(); load(); }catch(err){ $("dErr").textContent=err.message; } finally{ $("dOk").disabled=false; } };
+  $("dlg").showModal(); setTimeout(()=>$("f_"+fields[0].k).focus(),30);
+}
+function startTour(s){
+  ask(`⚔️ New tournament at ${s.name}`,[
+    { k:"name", label:"Tournament name", v:"Castle Cup", attrs:'maxlength="60"' },
+    { k:"goal", label:"Goal (bricks)", v:"10000", attrs:'type="number" min="100" step="100" inputmode="numeric"',
+      help:`An average student earns ~100 bricks per game, so a class of 25 adds ~2,500 per game. 10,000 ≈ 4 games each.${s.teachers?"":" <b>No teachers at this school yet.</b>"}` }],"Start",
+    v=>api(`/api/admin/schools/${encodeURIComponent(s.id)}/tournament`,"POST",{ name:v.name, goal:+v.goal }));
+}
+async function endTour(id,name){
+  if (!confirm(`End “${name}” now? Nobody will be named the winner.`)) return;
+  try{ await api(`/api/admin/tournaments/${id}/end`,"POST",{}); load(); }catch(e){ alert(e.message); }
+}
+function rename(s){
+  ask("Rename school",[{ k:"name", label:"School name", v:s.name, attrs:'maxlength="80"' },{ k:"state", label:"State (2 letters)", v:s.state, attrs:'maxlength="2" style="text-transform:uppercase"' }],"Save",
+    v=>api(`/api/admin/schools/${encodeURIComponent(s.id)}`,"PATCH",v));
+}
+async function remove(s){
+  if (!confirm(`Remove ${s.name} from the list?`)) return;
+  try{ await api(`/api/admin/schools/${encodeURIComponent(s.id)}`,"DELETE",{}); load(); }catch(e){ alert(e.message); }
+}
+$("add").onsubmit=async e=>{ e.preventDefault(); $("aErr").textContent="";
+  try{ await api("/api/admin/schools","POST",{ name:$("aName").value, state:$("aState").value }); $("aName").value=""; $("aState").value=""; load(); }catch(err){ $("aErr").textContent=err.message; } };
+load();
+</script>
+</body>
+</html>

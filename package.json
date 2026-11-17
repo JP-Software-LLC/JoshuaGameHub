@@ -12,7 +12,7 @@
     "start:game": "node server/index.js",
     "start:web": "node server/web.js",
     "build:static": "node scripts/build-static.js",
-    "test": "node scripts/sim-test.js && node scripts/smoke.js && node scripts/math-test.js && node scripts/cleanup-test.js && node scripts/rush-test.js && node scripts/bear-test.js && node scripts/hurdle-test.js && node scripts/memory-test.js && node scripts/teacher-test.js && node scripts/codes-test.js && node scripts/accounts-test.js && node scripts/stats-test.js"
+    "test": "node scripts/sim-test.js && node scripts/smoke.js && node scripts/math-test.js && node scripts/cleanup-test.js && node scripts/rush-test.js && node scripts/bear-test.js && node scripts/hurdle-test.js && node scripts/memory-test.js && node scripts/teacher-test.js && node scripts/codes-test.js && node scripts/accounts-test.js && node scripts/stats-test.js && node scripts/castle-test.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.17",

@@ -5,6 +5,7 @@
 "use strict";
 const crypto=require("crypto");
 const CD=require("./classdata");
+const db=require("./db");
 const STATS=require("./stats");
 
 const ROOM_TTL=60;              // registry key expiry, refreshed while the room lives
@@ -77,7 +78,10 @@ class RoomBase {
     if (!this.teacher || p.pid===this.teacher || p.student) return;
     let known=null;
     try{ known=await CD.knownStudent(this.teacherAcct&&this.teacherAcct.classId, p.token); }catch(e){ console.error("[identity]",e.message); }
-    this.send({ t:"whoareyou", known },p.cid);
+    // the teacher's school is pre-selected in the student's school picker
+    let school=null;
+    try{ if (this.teacherAcct&&this.teacherAcct.teacherId){ const t=await db.one("select school_id from teachers where id=$1",[this.teacherAcct.teacherId]); school=t&&t.school_id||null; } }catch(e){ console.error("[identity]",e.message); }
+    this.send({ t:"whoareyou", known, school },p.cid);
   }
   handleIam(p,msg){
     if (!p || !this.teacher || p.pid===this.teacher) return;
@@ -96,7 +100,7 @@ class RoomBase {
     if (!rec.results.length || !teacher) return;
     try{
       const a=this.teacherAcct||{};
-      if (a.teacherId && a.classId){ const id=await CD.saveSession(a.classId,a.teacherId,rec); this.send({ t:"classresults", sessionId:id },teacher.cid); return; }
+      if (a.teacherId && a.classId){ const r=await CD.saveSession(a.classId,a.teacherId,rec); this.send({ t:"classresults", sessionId:r.id, bricks:r.bricks, won:r.won&&r.won.tournament||null },teacher.cid); return; }
       const claim=crypto.randomBytes(18).toString("base64url");
       await this.bus.set(`cg:pending:${claim}`,rec,24*3600);
       this.send({ t:"classresults", claim },teacher.cid);
