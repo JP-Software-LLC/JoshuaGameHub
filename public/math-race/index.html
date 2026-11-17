@@ -276,8 +276,8 @@ function questionStream(seed, mode="add", digits="12"){
     money(){ let a=int(1,199)*5, b=int(1,199)*5; if (a<b) [a,b]=[b,a]; return { top:cash(a), bottom:cash(b), op:"+", s:a+b, money:true }; },   // type the cents: $4.75 → 475
   }[mode]||null;
   return ()=>{ for(;;){ const q=(make||(()=>null))()||null; if (!q) { if (!make) return { top:0, bottom:0, op:"+", s:0, len:1 }; continue; }
-    // layout rule: + − × keep the bigger number on top; ÷ puts the bigger number (the dividend) on the bottom
-    if (!q.money && (q.op==="÷" ? q.top>q.bottom : q.top<q.bottom)) [q.top,q.bottom]=[q.bottom,q.top];
+    // layout rule: the bigger number is always on top (for ÷ that's the dividend: 56 over ÷ 8)
+    if (!q.money && q.top<q.bottom) [q.top,q.bottom]=[q.bottom,q.top];
     const key=q.top+q.op+q.bottom; if (key===prev) continue; prev=key;
     q.len=String(q.s).length; return q; } };
 }
@@ -346,7 +346,7 @@ function typeDigit(d){
   if (!R.active || R.lockUntil) return;
   R.typed+=d; renderAns();
   if (R.typed.length<R.q.len) return;               // 3-digit answers wait for the 3rd digit
-  const qtxt=R.q.op==="÷"?`${R.q.bottom} ÷ ${R.q.top}`:`${R.q.top} ${R.q.op} ${R.q.bottom}`, ms=Math.round(performance.now()-(R.qAt||performance.now()));
+  const qtxt=`${R.q.top} ${R.q.op} ${R.q.bottom}`, ms=Math.round(performance.now()-(R.qAt||performance.now()));
   if (R.log.length<300) R.log.push({ q:qtxt, a:R.q.s, g:R.typed, ok:+R.typed===R.q.s, ms });
   if (+R.typed===R.q.s){                            // correct: no Enter needed
     R.score++; $("hScore").textContent=R.score;
