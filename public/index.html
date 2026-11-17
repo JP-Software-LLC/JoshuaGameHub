@@ -453,7 +453,6 @@ $("yr").textContent=new Date().getFullYear();
 const GAMES=[
   { id:"clean-getaway", demo:true, kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
   { id:"math-race", demo:true, teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
-  { id:"splat", kind:"splat", cat:"Party", title:"SPLAT!", path:"/splat/", blurb:"Hide behind a barrel. Dodge the water balloon!", tags:["2–6 players","Online","Party"], thumb:"splat" },
   { id:"rush-hour", demo:true, teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", demo:true, teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
   { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
@@ -504,28 +503,6 @@ function mathThumb(){
   ["7","8","9","4","5","6","1","2","3"].forEach((k,i)=>key(348+(i%3)*60,72+(i/3|0)*60,50,k,k==="5"));
   key(348,252,110,"0",false);
   return c;
-}
-// SPLAT! thumbnail: backyard, three barrels, a buddy peeking, a balloon mid-air
-function splatThumb(){
-  const face=(x,y,c,r)=>`<g transform="translate(${x},${y}) scale(${r/50})"><circle r="50" fill="${c}"/><ellipse cx="-20" cy="-26" rx="14" ry="9" fill="#fff" opacity=".45"/>
-    <ellipse cx="-17" cy="-6" rx="8" ry="10" fill="#fff"/><ellipse cx="17" cy="-6" rx="8" ry="10" fill="#fff"/><circle cx="-15" cy="-4" r="5" fill="#1d2b3a"/><circle cx="19" cy="-4" r="5" fill="#1d2b3a"/>
-    <path d="M-15,16 Q0,30 15,16" stroke="#1d2b3a" stroke-width="5" fill="none" stroke-linecap="round"/></g>`;
-  const barrel=x=>`<g transform="translate(${x},205)"><path d="M-46,6 C-56,40 -56,82 -46,118 L46,118 C56,82 56,40 46,6 Z" fill="#c47a3a" stroke="#5b3518" stroke-width="4"/>
-    <path d="M-52,32 Q0,42 52,32 M-52,92 Q0,102 52,92" stroke="#55606e" stroke-width="8" fill="none"/><ellipse cy="6" rx="46" ry="10" fill="#d99a59" stroke="#5b3518" stroke-width="4"/></g>`;
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
-    <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc8ff"/><stop offset="1" stop-color="#d4f0ff"/></linearGradient></defs>
-    <rect width="540" height="380" fill="url(#s)"/><circle cx="470" cy="60" r="34" fill="#ffd23f"/>
-    <ellipse cx="110" cy="70" rx="56" ry="22" fill="#fff"/><ellipse cx="145" cy="58" rx="40" ry="26" fill="#fff"/>
-    <rect y="200" width="540" height="180" fill="#5ebd47"/>
-    ${face(150,205,"#ff5d73",30)}${face(392,203,"#22b8cf",30)}${face(270,200,"#ffb627",30)}
-    ${barrel(150)}${barrel(270)}${barrel(390)}
-    <g transform="translate(330,110) rotate(18)"><ellipse rx="24" ry="28" fill="#3fa9f5"/><ellipse cx="-8" cy="-10" rx="6" ry="9" fill="#fff" opacity=".6"/><path d="M-4,27 L4,27 L0,34Z" fill="#1e7fd8"/></g>
-    <path d="M200,150 Q260,60 312,104" stroke="#fff" stroke-width="4" stroke-dasharray="8 8" fill="none" opacity=".8"/>
-    <text x="270" y="356" text-anchor="middle" font-family="Fredoka, Arial Rounded MT Bold, sans-serif" font-weight="700" font-size="54" fill="#fff" stroke="#1e7fd8" stroke-width="8" paint-order="stroke">SPLAT!</text>
-  </svg>`;
-  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
-  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
-  return img;
 }
 // Rush Hour thumbnail: city street vanishing into the distance, buildings both sides, traffic, a boost strip
 function rushThumb(){
@@ -730,7 +707,6 @@ for (const g of GAMES){
   if (!g.soon) el.querySelector(".thumb").insertAdjacentHTML("beforeend",'<span class="liveb" hidden><i></i><b>0</b>&nbsp;playing</span>');
   if (g.thumb==="cg") el.querySelector(".thumb").prepend(thumbCanvas());
   if (g.thumb==="math") el.querySelector(".thumb").prepend(mathThumb());
-  if (g.thumb==="splat") el.querySelector(".thumb").prepend(splatThumb());
   if (g.thumb==="rush") el.querySelector(".thumb").prepend(rushThumb());
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());

@@ -1,6 +1,6 @@
 # Joshua Game Hub — project context
 
-Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **SPLAT!** (2–6 player kids party game) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) **Dart Party** (up to 40, walk-to-aim dart throwing at balloons) **Sky Climb** (up to 40, flap-to-fly race to the top with player bumping) and **Word Rush** (up to 40, live shared word search).
+Browser multiplayer games at joshuagamehub.website: **Clean Getaway** (5-player chase, Pac-Man Vs.-style) and **Math Race** (up to 40 players, speed addition) **Rush Hour** (up to 40, lane racing) **Bear Attack!** (up to 40, top-down ice survival) **Hurdle Dash** (up to 40, tap-to-run + Math Race quizzes at hurdles) **Arrow Blitz** (up to 40, 1-minute arrow sequences) **Memory Tiles** (up to 40, remember-the-picture survival) **Typing Cowboys** (up to 40, carnival-derby typing race) **Star Cannons** (up to 40, co-op laser cannons vs bouncing asteroids) **Dart Party** (up to 40, walk-to-aim dart throwing at balloons) **Sky Climb** (up to 40, flap-to-fly race to the top with player bumping) and **Word Rush** (up to 40, live shared word search).
 Priorities: visuals and gameplay feel. Security is low priority (no accounts, usernames only). Target ≤ 50 concurrent players.
 
 ## Clean Getaway rules
@@ -31,12 +31,6 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - `server/index.js`: game server (WebSocket gateway + room hosting, also serves the client; `KINDS` maps game id → room class). `server/roombase.js`: shared room plumbing (registry, bus channels, empty-room cleanup). `server/room.js`: Clean Getaway room, authoritative sim at 30 Hz. `server/mathroom.js`: Math Race room (seeds, score collection, rankings; timings overridable via MATH_*_MS env for tests). `server/bus.js`: Redis pub/sub + keys, with an in-memory fallback when `REDIS_URL` is unset. `server/web.js`: static-only frontend service.
 - Railway project `intuitive-rebirth` (services `game`, `web`, `Redis`). Settings live in the Railway service config, not in repo files. Full guide: `docs/DEPLOY.md`.
 - `npm run dev` (one process, localhost:8080) · `npm test` (headless bot match, Clean Getaway end-to-end, Math Race end-to-end, room cleanup).
-
-## SPLAT! rules (kids game: no "killed/eliminated/soaked" wording — use SPLAT!/splatted/dodged)
-- 2–6 players, host start or auto-start 30 s after a 2nd player. Everyone throws once (random order).
-- Turn: up to 3 throws. Hiders pick barrel Left/Up/Right behind a sheet (10 s, 5 s, 3 s; changeable; random if none). Sheet lifts; thrower picks (8 s, random after). Hit hiders sit out the rest of the turn. Turn ends early if all are hit. ≈30–40 s per turn.
-- Points: +10 per throw dodged, +20 per player splatted (balanced: equal expected points throwing vs hiding at any lobby size).
-- Server-authoritative; hiding spots are never sent to the thrower. `server/splatroom.js`, `public/splat/index.html`, timings overridable via SPLAT_*_MS.
 
 ## Rush Hour rules
 - Up to 40 racers, 3-lane city road (window-facade buildings close to the sidewalk for a sense of speed), chase camera (Three.js r128 from cdnjs). Controls: Left/Right lane change, Down = brake (hold). Touch: on-screen ◀ ▼ ▶ + swipes. Solo mode vs 7 ghost bots.
@@ -125,7 +119,7 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 ## Hub live previews (?demo=1)
 - The rotating featured showcase is gone. Each library card's picture becomes a LIVE BOT MATCH when focused (mouse hover / keyboard focus; on touch screens, the card nearest the middle while scrolling): an iframe of the game page at `?demo=1` (960×676, scaled to fit). One feed at a time, removed on leave, reloaded every 75 s. Games opt in with `demo:true` in GAMES.
 - `?demo=1` makes `hub-frame.js` hide the bar, menus, buttons and touch controls and block input; each game's own `DEMO` hook starts a bots-only solo/practice match (your seat played by a bot or autoplayer) and restarts it after results. No WebSocket, no server load beyond cached static files.
-- No demo: SPLAT! (online-only, no offline bots) and Odds or Evens (smart-board turns); they keep their pictures.
+- No demo: Odds or Evens (smart-board turns); it keeps its picture.
 
 ## Classroom flow rules
 - Landing page asks "Who's playing?": Student · Teacher · (small) Play as Guest. The choice is saved as `jgh_mode`; every game's Back button returns to `/#<mode>`.

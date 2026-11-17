@@ -3,7 +3,6 @@
 //
 // Client → server:  hello{name,token?} quick{game} create{game} join{code} leave{}
 //   Clean Getaway:   ready{v} input{d}        Math Race: start{} score{round,n}
-//   SPLAT!:          start{} pick{b} throw{b}   (b = 0 left, 1 middle, 2 right)
 //   Rush Hour:       start{} pos{d,x} (~10/s) finish{time}
 //   Bear Attack!:    start{} in{x,y} (stick direction, on change)
 //   Math Race extras: mode{mode} (host, lobby) · teacher{} (private host becomes a non-playing teacher)
@@ -24,7 +23,6 @@ const { WebSocketServer }=require("ws");
 const { createBus }=require("./bus");
 const { Room }=require("./room");
 const { MathRoom }=require("./mathroom");
-const { SplatRoom }=require("./splatroom");
 const { RushRoom }=require("./rushroom");
 const { BearRoom }=require("./bearroom");
 const { HurdleRoom }=require("./hurdleroom");
@@ -36,7 +34,7 @@ const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;

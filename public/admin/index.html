@@ -46,7 +46,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const apiBase=()=>{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; return s?s.replace(/^ws/,"http").replace(/\/$/,""):""; };
 const token=()=>{ try{ return localStorage.getItem("jgh_auth"); }catch{ return null; } };
-const GAMES={ cg:"Clean Getaway", math:"Math Race", arrows:"Arrow Blitz", splat:"SPLAT!", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
+const GAMES={ cg:"Clean Getaway", math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
 const PAGES={ "/":"Hub (home page)", "/teacher/":"Teacher dashboard", "/admin/":"This page" };
 const n=v=>(v||0).toLocaleString();
 
