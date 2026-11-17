@@ -126,7 +126,7 @@ async function onMessage(c,m){
       if (c.teacherId){ acct={ teacherId:c.teacherId, classId:null };
         if (m.classId && await CD.roleIn(c.teacherId,m.classId)) acct.classId=+m.classId; }
       return toRoom(c,{ t:"teacher", acct }); }
-    case "iam":    return toRoom(c,{ t:"iam", first:String(m.first||"").slice(0,30), last:String(m.last||"").slice(0,5), nick:String(m.nick||"").slice(0,20) });
+    case "iam":    return toRoom(c,{ t:"iam", first:String(m.first||"").slice(0,30), last:String(m.last||"").slice(0,5), nick:String(m.nick||"").slice(0,20), school:String(m.school||"").slice(0,48) });
     case "tile":   return toRoom(c,{ t:"tile", dx:m.dx|0, dy:m.dy|0 });
     case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)), log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "pick":   return toRoom(c,{ t:"pick", b:m.b|0 });

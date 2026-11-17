@@ -106,7 +106,7 @@
       <a class="jgh-brand" href="${HOME}" aria-label="Joshua Game Hub home">
         <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect width="16" height="16" rx="3" fill="#07080c"/><rect x="3" y="5" width="10" height="6" fill="#58c27d"/><rect x="3" y="7" width="10" height="1" fill="#2f7d4a"/><rect x="7" y="6" width="2" height="4" fill="#f2c94c"/></svg>
         <b>JOSHUA <span>GAME</span> HUB</b></a>
-      <div class="jgh-crumb"><i></i><strong>${cur?cur[2]+" "+cur[1]:teacher?"🍎 Teacher dashboard":""}</strong></div>
+      <div class="jgh-crumb"><i></i><strong>${cur?cur[2]+" "+cur[1]:teacher?"🍎 Teacher dashboard":here.startsWith("/school")?"🏰 School castles":""}</strong></div>
       <nav class="jgh-nav">
         <button type="button" id="jgh-more" aria-expanded="false" aria-haspopup="true">All games ▾</button>
         ${teacher||MODE==="student"?"":'<a class="jgh-t jgh-hide" href="/teacher/">🍎 Teachers</a>'}

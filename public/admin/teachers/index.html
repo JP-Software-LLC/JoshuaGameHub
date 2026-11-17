@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Teachers · JGH Admin</title>
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<main>
+  <h1>Teachers</h1>
+  <p class="sub">Everyone who has signed up for a teacher account. “View as” opens their dashboard exactly as they see it, read-only, in a new tab.</p>
+  <div id="out"><div class="msg">Loading…</div></div>
+</main>
+<script src="../../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="/admin/admin.js"></script>
+<script src="/assets/castle.js"></script>
+<script>
+let TEACHERS=[];
+async function load(){
+  if (!token()) return gate();
+  try{ TEACHERS=(await api("/api/admin/teachers")).teachers; }catch(e){ return gate(e); }
+  $("out").innerHTML=`<div class="row" style="justify-content:space-between"><input type="search" id="q" placeholder="Search name, email or school" aria-label="Search teachers">
+      <select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="castle">Biggest castle</option><option value="seen">Last sign-in</option></select></div>
+    <div class="card"><table><thead><tr><th>Teacher</th><th class="left">School</th><th>Castle</th><th>Classes</th><th>Students</th><th>Saved games</th><th>Last game</th><th>Signed up</th><th>Last sign-in</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>`;
+  $("q").addEventListener("input",draw); $("sort").addEventListener("change",draw);
+  draw();
+}
+function draw(){
+  const q=$("q").value.trim().toLowerCase(), by=$("sort").value;
+  const list=TEACHERS.filter(t=>!q||[t.display_name,t.email,t.school].join(" ").toLowerCase().includes(q))
+    .sort(by==="castle"?(a,b)=>b.bricks-a.bricks:by==="seen"?(a,b)=>new Date(b.last_login_at||0)-new Date(a.last_login_at||0):()=>0);
+  const z=v=>v?n(v):`<span class="zero">0</span>`;
+  $("tb").innerHTML=list.length?list.map(t=>`<tr>
+    <td class="who"><b>${esc(t.display_name||"(no name yet)")}</b><span>${esc(t.email)}${t.google?" · Google":""}</span></td>
+    <td class="left" style="min-width:140px">${esc(t.school||"—")}</td>
+    <td><span class="lv">Lv ${Castle.level(t.bricks).level}</span> <span class="zero">🧱 ${n(t.bricks)}</span></td>
+    <td>${z(t.classes)}${t.shared?` <span class="zero">+${t.shared} shared</span>`:""}</td><td>${z(t.students)}</td><td>${z(t.games)}</td>
+    <td>${t.last_game?ago(t.last_game):`<span class="zero">—</span>`}</td><td>${ago(t.created_at)}</td><td>${ago(t.last_login_at)}</td>
+    <td><button class="btn" data-id="${t.id}">View as</button></td></tr>`).join("")
+    :`<tr><td colspan="10">${TEACHERS.length?"No teacher matches that search.":"No teachers have signed up yet."}</td></tr>`;
+  $("tb").querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>viewAs(b.dataset.id,b));
+}
+async function viewAs(id,btn){
+  const w=window.open("about:blank","_blank");          // open now so the popup isn't blocked
+  btn.disabled=true;
+  try{ const d=await api(`/api/admin/teachers/${id}/view`,"POST",{}); const url="/teacher/?viewas="+encodeURIComponent(d.token); if (w) w.location.href=url; else location.href=url; }
+  catch(e){ if (w) w.close(); alert(e.message); }
+  btn.disabled=false;
+}
+load();
+</script>
+</body>
+</html>

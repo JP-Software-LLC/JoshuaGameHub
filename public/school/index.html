@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>School Castles · Joshua Game Hub</title>
+<meta name="theme-color" content="#0b0d12">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0b0d12; --p1:#141a26; --p2:#1b2333; --edge:#2b3550; --ink:#eef2fb; --dim:#aab6cf; --mute:#7c89a6; --gold:#f5c542; --gold2:#ffdf7e; --f:"Space Grotesk",system-ui,sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:radial-gradient(1100px 520px at 50% -12%,rgba(245,197,66,.13),transparent 60%),var(--bg);color:var(--ink);font-family:var(--f);-webkit-font-smoothing:antialiased}
+  body{padding-top:58px}
+  main{max-width:1180px;margin:0 auto;padding:22px 16px 70px}
+  a{color:var(--gold2)}
+  .head{text-align:center;margin:8px 0 26px}
+  .head .kick{color:var(--gold);font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:13px}
+  .head h1{font-size:clamp(28px,5vw,46px);margin:6px 0 6px;line-height:1.1}
+  .head p{color:var(--dim);margin:0 auto;max-width:640px;font-size:16px}
+  h2{font-size:22px;margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  h2 .ct{font-size:14px;color:var(--mute);font-weight:500}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+  .msg{background:var(--p1);border:1px solid var(--edge);border-radius:18px;padding:26px;text-align:center;color:var(--dim)}
+  /* tournament */
+  .tour{background:linear-gradient(160deg,#2a1f45,#171d31 60%);border:2px solid #6c54c9;border-radius:22px;padding:20px 20px 16px;box-shadow:0 18px 50px -24px rgba(124,86,255,.6)}
+  .tour .tt{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .tour .tk{color:#c7b5ff;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:12px}
+  .tour h3{margin:4px 0 4px;font-size:clamp(22px,3.4vw,30px)}
+  .tour .goal{background:rgba(245,197,66,.14);border:1px solid rgba(245,197,66,.5);color:var(--gold2);border-radius:14px;padding:8px 14px;font-weight:700;text-align:center}
+  .tour .goal b{display:block;font-size:24px;color:var(--gold)}
+  .tour .sub{color:#b9b0d9;font-size:14px}
+  .race{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+  .lane{display:grid;grid-template-columns:34px minmax(90px,190px) 1fr 104px;gap:10px;align-items:center}
+  .lane .pl{font-weight:800;font-size:18px;text-align:center;color:#c7b5ff}
+  .lane.first .pl{color:var(--gold)}
+  .lane .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lane .track{position:relative;height:30px;border-radius:30px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}
+  .lane .fill{position:absolute;inset:0 auto 0 0;border-radius:30px;background:linear-gradient(90deg,#6c54c9,#9d86ff);min-width:30px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .lane.first .fill{background:linear-gradient(90deg,#d79b1f,#ffdf7e)}
+  .lane .fill::after{content:"🏰";position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:19px}
+  .lane .track::after{content:"🏁";position:absolute;right:-6px;top:50%;transform:translateY(-50%);font-size:18px}
+  .lane .bk{text-align:right;font-variant-numeric:tabular-nums;color:var(--dim);font-size:14px;white-space:nowrap}
+  .lane .bk b{color:var(--ink);font-size:16px}
+  .more{color:#b9b0d9;font-size:14px;margin-top:10px;text-align:center}
+  .won{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#3a2a07,#1d1a12);border:2px solid var(--gold);border-radius:22px;padding:18px 20px}
+  .won .cup{font-size:48px}
+  .won b{font-size:22px;color:var(--gold2)} .won span{color:var(--dim)}
+  .past{display:flex;flex-direction:column;gap:8px}
+  .past div{background:var(--p1);border:1px solid var(--edge);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .past span{color:var(--dim)}
+  .how{color:var(--mute);font-size:14px;text-align:center;margin-top:36px;line-height:1.6}
+  @media (max-width:600px){ .lane{grid-template-columns:26px 1fr auto;grid-template-areas:"pl nm bk" "tr tr tr";row-gap:4px} .lane .pl{grid-area:pl} .lane .nm{grid-area:nm} .lane .bk{grid-area:bk} .lane .track{grid-area:tr} }
+</style>
+<script src="/assets/hub-frame.js" data-always defer></script>
+<script src="/assets/castle.js"></script>
+</head>
+<body>
+<main id="app"><div class="msg">Loading…</div></main>
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>Math.round(n||0).toLocaleString();
+const apiBase=()=>{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; return s?s.replace(/^ws/,"http").replace(/\/$/,""):""; };
+const day=d=>new Date(d).toLocaleDateString(undefined,{ month:"short", day:"numeric", year:"numeric" });
+// which school: ?id=…, else the student's saved school
+const id=new URLSearchParams(location.search).get("id")||(()=>{ try{ return JSON.parse(localStorage.getItem("jgh_student")||"{}").school||""; }catch{ return ""; } })();
+const TOP=8;   // tournament lanes shown (everyone's castle is still in the grid below)
+
+async function load(){
+  if (!id) return $("app").innerHTML=`<div class="msg">No school picked yet. <a href="/#student">Set up your name and school</a> first.</div>`;
+  let d;
+  try{ const r=await fetch(apiBase()+"/api/school/"+encodeURIComponent(id)); d=await r.json(); if (!r.ok) throw new Error(d.error||"Something went wrong."); }
+  catch(e){ return $("app").innerHTML=`<div class="msg">${esc(e.message||"Couldn't reach the server.")}</div>`; }
+  render(d);
+}
+function render(d){
+  document.title=`${d.school.name} Castles · Joshua Game Hub`;
+  const T=d.tournament, last=d.past[0];
+  let tour="";
+  if (T){
+    const lanes=T.standings.slice(0,TOP), rest=T.standings.length-lanes.length;
+    tour=`<h2>⚔️ Tournament</h2><div class="tour">
+      <div class="tt"><div><div class="tk">Live now</div><h3>${esc(T.name)}</h3><div class="sub">First castle to the goal wins! Bricks from games played since ${day(T.startedAt)} count.</div></div>
+        <div class="goal">Goal<b>🧱 ${fmt(T.goal)}</b></div></div>
+      <div class="race">${lanes.length?lanes.map((s,i)=>`<div class="lane${i===0&&s.bricks>0?" first":""}"><span class="pl">${i+1}</span><span class="nm">${esc(s.name)}</span>
+        <div class="track"><div class="fill" style="width:${Math.min(100,s.bricks/T.goal*100).toFixed(1)}%"></div></div><span class="bk"><b>${fmt(s.bricks)}</b> / ${fmt(T.goal)}</span></div>`).join("")
+        :`<div class="sub">No teachers at this school yet.</div>`}</div>
+      ${rest>0?`<div class="more">+ ${rest} more castle${rest>1?"s":""} in the race</div>`:""}</div>`;
+  } else if (last && last.winner && Date.now()-new Date(last.endedAt)<14*864e5){
+    tour=`<div class="won" style="margin-top:6px"><span class="cup">🏆</span><div><b>${esc(last.winner)} won ${esc(last.name)}!</b><br><span>First to 🧱 ${fmt(last.goal)} bricks · ${day(last.endedAt)}</span></div></div>`;
+  }
+  const castles=d.castles.map((c,i)=>Castle.card({ name:c.name, bricks:c.bricks, games:c.games, rank:i+1 })).join("");
+  const past=d.past.filter(p=>p.winner);
+  $("app").innerHTML=`
+    <div class="head"><div class="kick">🏰 School castles</div><h1>${esc(d.school.name)}</h1>
+      <p>${d.school.state?esc(d.school.state)+" · ":""}Every class game a teacher runs adds bricks to their castle. Bigger games and better scores build faster!</p></div>
+    ${tour}
+    <h2>🏰 Castles <span class="ct">${d.castles.length} teacher${d.castles.length===1?"":"s"}</span></h2>
+    ${castles?`<div class="grid">${castles}</div>`:`<div class="msg">No teachers have set up a castle at this school yet. When a teacher here signs in and runs a class game, their castle appears.</div>`}
+    ${past.length?`<h2>🏆 Past tournaments</h2><div class="past">${past.map(p=>`<div><b>${esc(p.name)}</b><span>🏆 ${esc(p.winner)} · first to 🧱 ${fmt(p.goal)} · ${day(p.endedAt)}</span></div>`).join("")}</div>`:""}
+    <p class="how">How it works: when your teacher runs a 🍎 Teacher Mode game, everyone's score turns into bricks. An average score is about 100 bricks in any game, so every game counts the same.</p>`;
+}
+load(); setInterval(()=>{ if (!document.hidden) load(); },30000);
+</script>
+</body>
+</html>

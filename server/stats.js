@@ -40,7 +40,8 @@ async function report(days){
   const rows=await db.all("select to_char(day,'YYYY-MM-DD') as day,metric,n::int as n from daily_stats where day>current_date-$1::int order by day",[days]);
   const totals=await db.one(`select (select count(*) from teachers)::int teachers, (select count(*) from classes)::int classes,
     (select count(*) from students)::int students, (select count(*) from game_sessions)::int saved_games,
-    (select count(*) from teachers where created_at>now()-($1::int*interval '1 day'))::int new_teachers`,[days]);
+    (select count(*) from teachers where created_at>now()-($1::int*interval '1 day'))::int new_teachers,
+    (select coalesce(sum(bricks),0) from teachers)::float8 bricks, (select count(*) from tournaments where ended_at is null)::int live_tournaments`,[days]);
   return { days, rows, totals };
 }
 module.exports={ add, conns, mode, view, flush, report };

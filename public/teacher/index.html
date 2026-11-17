@@ -70,6 +70,7 @@ body{padding-top:46px} .who-row{justify-content:flex-end;padding-bottom:0}
 .viewas .who-row{position:relative;z-index:5}
 </style>
 <script src="/assets/hub-frame.js" data-always defer></script>
+<script src="/assets/castle.js"></script>
 </head>
 <body>
 <div class="bar who-row"><div class="who" id="who"></div></div>
@@ -253,7 +254,10 @@ async function renderClasses(classId,tab){
   $("app").innerHTML=`<div class="layout"><div class="side"><h3>Your classes</h3>
       ${classes.map(c=>`<a class="cls ${cur&&c.id===cur.id?"on":""}" href="#class/${c.id}/games"><span>${esc(c.name)}</span><small>${c.role==="coteacher"?"co-teacher":c.students+" 👤"}</small></a>`).join("")}
       <div class="row" style="margin-top:8px;flex-wrap:nowrap"><input id="nc" maxlength="60" placeholder="New class name"><button class="btn sm" id="add">Add</button></div>
-      <p class="muted" style="margin:10px 2px">Start a game from the <a href="/#teachers">game hub</a> with 🍎 Teacher mode and pick a class. Results save here automatically.</p></div>
+      <p class="muted" style="margin:10px 2px">Start a game from the <a href="/#teachers">game hub</a> with 🍎 Teacher mode and pick a class. Results save here automatically.</p>
+      <h3 style="margin-top:22px">Your castle</h3>
+      ${Castle.card({ name:ME.teacher.displayName||"Your", bricks:ME.castle?ME.castle.bricks:0, games:ME.castle?ME.castle.games:0, mine:true })}
+      <p class="muted" style="margin:8px 2px">Every class game you save adds bricks: an average score ≈ 100 bricks per student, in any game.${ME.teacher.schoolId?` <a href="/school/?id=${encodeURIComponent(ME.teacher.schoolId)}">See your school's castles →</a>`:""}</p></div>
     <div id="pane">${cur?"":`<div class="card empty">Make your first class on the left to get started.</div>`}</div></div>`;
   $("add").onclick=async()=>{ const n=$("nc").value.trim(); if (!n) return; const c=(await api("/api/classes","POST",{ name:n })).class; location.hash=`#class/${c.id}/games`; };
   if (!cur) return;
