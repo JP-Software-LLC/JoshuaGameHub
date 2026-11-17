@@ -18,6 +18,13 @@ function makeApi(bus){
   async function needTeacher(req){
     const t=await A.teacherFromToken(String(req.headers.authorization||"").replace(/^Bearer /,""));
     if (!t) throw A.httpErr(401,"Please sign in.");
+    // admin "view as" sessions are read-only
+    if (t.viewed_by && req.method!=="GET") throw A.httpErr(403,"View only: you're looking at this teacher's account as an admin, so nothing can be changed.");
+    return t;
+  }
+  async function needAdmin(req){
+    const t=await needTeacher(req);
+    if (t.viewed_by || !ADMINS().has(String(t.email).toLowerCase())) throw A.httpErr(403,"This page is only for site admins.");
     return t;
   }
   async function needRole(t,classId,want){
@@ -29,15 +36,26 @@ function makeApi(bus){
     ["GET","/api/config",async()=>({ googleClientId:process.env.GOOGLE_CLIENT_ID||null, emailEnabled:A.emailEnabled(), noVerify:A.noVerify() })],
     // ---- analytics: the hub reports which view was picked; site admins (ADMIN_EMAILS) read the totals
     ["POST","/api/hit",async(req,b)=>{ if (b.mode) STATS.mode(String(b.mode)); if (b.view!==undefined) STATS.view(b.view,String(b.play||"")); return { ok:true }; }],
-    ["GET","/api/admin/stats",async req=>{ const t=await needTeacher(req); if (!ADMINS().has(String(t.email).toLowerCase())) throw A.httpErr(403,"This page is only for site admins.");
-      return STATS.report(+new URL(req.url,"http://x").searchParams.get("days")||30); }],
+    ["GET","/api/admin/stats",async req=>{ await needAdmin(req); return STATS.report(+new URL(req.url,"http://x").searchParams.get("days")||30); }],
+    // every teacher account, newest first, with what they've set up
+    ["GET","/api/admin/teachers",async req=>{ await needAdmin(req);
+      const rows=await db.all(`select t.id,t.email,t.display_name,t.school_id,(t.google_sub is not null) as google,t.created_at,t.last_login_at,
+        (select count(*) from class_members m where m.teacher_id=t.id and m.role='owner')::int as classes,
+        (select count(*) from class_members m where m.teacher_id=t.id and m.role='coteacher')::int as shared,
+        (select count(*) from students s join classes c on c.id=s.class_id where c.owner_id=t.id)::int as students,
+        (select count(*) from game_sessions g join classes c on c.id=g.class_id where c.owner_id=t.id)::int as games,
+        (select max(g.ended_at) from game_sessions g join class_members m on m.class_id=g.class_id where m.teacher_id=t.id) as last_game
+        from teachers t order by t.created_at desc`);
+      return { teachers:rows.map(r=>{ const sc=C.schoolById(r.school_id); return { ...r, id:+r.id, school:sc?`${sc.name}, ${sc.state}`:"" }; }) }; }],
+    // open a read-only session as that teacher (the /teacher/ page uses it in its own tab)
+    ["POST","/api/admin/teachers/:id/view",async(req,b,p)=>{ const a=await needAdmin(req); return A.viewAsSession(p.id,a.id); }],
     ["GET","/api/schools",async()=>({ schools:C.SCHOOLS })],
     // ---- auth
     ["POST","/api/auth/email",async(req,b)=>A.startEmailLogin(b.email,ipOf(req))],
     ["POST","/api/auth/email/verify",async(req,b)=>A.verifyEmailLogin(b.token)],
     ["POST","/api/auth/google",async(req,b)=>A.googleLogin(b.credential)],
     ["POST","/api/auth/logout",async req=>{ await A.logout(String(req.headers.authorization||"").replace(/^Bearer /,"")); return { ok:true }; }],
-    ["GET","/api/me",async req=>{ const t=await needTeacher(req); return { teacher:A.publicTeacher(t), school:C.schoolById(t.school_id) }; }],
+    ["GET","/api/me",async req=>{ const t=await needTeacher(req); return { teacher:A.publicTeacher(t), school:C.schoolById(t.school_id), viewAs:!!t.viewed_by }; }],
     ["PATCH","/api/me",async(req,b)=>{ const t=await needTeacher(req);
       const name=String(b.displayName??t.display_name).replace(/[<>]/g,"").trim().slice(0,60), school=b.schoolId===undefined?t.school_id:(C.schoolById(b.schoolId)?b.schoolId:null);
       const u=await db.one("update teachers set display_name=$2, school_id=$3 where id=$1 returning *",[t.id,name,school]); return { teacher:A.publicTeacher(u) }; }],

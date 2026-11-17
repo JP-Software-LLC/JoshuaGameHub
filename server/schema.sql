@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at  TIMESTAMPTZ NOT NULL
 );
+-- set when a site admin opens a read-only "view as this teacher" session (id of the admin)
+ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS viewed_by BIGINT REFERENCES teachers(id) ON DELETE CASCADE;
 
 CREATE TABLE IF NOT EXISTS classes (
   id          BIGSERIAL PRIMARY KEY,

@@ -104,7 +104,7 @@ async function onMessage(c,m){
   switch (m.t){
     case "hello": {
       c.teacherId=null;
-      if (typeof m.auth==="string" && m.auth){ try{ const t=await AUTH.teacherFromToken(m.auth); if (t) c.teacherId=+t.id; }catch(e){ console.error("[auth]",e.message); } }
+      if (typeof m.auth==="string" && m.auth){ try{ const t=await AUTH.teacherFromToken(m.auth); if (t && !t.viewed_by) c.teacherId=+t.id; }catch(e){ console.error("[auth]",e.message); } }
       c.name=cleanName(m.name);
       c.token=typeof m.token==="string"&&m.token.length<40?m.token:id(16);
       c.send(JSON.stringify({ t:"welcome", token:c.token, name:c.name }));

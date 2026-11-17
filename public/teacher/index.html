@@ -66,6 +66,8 @@
   .claim{border-color:rgba(255,107,107,.5);background:linear-gradient(rgba(255,107,107,.08),transparent)}
   @media (max-width:820px){ .layout{grid-template-columns:1fr} .hide-s{display:none} td,th{padding:8px 6px} }
 body{padding-top:46px} .who-row{justify-content:flex-end;padding-bottom:0}
+.viewing{background:#3a2a0b;border:1px solid #b9862a;color:#ffd98a;border-radius:999px;padding:4px 12px;font-size:13px;max-width:72vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewas .who-row{position:relative;z-index:5}
 </style>
 <script src="/assets/hub-frame.js" data-always defer></script>
 </head>
@@ -80,9 +82,15 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{ return localStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} } };
 const apiBase=()=>{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; return s?s.replace(/^ws/,"http").replace(/\/$/,""):""; };
+// Admin "view as teacher": the read-only token lives only in this tab (sessionStorage), never replacing your own sign-in
+const VIEW={ get(){ try{ return sessionStorage.getItem("jgh_viewas"); }catch{ return null; } }, set(v){ try{ v?sessionStorage.setItem("jgh_viewas",v):sessionStorage.removeItem("jgh_viewas"); }catch{} } };
+if (new URLSearchParams(location.search).get("viewas")) VIEW.set(new URLSearchParams(location.search).get("viewas"));
+const authTok=()=>VIEW.get()||store.get("jgh_auth");
+function exitView(){ VIEW.set(null); location.href="/admin/"; }
 async function api(path,method="GET",body){
-  const r=await fetch(apiBase()+path,{ method, headers:{ "content-type":"application/json", ...(store.get("jgh_auth")?{ authorization:"Bearer "+store.get("jgh_auth") }:{}) }, body:body?JSON.stringify(body):undefined });
+  const r=await fetch(apiBase()+path,{ method, headers:{ "content-type":"application/json", ...(authTok()?{ authorization:"Bearer "+authTok() }:{}) }, body:body?JSON.stringify(body):undefined });
   const j=await r.json().catch(()=>({}));
+  if (r.status===401 && VIEW.get()){ VIEW.set(null); $("app").innerHTML=`<div class="empty">That view-as session has ended. <a href="/admin/">Back to admin</a></div>`; throw new Error("ended"); }
   if (r.status===401 && store.get("jgh_auth")){ store.set("jgh_auth",null); route(); }
   if (!r.ok){ const e=new Error(j.error||"Something went wrong."); e.status=r.status; throw e; }
   return j;
@@ -129,12 +137,18 @@ let ME=null, CFG={};
   route();
 })();
 async function route(){
-  if (!store.get("jgh_auth")) return renderSignIn();
+  if (!authTok()) return renderSignIn();
   try{ ME=await api("/api/me"); }catch(e){ return; }
-  $("who").innerHTML=`<span class="hide-s">${esc(ME.teacher.displayName||ME.teacher.email)}</span><a href="#account">Account</a>`;
-  if (!ME.teacher.displayName || !ME.teacher.schoolId) return renderSetup();
+  document.body.classList.toggle("viewas",!!ME.viewAs);
+  $("who").innerHTML=ME.viewAs
+    ?`<span class="viewing">👁 Viewing as <b>${esc(ME.teacher.displayName||ME.teacher.email)}</b> · ${esc(ME.teacher.email)} · view only</span><a href="#" id="exitView">Exit</a>`
+    :`<span class="hide-s">${esc(ME.teacher.displayName||ME.teacher.email)}</span><a href="#account">Account</a>`;
+  if (ME.viewAs) $("exitView").onclick=e=>{ e.preventDefault(); exitView(); };
+  else if (!ME.teacher.displayName || !ME.teacher.schoolId) return renderSetup();
+  if (!ME.viewAs){
   const inv=store.get("jgh_invite"); if (inv) return acceptInvite(inv);
   const claim=store.get("jgh_claim"); if (claim) return renderClaim(claim);
+  }
   const [kind,id,tab]=location.hash.slice(1).split("/");
   if (kind==="session") return renderSession(id);
   if (kind==="student") return renderStudent(id);
