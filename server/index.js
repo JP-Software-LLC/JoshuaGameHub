@@ -3,7 +3,6 @@
 //
 // Client → server:  hello{name,token?} quick{game} create{game} join{code} leave{}
 //   Clean Getaway:   ready{v} input{d}        Math Race: start{} score{round,n}
-//   SPLAT!:          start{} pick{b} throw{b}   (b = 0 left, 1 middle, 2 right)
 //   Rush Hour:       start{} pos{d,x} (~10/s) finish{time}
 //   Bear Attack!:    start{} in{x,y} (stick direction, on change)
 //   Math Race extras: mode{mode} (host, lobby) · teacher{} (private host becomes a non-playing teacher)
@@ -24,7 +23,6 @@ const { WebSocketServer }=require("ws");
 const { createBus }=require("./bus");
 const { Room }=require("./room");
 const { MathRoom }=require("./mathroom");
-const { SplatRoom }=require("./splatroom");
 const { RushRoom }=require("./rushroom");
 const { BearRoom }=require("./bearroom");
 const { HurdleRoom }=require("./hurdleroom");
@@ -36,7 +34,7 @@ const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, splat:SplatRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -106,7 +104,7 @@ async function onMessage(c,m){
   switch (m.t){
     case "hello": {
       c.teacherId=null;
-      if (typeof m.auth==="string" && m.auth){ try{ const t=await AUTH.teacherFromToken(m.auth); if (t) c.teacherId=+t.id; }catch(e){ console.error("[auth]",e.message); } }
+      if (typeof m.auth==="string" && m.auth){ try{ const t=await AUTH.teacherFromToken(m.auth); if (t && !t.viewed_by) c.teacherId=+t.id; }catch(e){ console.error("[auth]",e.message); } }
       c.name=cleanName(m.name);
       c.token=typeof m.token==="string"&&m.token.length<40?m.token:id(16);
       c.send(JSON.stringify({ t:"welcome", token:c.token, name:c.name }));

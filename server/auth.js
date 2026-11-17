@@ -73,10 +73,19 @@ async function newSession(t){
 }
 async function teacherFromToken(token){
   if (!token||typeof token!=="string"||token.length>100) return null;
-  return db.one("select t.* from auth_sessions s join teachers t on t.id=s.teacher_id where s.token_hash=$1 and s.expires_at>now()",[hash(token)]);
+  return db.one("select t.*, s.viewed_by from auth_sessions s join teachers t on t.id=s.teacher_id where s.token_hash=$1 and s.expires_at>now()",[hash(token)]);
+}
+// site admin → read-only session as another teacher (2 h). Doesn't touch the teacher's last login.
+const VIEW_HOURS=2;
+async function viewAsSession(teacherId,adminId){
+  const t=await db.one("select * from teachers where id=$1",[teacherId]);
+  if (!t) throw httpErr(404,"Teacher not found.");
+  const token=newToken();
+  await db.q("insert into auth_sessions(token_hash,teacher_id,expires_at,viewed_by) values($1,$2,now()+($3||' hours')::interval,$4)",[hash(token),t.id,String(VIEW_HOURS),adminId]);
+  return { token, teacher:publicTeacher(t) };
 }
 const logout=token=>db.q("delete from auth_sessions where token_hash=$1",[hash(token)]);
 const publicTeacher=t=>({ id:+t.id, email:t.email, displayName:t.display_name||"", schoolId:t.school_id||null, google:!!t.google_sub });
 function httpErr(status,msg){ const e=new Error(msg); e.status=status; return e; }
 
-module.exports={ noVerify, hash, newToken, cleanEmail, validEmail, limited, sendEmail, emailEnabled, startEmailLogin, verifyEmailLogin, googleLogin, teacherFromToken, logout, publicTeacher, httpErr, APP_URL };
+module.exports={ noVerify, hash, newToken, cleanEmail, validEmail, limited, sendEmail, emailEnabled, startEmailLogin, verifyEmailLogin, googleLogin, teacherFromToken, viewAsSession, logout, publicTeacher, httpErr, APP_URL };

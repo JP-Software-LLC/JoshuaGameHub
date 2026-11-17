@@ -211,7 +211,6 @@ const HOW={
   "dart-party":"Walk with the arrow keys (or the joystick). Press Space (or the button) to throw darts at balloons!",
   "sky-climb":"Press Space (or tap) to flap. Steer with ← → through the gaps to reach the top!",
   "word-rush":"Find a word in the big letter grid. Drag across it with your mouse or finger to claim it before anyone else!",
-  "splat":"One friend has a water balloon. Everyone else hides behind a barrel. Don't get splatted!",
   "clean-getaway":"Grab the cash and get out of the bank without the guards catching you!",
 };
 function studentMenu(){

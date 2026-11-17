@@ -47,6 +47,28 @@ srv.stdout.on("data",async d=>{
     if (!(sum.peak>=2)) fail("peak connections not recorded");
     if (s.totals.teachers!==2) fail("account totals wrong "+JSON.stringify(s.totals));
     console.log("OK: analytics — views, hub buttons, rooms, joins, games started, peak; admins only");
+    // ---- admin: teacher list + read-only "view as"
+    const boss=await signIn("boss@school.test"), nobodyTok=await signIn("nobody@school.test");
+    await api("PATCH","/api/me",{ displayName:"Ms Nobody" },nobodyTok);
+    const cls=await api("POST","/api/classes",{ name:"Room 4" },nobodyTok);
+    if ((await api("GET","/api/admin/teachers",null,nobodyTok)).status!==403) fail("non-admin could list teachers");
+    const tl=await api("GET","/api/admin/teachers",null,boss);
+    const nb=(tl.teachers||[]).find(t=>t.email==="nobody@school.test");
+    if (!nb||nb.display_name!=="Ms Nobody"||nb.classes!==1) fail("teacher list wrong "+JSON.stringify(tl));
+    if ((await api("POST",`/api/admin/teachers/${nb.id}/view`,{},nobodyTok)).status!==403) fail("non-admin could view as");
+    const v=await api("POST",`/api/admin/teachers/${nb.id}/view`,{},boss);
+    const me=await api("GET","/api/me",null,v.token);
+    if (!me.viewAs||me.teacher.email!=="nobody@school.test") fail("view-as /api/me wrong "+JSON.stringify(me));
+    const cl=await api("GET","/api/classes",null,v.token);
+    if (!(cl.classes||[]).some(c=>c.name==="Room 4")) fail("view-as can't see the teacher's classes");
+    if ((await api("POST","/api/classes",{ name:"Sneaky" },v.token)).status!==403) fail("view-as could create a class");
+    if ((await api("DELETE","/api/classes/"+(cls.class?cls.class.id:cls.id),{},v.token)).status!==403) fail("view-as could delete a class");
+    if ((await api("DELETE","/api/me",{},v.token)).status!==403) fail("view-as could delete the account");
+    // an admin's view-as token must not itself be an admin token
+    const vb=await api("POST",`/api/admin/teachers/${tl.teachers.find(t=>t.email==="boss@school.test").id}/view`,{},boss);
+    if ((await api("GET","/api/admin/teachers",null,vb.token)).status!==403) fail("view-as token acted as admin");
+    if (((await api("GET","/api/classes",null,nobodyTok)).classes||[]).length!==1) fail("teacher's data changed");
+    console.log("OK: admin teacher list + read-only view-as (admins only, no writes, not an admin token)");
     A.ws.close(); B.ws.close(); srv.kill(); setTimeout(()=>process.exit(0),200);
   } catch(e){ fail(e.message); }
 });

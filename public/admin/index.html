@@ -29,16 +29,26 @@
   .axis{display:flex;justify-content:space-between;color:var(--dim);font-size:12px;margin-top:6px}
   .msg{background:var(--p1);border:1px solid var(--edge);border-radius:14px;padding:20px}
   .note{color:var(--dim);font-size:13px;margin-top:24px}
+  .tabs{display:flex;gap:6px;margin:4px 0 18px}
+  .tabs button{background:var(--p1);color:var(--dim);border:1px solid var(--edge);border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+  input[type=search]{background:var(--p1);color:var(--ink);border:1px solid var(--edge);border-radius:10px;padding:9px 12px;font:inherit;width:100%;max-width:360px;margin-bottom:12px}
+  .tt td{vertical-align:middle} .tt .who b{display:block} .tt .who span{color:var(--dim);font-size:13px}
+  .viewbtn{background:var(--acc);color:#1a0b0b;border:0;border-radius:9px;padding:7px 12px;font:inherit;font-weight:700;cursor:pointer}
+  .viewbtn:hover{filter:brightness(1.1)}
+  .zero{color:var(--dim)}
+  .tt th,.tt td{padding:7px 6px} .tt th:nth-child(2),.tt td:nth-child(2){white-space:normal;text-align:left;min-width:140px}
 </style>
 </head>
 <body>
 <main>
   <div class="top">
-    <div><h1>Site analytics</h1><p class="sub">Daily totals counted on our own server. No cookies, no outside trackers, nothing about any one person.</p></div>
+    <div><h1 id="h1">Site analytics</h1><p class="sub" id="sub">Daily totals counted on our own server. No cookies, no outside trackers, nothing about any one person.</p></div>
     <select id="days" aria-label="Time range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select>
   </div>
+  <div class="tabs" role="tablist"><button role="tab" data-tab="stats" aria-selected="true">Analytics</button><button role="tab" data-tab="teachers" aria-selected="false">Teachers</button></div>
   <div id="out"><div class="msg">Loading…</div></div>
-  <p class="note">Days are UTC. Numbers update about once a minute. "Peak online" is the most connections at once.</p>
+  <p class="note" id="note">Days are UTC. Numbers update about once a minute. "Peak online" is the most connections at once.</p>
 </main>
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
 <script>
@@ -46,7 +56,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const apiBase=()=>{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; return s?s.replace(/^ws/,"http").replace(/\/$/,""):""; };
 const token=()=>{ try{ return localStorage.getItem("jgh_auth"); }catch{ return null; } };
-const GAMES={ cg:"Clean Getaway", math:"Math Race", arrows:"Arrow Blitz", splat:"SPLAT!", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
+const GAMES={ cg:"Clean Getaway", math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
 const PAGES={ "/":"Hub (home page)", "/teacher/":"Teacher dashboard", "/admin/":"This page" };
 const n=v=>(v||0).toLocaleString();
 
@@ -108,8 +118,60 @@ function render(d){
     <div class="tile"><b>${n(T.saved_games)}</b><span>Saved class games</span></div>
   </div>`;
 }
+// ---- Teachers tab: every account, and a read-only "view as" that opens their dashboard in a new tab
+let TAB="stats", TEACHERS=null;
+const SUB={ stats:"Daily totals counted on our own server. No cookies, no outside trackers, nothing about any one person.",
+  teachers:"Everyone who has signed up for a teacher account. “View as” opens their dashboard exactly as they see it, read-only, in a new tab." };
+const ago=d=>{ if (!d) return "never"; const s=(Date.now()-new Date(d))/1e3; if (s<3600) return Math.max(1,s/60|0)+" min ago"; if (s<86400) return (s/3600|0)+" h ago"; if (s<86400*30) return (s/86400|0)+" days ago"; return new Date(d).toLocaleDateString(undefined,{ year:"numeric", month:"short", day:"numeric" }); };
+async function loadTeachers(){
+  if (!token()) return load();
+  $("out").innerHTML=`<div class="msg">Loading…</div>`;
+  try{
+    const r=await fetch(apiBase()+"/api/admin/teachers",{ headers:{ authorization:"Bearer "+token() } });
+    const d=await r.json().catch(()=>({}));
+    if (!r.ok) return $("out").innerHTML=`<div class="msg">${esc(d.error||"Something went wrong.")}</div>`;
+    TEACHERS=d.teachers;
+  }catch{ return $("out").innerHTML=`<div class="msg">Couldn't reach the server.</div>`; }
+  $("out").innerHTML=`<input type="search" id="q" placeholder="Search name, email or school" aria-label="Search teachers">
+    <div class="card"><table class="tt"><thead><tr><th>Teacher</th><th>School</th><th>Classes</th><th>Students</th><th>Saved games</th><th>Last game</th><th>Signed up</th><th>Last sign-in</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>`;
+  $("q").addEventListener("input",drawTeachers);
+  drawTeachers();
+}
+function drawTeachers(){
+  const q=$("q").value.trim().toLowerCase();
+  const list=TEACHERS.filter(t=>!q||[t.display_name,t.email,t.school].join(" ").toLowerCase().includes(q));
+  const z=v=>v?n(v):`<span class="zero">0</span>`;
+  $("tb").innerHTML=list.length?list.map(t=>`<tr>
+    <td class="who"><b>${esc(t.display_name||"(no name yet)")}</b><span>${esc(t.email)}${t.google?" · Google":""}</span></td>
+    <td>${esc(t.school||"—")}</td><td>${z(t.classes)}${t.shared?` <span class="zero">+${t.shared} shared</span>`:""}</td><td>${z(t.students)}</td><td>${z(t.games)}</td>
+    <td>${t.last_game?ago(t.last_game):`<span class="zero">—</span>`}</td><td>${ago(t.created_at)}</td><td>${ago(t.last_login_at)}</td>
+    <td><button class="viewbtn" data-id="${t.id}">View as</button></td></tr>`).join("")
+    :`<tr><td colspan="9">${TEACHERS.length?"No teacher matches that search.":"No teachers have signed up yet."}</td></tr>`;
+  $("tb").querySelectorAll(".viewbtn").forEach(b=>b.onclick=()=>viewAs(b.dataset.id,b));
+}
+async function viewAs(id,btn){
+  const w=window.open("about:blank","_blank");          // open now so the popup isn't blocked
+  btn.disabled=true;
+  try{
+    const r=await fetch(apiBase()+`/api/admin/teachers/${id}/view`,{ method:"POST", headers:{ authorization:"Bearer "+token(), "content-type":"application/json" }, body:"{}" });
+    const d=await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(d.error||"Something went wrong.");
+    const url="/teacher/?viewas="+encodeURIComponent(d.token);
+    if (w) w.location.href=url; else location.href=url;
+  }catch(e){ if (w) w.close(); alert(e.message); }
+  btn.disabled=false;
+}
+function show(tab){
+  TAB=tab;
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===tab)));
+  $("h1").textContent=tab==="teachers"?"Teachers":"Site analytics"; $("sub").textContent=SUB[tab];
+  $("days").style.visibility=$("note").style.visibility=tab==="stats"?"visible":"hidden";
+  try{ history.replaceState(null,"",tab==="teachers"?"#teachers":location.pathname); }catch{}
+  tab==="teachers"?loadTeachers():load();
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>show(b.dataset.tab));
 $("days").addEventListener("change",load);
-load();
+show(location.hash==="#teachers"?"teachers":"stats");
 </script>
 </body>
 </html>
