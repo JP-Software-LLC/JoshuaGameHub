@@ -14,9 +14,16 @@ function configJs(){
   return `window.CG_CONFIG=${JSON.stringify({ server:url })};\n`;
 }
 
+// Never let a bad request take the server down: bots probe for "/%00.env", "/%E0%A4%A" etc.
 function serveStatic(req,res){
+  try{ return serve(req,res); }
+  catch(e){ console.error("[static]",e.message); if (!res.headersSent){ res.writeHead(400,{"content-type":"text/plain"}); } res.end("bad request"); }
+}
+function serve(req,res){
   const u=new URL(req.url,"http://x");
-  let p=decodeURIComponent(u.pathname);
+  let p;
+  try{ p=decodeURIComponent(u.pathname); }catch{ res.writeHead(400,{"content-type":"text/plain"}); return res.end("bad request"); }
+  if (p.includes("\0")){ res.writeHead(400,{"content-type":"text/plain"}); return res.end("bad request"); }
   if (p==="/health"){ res.writeHead(200,{"content-type":"text/plain"}); return res.end("ok"); }
   if (p==="/config.js"){ res.writeHead(200,{"content-type":TYPES[".js"],"cache-control":"no-store"}); return res.end(configJs()); }
   let file;
@@ -33,7 +40,7 @@ function serveStatic(req,res){
   else {
     if (p.endsWith("/")) p+="index.html";
     file=path.normalize(path.join(PUBLIC,p));
-    if (!file.startsWith(PUBLIC)){ res.writeHead(403); return res.end(); }
+    if (file!==PUBLIC && !file.startsWith(PUBLIC+path.sep)){ res.writeHead(403); return res.end(); }
   }
   // /clean-getaway → /clean-getaway/ so the page's relative paths resolve
   if (!path.extname(file) && fs.existsSync(path.join(file,"index.html"))){ res.writeHead(301,{ location:p+"/"+u.search }); return res.end(); }

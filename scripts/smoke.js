@@ -72,7 +72,10 @@ srv.stdout.on("data",async d=>{
     const page=await fetch(`http://127.0.0.1:${PORT}/`), sim=await fetch(`http://127.0.0.1:${PORT}/sim.js`);
     if (!h.ok||page.status!==200||sim.status!==200||!cfg.includes("CG_CONFIG")) fail("http endpoints");
     console.log("health:",JSON.stringify(h));
-    console.log("OK: lobby, start, snapshots, bot takeover, reconnect, matchmaking, static");
+    // bot probes with null bytes / broken escapes once crashed the server: they must get 400 and the server must stay up
+    for (const bad of ["/%00migrations/%00.env","/%00phpinfo.php","/%E0%A4%A"]){ const r=await fetch(`http://127.0.0.1:${PORT}${bad}`); if (r.status!==400) throw new Error(bad+" → "+r.status); }
+    if ((await fetch(`http://127.0.0.1:${PORT}/health`)).status!==200) throw new Error("server down after bad requests");
+    console.log("OK: lobby, start, snapshots, bot takeover, reconnect, matchmaking, static, bad-path probes");
     srv.kill(); setTimeout(()=>process.exit(0),200);
   } catch(e){ fail(e.message); }
 });
