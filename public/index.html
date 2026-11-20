@@ -255,6 +255,14 @@
   body.v-student[data-k="edu"] #lib .card:not([data-edu="1"]), body.v-student[data-k="fun"] #lib .card[data-edu="1"],
   body.v-teacher[data-k="edu"] .tl:not([data-edu="1"]), body.v-teacher[data-k="fun"] .tl[data-edu="1"]{display:none}
   @media (max-width:620px){ .kswitch button{padding:9px 14px;font-size:15px} }
+  /* Just for fun (students): jump into any open public lobby, or open one for a random game */
+  .anyplay{display:none;flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 18px}
+  body.v-student[data-k="fun"] .anyplay{display:flex}
+  .anyplay button{appearance:none;border:0;cursor:pointer;border-radius:16px;font:800 20px var(--sans);padding:16px 26px;min-width:min(340px,100%);text-align:center}
+  .anyplay .any{background:#ff6b6b;color:#1a0b0b;box-shadow:0 5px 0 #a33a3a}
+  .anyplay .make{background:transparent;color:var(--ink,#fff);border:2px solid var(--edge2);font-size:17px;padding:12px 22px}
+  .anyplay button:hover{filter:brightness(1.08)} .anyplay button:disabled{opacity:.6;cursor:default}
+  .anyplay .msg{color:var(--dim);font-size:14px;min-height:1.2em;margin:0}
   .tlist{display:flex;flex-direction:column;border-radius:var(--r);background:var(--glass);border:1px solid var(--edge2);overflow:hidden}
   .tl{display:flex;align-items:center;gap:16px;padding:12px 16px;border-top:1px solid var(--edge2)}
   .tl:first-child{border-top:0}
@@ -423,6 +431,7 @@
 
   <section class="wrap sec" id="games">
     <div class="kswitch" role="tablist" aria-label="Kind of game"><button type="button" role="tab" data-k="edu">📚 Educational</button><button type="button" role="tab" data-k="fun">🎉 Just for fun</button></div>
+    <div class="anyplay"><button type="button" class="any" id="joinAny">🎲 Join any game</button><button type="button" class="make" id="makeAny">✨ Create any game</button><p class="msg" id="anyMsg" role="status"></p></div>
     <div class="sechead"><div style="display:flex;flex-direction:column;gap:12px"><h2>LIBRARY</h2><div class="filters" id="filters" role="group" aria-label="Filter games"></div></div><p id="libCount"></p></div>
     <div class="grid" id="lib"></div>
   </section>
@@ -1043,6 +1052,25 @@ function saveProfile(){
   $("pErr").textContent=""; ls.set("jgh_student",JSON.stringify(s)); ls.set("cg_name",s.nick); studentView();
 }
 $("pSave").onclick=saveProfile;
+// ---- Just for fun: "Join any game" (fullest open public lobby of any game) · "Create any game" (random fun game, public lobby)
+function needProfile(){ if (profile()) return false; scrollTo({ top:0, behavior:"smooth" }); setTimeout(()=>$("pFirst").focus(),300); $("pErr").textContent="Type your name first, then pick a game!"; return true; }
+$("joinAny").onclick=async()=>{
+  if (needProfile()) return;
+  const b=$("joinAny"); b.disabled=true; $("anyMsg").textContent="Looking for a game…";
+  try{
+    const { lobbies }=await (await fetch(apiBase()+"/lobbies",{ cache:"no-store" })).json();
+    const pick=(lobbies||[]).map(l=>({ l, g:GAMES.find(x=>x.kind===l.kind&&!x.soon) })).find(x=>x.g);
+    if (!pick){ $("anyMsg").textContent="No open games right now. Press “Create any game” to start one!"; b.disabled=false; return; }
+    location.href=pick.g.path+"?join="+encodeURIComponent(pick.l.code);
+  }catch{ $("anyMsg").textContent="Couldn't reach the game server. Try again in a moment."; b.disabled=false; }
+};
+$("makeAny").onclick=()=>{
+  if (needProfile()) return;
+  const fun=GAMES.filter(g=>!g.soon&&!EDU.has(g.id)&&g.kind&&g.path);
+  const g=fun[Math.random()*fun.length|0];
+  $("anyMsg").textContent=`Opening ${g.title}…`;
+  location.href=g.path+"?play=public";
+};
 ["pFirst","pLast","pNick"].forEach(id=>$(id).addEventListener("keydown",e=>{ if (e.key==="Enter"){ e.preventDefault(); const n={pFirst:"pLast",pLast:"pNick",pNick:"pSchool"}[id]; n?$(n).focus():saveProfile(); } }));
 $("pLast").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase(); if (e.target.value) $("pNick").focus(); });
 $("sCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,""); $("sErr").textContent=""; if (e.target.value.length===4) $("sCodeForm").requestSubmit(); });

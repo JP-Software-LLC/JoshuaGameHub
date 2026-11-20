@@ -95,6 +95,7 @@ class RushRoom extends RoomBase {
   racers(){ return [...this.players.values()].filter(p=>p.pid!==this.teacher); }
   scheduleAuto(){
     if (this.state!=="lobby" || this.teacher) return;
+    if (this.isPublic){ if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); } if (this.connectedCount()>=this.max) this.startRace(); return; }   // public quick play: the host starts it, or it starts by itself once the lobby is full
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startRace(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }

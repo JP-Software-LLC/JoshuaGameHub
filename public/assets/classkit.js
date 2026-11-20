@@ -231,14 +231,15 @@ const HOW={
   "clean-getaway":"Grab the cash and get out of the bank without the guards catching you!",
 };
 function studentMenu(){
-  // Students keep the game's own card (title, how-to, art) but only get: the code box + Join, and "Private game".
-  // Name box, Play online, Teacher mode and Solo/Practice are hidden; a small "Playing as …" line replaces the name box.
+  // Students keep the game's own card (title, how-to, art) but only get: "Join public game" (quick play, no code),
+  // "Private game", and the code box + Join. Name box, Teacher mode and Solo/Practice are hidden; a small
+  // "Playing as …" line replaces the name box.
   if (MODE!=="student" || /[?&]demo=1/.test(location.search)) return;
   const $=id=>document.getElementById(id), menu=$("menu"), nameIn=$("nameIn"); if (!menu) return;
   const p=profile();
   if (p){ store.set("cg_name",p.nick); if (nameIn) nameIn.value=p.nick; }
   const hide=el=>{ if (el && menu.contains(el)) el.style.display="none"; };
-  ["bPublic","btnPublic","bTeacher","bSolo","bPractice","btnLocal"].forEach(id=>hide($(id)));
+  ["bTeacher","bSolo","bPractice","btnLocal"].forEach(id=>hide($(id)));
   const pr=$("pMode"); if (pr) hide(pr.closest(".practice")||pr.parentElement);
   if (nameIn){
     const box=nameIn.closest("label")&&nameIn.closest("label").parentElement===menu?nameIn.closest("label"):nameIn.parentElement;
@@ -246,10 +247,13 @@ function studentMenu(){
     who.innerHTML=p?`Playing as <b>${esc(p.nick)}</b> · <a href="/#student">change</a>`:`<a href="/#student">Set up your name first →</a>`;
     if (box && box!==menu){ box.parentNode.insertBefore(who,box); hide(box); }
   }
-  // a row left with only "Private game" in it: let that button fill the row
-  const pv=$("bPrivate")||$("btnPrivate"); if (pv) pv.style.flex="1 1 100%";
+  // "Join public game" on its own line, above "Private game"
+  const pv=$("bPrivate")||$("btnPrivate"), pb=$("bPublic")||$("btnPublic");
+  if (pb){ pb.textContent="Join public game"; pb.style.flex="1 1 100%"; }
+  if (pv) pv.style.flex="1 1 100%";
+  if (pb && pv && pb.parentNode===pv.parentNode && pb.nextElementSibling!==pv) pv.parentNode.insertBefore(pb,pv);
   if (!p){ const go=e=>{ e.preventDefault(); e.stopImmediatePropagation(); location.href="/#student"; };
-    [pv,$("bJoin"),$("btnJoin")].forEach(b=>b&&b.addEventListener("click",go,true)); }
+    [pb,pv,$("bJoin"),$("btnJoin")].forEach(b=>b&&b.addEventListener("click",go,true)); }
 }
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",studentMenu):studentMenu();
 

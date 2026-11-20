@@ -218,6 +218,19 @@ const server=http.createServer(async (req,res)=>{
     return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:online(), games }));
   }
   // hub "Have a code?" box: which game does this room code belong to?
+  // hub "Join any game": every public lobby that's open right now (fullest first), so the hub can drop a player into one
+  if (req.url==="/lobbies"){
+    const open=[];
+    for (const kind of Object.keys(KINDS)){
+      for (const code of await bus.smembers(K.open(kind))){
+        const r=await bus.get(K.room(code));
+        if (r && r.pub && r.state==="lobby" && r.humans>0 && r.humans<(r.max||4)) open.push({ code, kind, humans:r.humans, max:r.max });
+      }
+    }
+    open.sort((a,b)=>b.humans-a.humans);
+    res.writeHead(200,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"});
+    return res.end(JSON.stringify({ lobbies:open }));
+  }
   if (req.url.startsWith("/room?")){
     const code=cleanCode(new URL(req.url,"http://x").searchParams.get("code"));
     const r=code?await bus.get(K.room(code)):null;
