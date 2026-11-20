@@ -184,7 +184,7 @@ function onLobby(L){
   if (L.state==="playing" && iTeach && !document.getElementById("ckBoard")) onBoard({ code:L.code, rows:[] });
   digitPicker(L);
 }
-// Math Race + Hurdle Dash: the host (teacher) picks how many digits each number has
+// Math Race + Hurdle Dash + Mathsketball: the host (teacher) picks how many digits each number has
 function digitPicker(L){
   let d=document.getElementById("ckDigits");
   const lob=document.getElementById("lobby");
@@ -215,6 +215,7 @@ function onBoard(m){
 const HOW={
   "math-race":"Solve each sum as fast as you can. Type the answer with the number keys. Get it right and the next one appears!",
   "arrow-blitz":"Arrows appear on screen. Press the same arrow keys in the same order. Each one gets longer!",
+  "mathsketball":"Answer 3 math questions right, then take 3 shots. Press Space (or SHOOT) when the line is in the green! Reach the basket goal to win.",
   "hurdle-dash":"Tap ← → (or the big buttons) to run. At each hurdle, answer the sum to jump over it!",
   "rush-hour":"Steer your car with ← → (or tap left and right). Dodge the traffic and drive over the glowing boost strips!",
   "bear-attack":"Move with the arrow keys (or the joystick). When a red path shows up, get out of it before the bear charges!",

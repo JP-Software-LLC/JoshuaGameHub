@@ -29,12 +29,13 @@ const { HurdleRoom }=require("./hurdleroom");
 const { ArrowRoom }=require("./arrowroom");
 const { MemoryRoom }=require("./memoryroom");
 const { TypingRoom }=require("./typingroom");
+const { HoopsRoom }=require("./hoopsroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -120,7 +121,8 @@ async function onMessage(c,m){
     case "start":  return toRoom(c,{ t:"start" });
     case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
     case "digits": return toRoom(c,{ t:"digits", d:String(m.d||"").slice(0,3) });
-    case "prog":   return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
+    case "goal":   return toRoom(c,{ t:"goal", goal:m.goal|0 });
+    case "prog":  return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
       let acct=null;
       if (c.teacherId){ acct={ teacherId:c.teacherId, classId:null };

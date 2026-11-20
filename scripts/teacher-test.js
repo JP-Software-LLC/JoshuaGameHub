@@ -48,7 +48,7 @@ srv.stdout.on("data",async d=>{
       close([T,...kids]);
     }
     // Rush Hour + Hurdle Dash: teacher not a racer; race ends when the students finish
-    for (const kind of ["rush","hurdle","typing"]){
+    for (const kind of ["rush","hurdle","typing","hoops"]){
       const { T, kids }=await room(kind);
       const go=await T.wait(m=>m.t==="go");
       if (kind==="typing"&&go.dist!==22) fail("typing: race should be 22 words");

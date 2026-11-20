@@ -461,6 +461,7 @@ const GAMES=[
   { id:"math-race", demo:true, teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
   { id:"rush-hour", demo:true, teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", demo:true, teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
+  { id:"mathsketball", demo:true, teach:true, kind:"hoops", cat:"Brainy", title:"MATHSKETBALL", path:"/mathsketball/", blurb:"Answer 3 sums, then shoot 3 hoops. First to 10 baskets!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"hoops" },
   { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", demo:true, teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", demo:true, teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
@@ -537,6 +538,32 @@ function rushThumb(){
     <g opacity=".35">${car(178,300,1.1,"#8b5cf6")}</g>
     ${car(272,336,1.55,"#ff7a1a","#e8590c")}
     <text x="270" y="62" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-style="italic" font-weight="900" font-size="50" fill="#ff7a1a" stroke="#fff" stroke-width="7" paint-order="stroke">RUSH HOUR</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Mathsketball thumbnail: gym, hoop, a ball in the air, the power meter and a sum card
+function hoopsThumb(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><linearGradient id="w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f1838"/><stop offset="1" stop-color="#26387a"/></linearGradient>
+    <linearGradient id="f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98b4f"/><stop offset="1" stop-color="#e0a868"/></linearGradient>
+    <radialGradient id="b" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="#fdba74"/><stop offset="1" stop-color="#ea580c"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#w)"/>
+    <g>${Array.from({length:44},(_,i)=>`<circle cx="${8+(i%22)*25+(i>21?12:0)}" cy="${150+(i>21?24:0)}" r="8" fill="${["#ef4444","#3b82f6","#f59e0b","#10b981","#8b5cf6","#ec4899","#facc15"][i%7]}"/>`).join("")}</g>
+    <rect y="190" width="540" height="190" fill="url(#f)"/><polygon points="300,200 540,200 540,380 250,380" fill="#2563eb" opacity=".55"/>
+    <rect x="470" y="40" width="10" height="160" fill="#475569"/><rect x="452" y="38" width="12" height="110" rx="3" fill="#fff"/><rect x="452" y="84" width="12" height="44" fill="none" stroke="#ef4444" stroke-width="3"/>
+    <g stroke="#fff" stroke-width="2" opacity=".9"><path d="M392 120 L402 160 M405 120 L410 160 M418 120 L418 160 M431 120 L426 160 M444 120 L434 160 M402 160 L434 160 M396 140 L440 140"/></g>
+    <ellipse cx="418" cy="120" rx="28" ry="6" fill="none" stroke="#f97316" stroke-width="6"/>
+    <path d="M150 150 Q 280 -10 405 95" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="4 10" opacity=".6"/>
+    <circle cx="360" cy="62" r="20" fill="url(#b)" stroke="#431407" stroke-width="2"/><path d="M340 62 H380 M360 42 V82" stroke="#431407" stroke-width="2"/>
+    <g transform="translate(110,250)"><rect x="-62" y="-50" width="124" height="88" rx="16" fill="#16181d"/>
+      <text x="26" y="-16" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">7</text>
+      <text x="26" y="12" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">8</text>
+      <text x="-38" y="12" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#3a78e6">×</text>
+      <rect x="-40" y="19" width="68" height="3" fill="#3a78e6"/></g>
+    <g transform="translate(250,300)"><rect x="0" y="0" width="270" height="34" rx="10" fill="#fff"/><rect x="4" y="4" width="162" height="26" rx="7" fill="#ef4444"/><rect x="166" y="4" width="62" height="26" fill="#facc15"/><rect x="228" y="4" width="38" height="26" rx="7" fill="#22c55e"/><rect x="240" y="-4" width="8" height="42" rx="4" fill="#fff" stroke="#1e2b5c" stroke-width="3"/></g>
+    <text x="270" y="372" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="40" fill="#f97316" stroke="#1e2b5c" stroke-width="7" paint-order="stroke">MATHSKETBALL</text>
   </svg>`;
   const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
@@ -716,6 +743,7 @@ for (const g of GAMES){
   if (g.thumb==="rush") el.querySelector(".thumb").prepend(rushThumb());
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
+  if (g.thumb==="hoops") el.querySelector(".thumb").prepend(hoopsThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
   if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
@@ -835,6 +863,7 @@ pollLive(); setInterval(pollLive,20000);
 // ------------------------------------------------------------
 const CLASS_GAMES=[
   { id:"math-race", ico:"🧮", skill:"Addition · subtraction · times tables · division · money", len:"3 × 1-min rounds", view:"You pick the question type", desc:"Answers are checked as they're typed, so quick, accurate answers win. Round-by-round leaderboards keep everyone going." },
+  { id:"mathsketball", ico:"🏀", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Three right answers earn three shots; stop the power meter in the green to score. Ends when 60% of the class has 10 baskets." },
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
   { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },

@@ -37,6 +37,7 @@ function serve(req,res){
   else if (p==="/cannons.js") file=path.join(ROOT,"shared","cannons.js");
   else if (p==="/typing.js") file=path.join(ROOT,"shared","typing.js");
   else if (p==="/memory.js") file=path.join(ROOT,"shared","memory.js");
+  else if (p==="/hoops.js") file=path.join(ROOT,"shared","hoops.js");
   else {
     if (p.endsWith("/")) p+="index.html";
     file=path.normalize(path.join(PUBLIC,p));

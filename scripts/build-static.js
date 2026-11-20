@@ -15,6 +15,7 @@ fs.copyFileSync(path.join(root,"shared","darts.js"),path.join(out,"darts.js"));
 fs.copyFileSync(path.join(root,"shared","sky.js"),path.join(out,"sky.js"));
 fs.copyFileSync(path.join(root,"shared","wordsearch.js"),path.join(out,"wordsearch.js"));
 fs.copyFileSync(path.join(root,"shared","memory.js"),path.join(out,"memory.js"));
+fs.copyFileSync(path.join(root,"shared","hoops.js"),path.join(out,"hoops.js"));
 const url=(process.env.GAME_SERVER_URL||"").trim();
 fs.writeFileSync(path.join(out,"config.js"),`window.CG_CONFIG=${JSON.stringify({ server:url })};\n`);
 console.log(`dist/ built · game server: ${url||"(same origin)"}`);
