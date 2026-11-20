@@ -17,7 +17,7 @@ function client(name){
   return c;
 }
 // game id → the message that puts a player into a running game
-const KINDS={ cg:"start", math:"round", arrows:"round", rush:"go", hurdle:"go", hoops:"go", typing:"go",
+const KINDS={ cg:"start", math:"round", arrows:"round", rush:"go", hurdle:"go", hoops:"go", typing:"go", munch:"start",
   bear:"start", memory:"start", cannons:"start", darts:"start", sky:"start", words:"start" };
 srv.stdout.on("data",async d=>{
   if (!/listening/.test(d)) return;

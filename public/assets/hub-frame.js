@@ -50,7 +50,7 @@
   const me=document.currentScript, ALWAYS=me&&me.hasAttribute("data-always"), PAD=me&&me.hasAttribute("data-pad");
   const GAMES=[
     ["/clean-getaway/","Clean Getaway","🏦"],["/arrow-blitz/","Arrow Blitz","🏹"],["/math-race/","Math Race","➗"],
-    ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/mathsketball/","Mathsketball","🏀"],["/bear-attack/","Bear Attack!","🐻"],
+    ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/mathsketball/","Mathsketball","🏀"],["/marble-munch/","Marble Munch","🦛"],["/bear-attack/","Bear Attack!","🐻"],
     ["/memory-tiles/","Memory Tiles","🧠"],["/odds-evens/","Odds or Evens","✂️"],["/typing-cowboys/","Typing Cowboys","🤠"],["/star-cannons/","Star Cannons","🚀"],["/dart-party/","Dart Party","🎈"],["/sky-climb/","Sky Climb","🪽"],["/word-rush/","Word Rush","🔤"],
   ];
   const here=location.pathname.replace(/index\.html$/,"");

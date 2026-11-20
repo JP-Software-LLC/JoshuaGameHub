@@ -96,7 +96,7 @@ async function api(path,method="GET",body){
   if (!r.ok){ const e=new Error(j.error||"Something went wrong."); e.status=r.status; throw e; }
   return j;
 }
-const GAMES={ math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", hoops:"Mathsketball", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
+const GAMES={ math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", hoops:"Mathsketball", munch:"Marble Munch", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
 const MODES={ add:"Addition", sub:"Subtraction", mul:"Multiplication", div:"Division", money:"Money" };
 const gameName=(g,m)=>(GAMES[g]||g)+(m&&MODES[m]?` · ${MODES[m]}`:"");
 const when=d=>new Date(d).toLocaleString(undefined,{ month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
@@ -108,6 +108,7 @@ function scoreText(g,r){
   if (g==="math") return `${r.score} correct`;
   if (g==="arrows") return `${r.score} pts`;
   if (g==="rush"||g==="hurdle") return s.finished?fmtTime(s.time)+(g==="hurdle"&&s.extra!=null?` · ${s.extra}/10 clean`:""):`${s.percent??0}% (didn't finish)`;
+  if (g==="munch") return `🔮 ${s.marbles??0} marbles · ${s.right??0} right, ${(s.wrong??0)+(s.slow??0)} spat out`;
   if (g==="hoops") return s.finished?fmtTime(s.time)+(s.extra!=null?` · ${s.extra} shots`:""):`${s.percent??0}% of the basket goal`;
   if (g==="words") return `${s.words??0} of ${s.of??"?"} words · ${s.points??r.score} pts`;
   if (g==="sky") return s.finished?fmtTime(s.time):`${s.percent??0}% of the way up`;
@@ -146,6 +147,7 @@ async function route(){
     ?`<span class="viewing">👁 Viewing as <b>${esc(ME.teacher.displayName||ME.teacher.email)}</b> · ${esc(ME.teacher.email)} · view only</span><a href="#" id="exitView">Exit</a>`
     :`<span class="hide-s">${esc(ME.teacher.displayName||ME.teacher.email)}</span><a href="#account">Account</a>`;
   if (ME.viewAs) $("exitView").onclick=e=>{ e.preventDefault(); exitView(); };
+  else if (!ME.teacher.google && (!ME.teacher.hasPassword || ME.teacher.mustChange)) return renderSetPassword();
   else if (!ME.teacher.displayName || !ME.teacher.schoolId) return renderSetup();
   if (!ME.viewAs){
   const inv=store.get("jgh_invite"); if (inv) return acceptInvite(inv);
@@ -161,36 +163,97 @@ async function route(){
 // ============================================================
 //  SIGN IN
 // ============================================================
-function renderSignIn(error){
+// three tabs: Sign in (email + password) · Create account · Forgot password (recovery question, no email).
+// Older accounts without a password: "No password yet?" signs in the old way once, then they must set one.
+const qOptions=sel=>Object.entries(CFG.questions||{}).map(([k,t])=>`<option value="${esc(k)}" ${sel===k?"selected":""}>${esc(t)}</option>`).join("");
+function renderSignIn(error,tab="in"){
   $("who").innerHTML="";
   const why=store.get("jgh_claim")?"Create your free account (or sign in) to keep the results from the game you just ran."
     :store.get("jgh_invite")?"Sign in with the email address the invite was sent to.":"Save every Teacher Mode game, see each student's progress, and share classes with co-teachers.";
+  const tabs=[["in","Sign in"],["new","Create account"],["forgot","Forgot password"]];
   $("app").innerHTML=`<div class="card narrow">
-    <h1>🍎 Teacher sign in</h1><p class="sub">${why}<br><b style="color:var(--ink)">Free. No password needed.</b></p>
-    <div id="gbtn"></div>${CFG.googleClientId?`<div class="or">or use your email</div>`:""}
-    <label for="email">School email</label><input id="email" type="email" autocomplete="email" placeholder="you@school.org">
-    <button class="btn" id="send" style="width:100%;margin-top:12px">${CFG.noVerify?"Sign in":"Email me a sign-in link"}</button>
+    <h1>🍎 Teachers</h1><p class="sub">${why}</p>
+    <div class="tabs" role="tablist">${tabs.map(([k,t])=>`<a href="#" class="tab ${k===tab?"on":""}" data-tab="${k}" role="tab" aria-selected="${k===tab}">${t}</a>`).join("")}</div>
+    <div id="gbtn"></div>${CFG.googleClientId&&tab!=="forgot"?`<div class="or">or use your email</div>`:""}
+    <div id="form"></div>
     <p class="msg ${error?"err":""}" id="msg">${esc(error||"")}</p>
     <p class="muted" style="margin:14px 0 0">Students never need an account. They just type a first name, last initial and nickname when they join your game.</p></div>`;
-  $("send").onclick=async()=>{
-    const email=$("email").value.trim(); if (!email) return;
-    $("send").disabled=true; $("msg").className="msg"; $("msg").textContent="Sending…";
-    try{ const r=await api("/api/auth/email","POST",{ email });
-      if (r.token){ store.set("jgh_auth",r.token); return route(); }
+  document.querySelectorAll("[data-tab]").forEach(a=>a.onclick=e=>{ e.preventDefault(); renderSignIn("",a.dataset.tab); });
+  const msg=(t,cls="err")=>{ $("msg").className="msg "+cls; $("msg").textContent=t; };
+  const signedIn=r=>{ store.set("jgh_auth",r.token); route(); };
+  const busy=async(btn,fn)=>{ btn.disabled=true; msg("…","msg"); try{ await fn(); }catch(e){ msg(e.message); } btn.disabled=false; };
+  const enter=(ids,btn)=>ids.forEach(id=>$(id)&&$(id).addEventListener("keydown",e=>{ if (e.key==="Enter") $(btn).click(); }));
+  if (tab==="in"){
+    $("form").innerHTML=`<label for="email">School email</label><input id="email" type="email" autocomplete="username" placeholder="you@school.org">
+      <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+      <button class="btn" id="go" style="width:100%;margin-top:14px">Sign in</button>
+      <details style="margin-top:14px"><summary class="muted" style="cursor:pointer">No password yet? (accounts made before passwords)</summary>
+        <p class="muted">Sign in the old way once, then you'll be asked to choose a password and a recovery question.</p>
+        <button class="btn ghost" id="old" style="width:100%">${CFG.noVerify?"Sign in with just my email":"Email me a sign-in link"}</button></details>`;
+    $("go").onclick=()=>busy($("go"),async()=>{ const email=$("email").value.trim(), password=$("pw").value; if (!email||!password) throw new Error("Type your email and password.");
+      signedIn(await api("/api/auth/password","POST",{ email, password })); });
+    $("old").onclick=()=>busy($("old"),async()=>{ const email=$("email").value.trim(); if (!email) throw new Error("Type your email first.");
+      const r=await api("/api/auth/email","POST",{ email });
+      if (r.token) return signedIn(r);
       if (r.devLink){ $("msg").className="msg ok"; $("msg").innerHTML=`Dev mode: <a href="${esc(r.devLink)}">click here to sign in</a>`; }
-      else { $("msg").className="msg ok"; $("msg").textContent=r.delivered?"Check your inbox for a sign-in link (it works for 15 minutes).":"Sign-in emails aren't set up yet on this server. Ask the site owner."; } }
-    catch(e){ $("msg").className="msg err"; $("msg").textContent=e.message; }
-    $("send").disabled=false;
-  };
-  $("email").addEventListener("keydown",e=>{ if (e.key==="Enter") $("send").click(); });
-  if (CFG.googleClientId){
+      else msg(r.delivered?"Check your inbox for a sign-in link (it works for 15 minutes).":"Sign-in emails aren't set up yet on this server. Ask the site owner.","ok"); });
+    enter(["email","pw"],"go");
+  } else if (tab==="new"){
+    $("form").innerHTML=`<label for="email">School email</label><input id="email" type="email" autocomplete="username" placeholder="you@school.org">
+      <label for="nm">Your name (as students know you)</label><input id="nm" maxlength="60" placeholder="e.g. Ms. Price">
+      ${pwFields(true)}
+      <button class="btn" id="go" style="width:100%;margin-top:14px">Create account</button>`;
+    $("go").onclick=()=>busy($("go"),async()=>{ const v=pwValues(true); signedIn(await api("/api/auth/register","POST",{ email:$("email").value.trim(), displayName:$("nm").value.trim(), ...v })); });
+  } else {
+    $("form").innerHTML=`<p class="sub" style="margin:0">Answer your recovery question to choose a new password. No email needed.</p>
+      <label for="email">School email</label><div class="row"><input id="email" type="email" autocomplete="username" placeholder="you@school.org" style="flex:1"><button class="btn ghost" id="ask">Next</button></div>
+      <div id="step2"></div>`;
+    $("ask").onclick=()=>busy($("ask"),async()=>{ const q=await api("/api/auth/recover/question","POST",{ email:$("email").value.trim() }); msg("","msg");
+      $("step2").innerHTML=`<label for="ans">${esc(q.text)}</label><input id="ans" autocomplete="off">
+        <label for="pw">New password</label><input id="pw" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+        <label for="pw2">New password again</label><input id="pw2" type="password" autocomplete="new-password">
+        <button class="btn" id="go" style="width:100%;margin-top:14px">Reset password and sign in</button>`;
+      $("ans").focus();
+      $("go").onclick=()=>busy($("go"),async()=>{ if ($("pw").value!==$("pw2").value) throw new Error("The two passwords don't match.");
+        signedIn(await api("/api/auth/recover","POST",{ email:$("email").value.trim(), answer:$("ans").value, password:$("pw").value })); });
+      enter(["ans","pw","pw2"],"go"); });
+    enter(["email"],"ask");
+  }
+  if (CFG.googleClientId && tab!=="forgot"){
     const s=document.createElement("script"); s.src="https://accounts.google.com/gsi/client"; s.async=true;
     s.onload=()=>{ google.accounts.id.initialize({ client_id:CFG.googleClientId, callback:async resp=>{
-        try{ const r=await api("/api/auth/google","POST",{ credential:resp.credential }); store.set("jgh_auth",r.token); route(); }
-        catch(e){ $("msg").className="msg err"; $("msg").textContent=e.message; } } });
+        try{ signedIn(await api("/api/auth/google","POST",{ credential:resp.credential })); }
+        catch(e){ msg(e.message); } } });
       google.accounts.id.renderButton($("gbtn"),{ theme:"filled_black", size:"large", width:400, text:"continue_with", shape:"pill" }); };
     document.head.appendChild(s);
   }
+}
+// shared password + recovery-question fields
+function pwFields(withQ,cur){
+  return `${cur?`<label for="cur">Current password</label><input id="cur" type="password" autocomplete="current-password">`:""}
+    <label for="pw">${cur?"New password":"Password"}</label><input id="pw" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+    <label for="pw2">${cur?"New password":"Password"} again</label><input id="pw2" type="password" autocomplete="new-password">
+    ${withQ?`<label for="rq">Recovery question (to reset your password without email)</label><select id="rq"><option value="">Pick a question…</option>${qOptions(ME&&ME.teacher&&ME.teacher.recoveryQ)}</select>
+    <label for="ra">Your answer</label><input id="ra" autocomplete="off" placeholder="Not case sensitive">`:""}`;
+}
+function pwValues(withQ){
+  if ($("pw").value!==$("pw2").value) throw new Error("The two passwords don't match.");
+  if ($("pw").value.length<8) throw new Error("Passwords need at least 8 characters.");
+  const v={ password:$("pw").value }; if ($("cur")) v.current=$("cur").value;
+  const keepQ=ME&&ME.teacher&&ME.teacher.recoveryQ&&$("rq")&&$("rq").value===ME.teacher.recoveryQ&&!$("ra").value.trim();   // only the password is changing
+  if (withQ && !keepQ){ if (!$("rq").value) throw new Error("Please pick a recovery question."); if (!$("ra").value.trim()) throw new Error("Please answer your recovery question."); v.question=$("rq").value; v.answer=$("ra").value; }
+  return v;
+}
+// older accounts (no password) and admin-issued temporary passwords: choose a password before anything else
+function renderSetPassword(){
+  const temp=ME.teacher.mustChange;
+  $("app").innerHTML=`<div class="card narrow"><h1>🔒 ${temp?"Choose a new password":"Protect your account"}</h1>
+    <p class="sub">${temp?"You signed in with a temporary password. Please choose your own.":"Teacher accounts now have passwords. Choose one, plus a recovery question so you can reset it without email."}</p>
+    ${pwFields(!temp||!ME.teacher.recoveryQ)}
+    <button class="btn" id="go" style="width:100%;margin-top:14px">Save and continue</button><p class="msg err" id="msg"></p></div>`;
+  $("go").onclick=async()=>{ $("go").disabled=true;
+    try{ await api("/api/me/password","POST",pwValues(!temp||!ME.teacher.recoveryQ)); route(); }catch(e){ $("msg").textContent=e.message; }
+    $("go").disabled=false; };
 }
 
 // ============================================================
@@ -369,9 +432,14 @@ async function renderAccount(){
   $("app").innerHTML=`<a class="back" href="#">← Back to classes</a><div class="card narrow" style="margin-top:10px"><h2>Your account</h2>
     <p class="sub">${esc(ME.teacher.displayName)} · ${esc(ME.teacher.email)}${sc?`<br>${esc(sc.name)}, ${esc(sc.state)}`:""}</p>
     <div class="row"><button class="btn ghost" id="edit">Change name or school</button><button class="btn ghost" id="out">Sign out</button></div>
+    <label style="margin-top:24px">Password &amp; recovery question</label>
+    <p class="sub" style="margin-bottom:6px">${ME.teacher.hasPassword?"Recovery question: "+esc(ME.teacher.recoveryText||"not set"):"No password yet."} Changing your password signs you out on every other device.</p>
+    <details><summary class="btn ghost" style="display:inline-block">Change password or question</summary><div style="margin-top:6px">${pwFields(true,ME.teacher.hasPassword)}
+      <button class="btn" id="pwSave" style="margin-top:12px">Save</button><p class="msg" id="pwMsg"></p></div></details>
     <label style="margin-top:24px">Delete account</label><p class="sub" style="margin-bottom:10px">Deletes your account, every class you own, their students and all saved games. Classes shared with you are not affected.</p>
     <button class="btn danger" id="del">Delete my account</button></div>`;
   $("edit").onclick=()=>{ ME.teacher.schoolId=null; renderSetup(); };
+  $("pwSave").onclick=async()=>{ const m=$("pwMsg"); try{ await api("/api/me/password","POST",pwValues(true)); m.className="msg ok"; m.textContent="Saved. Other devices have been signed out."; }catch(e){ m.className="msg err"; m.textContent=e.message; } };
   $("out").onclick=async()=>{ try{ await api("/api/auth/logout","POST"); }catch{} store.set("jgh_auth",null); location.hash=""; route(); };
   $("del").onclick=async()=>{ if (prompt("Type DELETE to permanently delete your account and all your classes:")!=="DELETE") return; await api("/api/me","DELETE"); store.set("jgh_auth",null); location.hash=""; route(); };
 }

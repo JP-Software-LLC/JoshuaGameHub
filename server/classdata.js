@@ -20,7 +20,7 @@ const schoolId=v=>{ const s=String(v||"").toLowerCase().replace(/[^a-z0-9-]/g,""
 // (all students in all saved games), so an average result is worth BRICKS_AVG bricks whatever the game.
 const BRICKS_AVG=100, BRICKS_MAX=400;
 const PRIOR_N=30;                          // the average starts from these guesses and moves to real data as games are saved
-const PRIOR={ math:25, arrows:250, rush:120, hurdle:120, hoops:120, typing:120, sky:120, bear:60, memory:4, cannons:1200, darts:8, words:15 };
+const PRIOR={ math:25, arrows:250, rush:120, hurdle:120, hoops:120, munch:3, typing:120, sky:120, bear:60, memory:4, cannons:1200, darts:8, words:15 };
 const RACES=new Set(["rush","hurdle","hoops","typing","sky"]);
 // rows: [{ score, stats }] of one game → raw values (≥ 0)
 function rawValues(game,rows){

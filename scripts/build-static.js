@@ -8,6 +8,7 @@ fs.cpSync(path.join(root,"public"),out,{ recursive:true });
 fs.copyFileSync(path.join(root,"shared","sim.js"),path.join(out,"sim.js")); // pages load it as /sim.js or ../sim.js
 fs.copyFileSync(path.join(root,"shared","rush.js"),path.join(out,"rush.js"));
 fs.copyFileSync(path.join(root,"shared","bear.js"),path.join(out,"bear.js"));
+fs.copyFileSync(path.join(root,"shared","munch.js"),path.join(out,"munch.js"));
 fs.copyFileSync(path.join(root,"shared","hurdle.js"),path.join(out,"hurdle.js"));
 fs.copyFileSync(path.join(root,"shared","typing.js"),path.join(out,"typing.js"));
 fs.copyFileSync(path.join(root,"shared","cannons.js"),path.join(out,"cannons.js"));

@@ -246,6 +246,15 @@
   .thead h2{margin:0;font-size:30px}
   .tdash2{color:#ffb3b3;font-weight:600;text-decoration:none;border:1px solid rgba(255,120,120,.35);border-radius:999px;padding:9px 16px}
   .tsub{color:var(--dim);font-size:16px;line-height:1.55;margin:10px 0 18px;max-width:820px} .tsub b{color:var(--ink)}
+  /* Educational / Just for fun switch (student + teacher views; Educational by default) */
+  .kswitch{display:none;gap:8px;margin:0 0 14px;padding:5px;border-radius:999px;background:var(--glass);border:1px solid var(--edge2);width:max-content;max-width:100%}
+  body.v-student .kswitch, body.v-teacher .kswitch{display:flex}
+  .kswitch button{appearance:none;border:0;border-radius:999px;padding:10px 20px;font:800 16px var(--sans);color:var(--dim);background:transparent;cursor:pointer;white-space:nowrap}
+  .kswitch button.on{background:#ff6b6b;color:#1a0b0b;box-shadow:0 3px 0 #a33a3a}
+  .kswitch button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  body.v-student[data-k="edu"] #lib .card:not([data-edu="1"]), body.v-student[data-k="fun"] #lib .card[data-edu="1"],
+  body.v-teacher[data-k="edu"] .tl:not([data-edu="1"]), body.v-teacher[data-k="fun"] .tl[data-edu="1"]{display:none}
+  @media (max-width:620px){ .kswitch button{padding:9px 14px;font-size:15px} }
   .tlist{display:flex;flex-direction:column;border-radius:var(--r);background:var(--glass);border:1px solid var(--edge2);overflow:hidden}
   .tl{display:flex;align-items:center;gap:16px;padding:12px 16px;border-top:1px solid var(--edge2)}
   .tl:first-child{border-top:0}
@@ -400,6 +409,7 @@
   <section class="wrap vw" id="vTeacher" aria-label="Teacher">
     <div class="thead"><h2>🍎 Pick a game for your class</h2><a class="tdash2" href="/teacher/">📊 Teacher sign in · saved results</a></div>
     <p class="tsub">Press <b>Open a Lobby</b>, put the 4-letter code on your board, and press Start when everyone's in. You don't play, so the leaderboard is all about your students.</p>
+    <div class="kswitch" role="tablist" aria-label="Kind of game"><button type="button" role="tab" data-k="edu">📚 Educational</button><button type="button" role="tab" data-k="fun">🎉 Just for fun</button></div>
     <div class="tlist" id="tList"></div>
   </section>
 
@@ -412,6 +422,7 @@
   </section>
 
   <section class="wrap sec" id="games">
+    <div class="kswitch" role="tablist" aria-label="Kind of game"><button type="button" role="tab" data-k="edu">📚 Educational</button><button type="button" role="tab" data-k="fun">🎉 Just for fun</button></div>
     <div class="sechead"><div style="display:flex;flex-direction:column;gap:12px"><h2>LIBRARY</h2><div class="filters" id="filters" role="group" aria-label="Filter games"></div></div><p id="libCount"></p></div>
     <div class="grid" id="lib"></div>
   </section>
@@ -456,12 +467,15 @@ $("yr").textContent=new Date().getFullYear();
 // ------------------------------------------------------------
 //  Game registry: add an entry here for each new game.
 // ------------------------------------------------------------
+// learning games (math, typing, spelling, memory) → "📚 Educational"; everything else → "🎉 Just for fun"
+const EDU=new Set(["math-race","mathsketball","marble-munch","hurdle-dash","arrow-blitz","typing-cowboys","word-rush","memory-tiles","odds-evens"]);
 const GAMES=[
   { id:"clean-getaway", demo:true, kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
   { id:"math-race", demo:true, teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
   { id:"rush-hour", demo:true, teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", demo:true, teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
   { id:"mathsketball", demo:true, teach:true, kind:"hoops", cat:"Brainy", title:"MATHSKETBALL", path:"/mathsketball/", blurb:"Answer 3 sums, then shoot 3 hoops. First to 10 baskets!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"hoops" },
+  { id:"marble-munch", demo:true, teach:true, kind:"munch", cat:"Brainy", title:"MARBLE MUNCH", path:"/marble-munch/", blurb:"Mash Space to chomp marbles. Answer fast to keep them!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"munch" },
   { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", demo:true, teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", demo:true, teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
@@ -564,6 +578,30 @@ function hoopsThumb(){
       <rect x="-40" y="19" width="68" height="3" fill="#3a78e6"/></g>
     <g transform="translate(250,300)"><rect x="0" y="0" width="270" height="34" rx="10" fill="#fff"/><rect x="4" y="4" width="162" height="26" rx="7" fill="#ef4444"/><rect x="166" y="4" width="62" height="26" fill="#facc15"/><rect x="228" y="4" width="38" height="26" rx="7" fill="#22c55e"/><rect x="240" y="-4" width="8" height="42" rx="4" fill="#fff" stroke="#1e2b5c" stroke-width="3"/></g>
     <text x="270" y="372" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="40" fill="#f97316" stroke="#1e2b5c" stroke-width="7" paint-order="stroke">MATHSKETBALL</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Marble Munch thumbnail: a round bowl with marbles rolling on ellipses, hippos around the rim, a sum card
+function munchThumb(){
+  const hip=(a,c)=>{ const x=270+Math.cos(a)*150, y=175+Math.sin(a)*150, d=a*180/Math.PI+90;
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${d.toFixed(1)})"><ellipse cx="0" cy="14" rx="26" ry="20" fill="${c}" stroke="#3b1d6e" stroke-width="2"/><ellipse cx="0" cy="-10" rx="18" ry="14" fill="${c}" stroke="#3b1d6e" stroke-width="2"/><ellipse cx="0" cy="-22" rx="14" ry="8" fill="#7a1238"/><circle cx="-8" cy="-6" r="4" fill="#fff"/><circle cx="8" cy="-6" r="4" fill="#fff"/></g>`; };
+  const cols=["#f9a8d4","#a5b4fc","#86efac","#fde68a","#fdba74","#c4b5fd","#67e8f9","#fca5a5"];
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><radialGradient id="bg" cx=".5" cy=".5" r=".75"><stop offset="0" stop-color="#5a2d9c"/><stop offset="1" stop-color="#1d0b3d"/></radialGradient>
+    <radialGradient id="bowl" cx=".45" cy=".42" r=".6"><stop offset="0" stop-color="#1e3a8a"/><stop offset=".6" stop-color="#2f6fd6"/><stop offset=".95" stop-color="#9fd4ff"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#bg)"/>
+    <circle cx="270" cy="175" r="132" fill="#e0a52a"/><circle cx="270" cy="175" r="120" fill="url(#bowl)"/>
+    <g fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2" stroke-dasharray="5 8"><ellipse cx="270" cy="175" rx="112" ry="38" transform="rotate(25 270 175)"/><ellipse cx="270" cy="175" rx="108" ry="32" transform="rotate(-50 270 175)"/></g>
+    ${[[350,140,330],[200,200,50],[300,240,120],[230,120,200],[290,170,280]].map(([x,y,h])=>`<circle cx="${x}" cy="${y}" r="11" fill="hsl(${h},85%,60%)" stroke="rgba(0,0,0,.3)"/><circle cx="${x-3}" cy="${y-4}" r="3.5" fill="#fff" opacity=".8"/>`).join("")}
+    ${cols.map((c,i)=>hip(i*Math.PI/4+Math.PI/8,c)).join("")}
+    <g transform="translate(470,300)"><rect x="-58" y="-48" width="116" height="84" rx="14" fill="#16181d"/>
+      <text x="24" y="-16" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="25" fill="#cfe1ff">9</text>
+      <text x="24" y="11" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="25" fill="#cfe1ff">6</text>
+      <text x="-36" y="11" font-family="Consolas, monospace" font-weight="700" font-size="25" fill="#3a78e6">+</text>
+      <rect x="-38" y="18" width="64" height="3" fill="#3a78e6"/></g>
+    <text x="200" y="368" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="40" fill="#ff5fa2" stroke="#2a1650" stroke-width="7" paint-order="stroke">MARBLE MUNCH</text>
   </svg>`;
   const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
@@ -736,7 +774,7 @@ for (const g of GAMES){
   if (!g.soon) el.href=g.path;
   el.innerHTML=`<div class="thumb">${g.soon?'<span class="lock">?</span><span class="badge wip">SOON</span>':`${g.badge?`<span class="badge">${g.badge}</span>`:""}<span class="play-ic" aria-hidden="true">▶</span>`}</div>
     <div class="cbody"><h3>${g.title}</h3><p>${g.blurb}</p><div class="cmeta">${g.teach?'<span class="tbadge">🍎 Teacher mode</span>':""}${g.tags.map(t=>`<span>${t}</span>`).join("")}</div></div>`;
-  el.dataset.cat=g.cat||""; el.dataset.kind=g.kind||""; el.dataset.teach=g.teach?"1":"";
+  el.dataset.cat=g.cat||""; el.dataset.kind=g.kind||""; el.dataset.teach=g.teach?"1":""; el.dataset.edu=EDU.has(g.id)?"1":"";
   if (!g.soon) el.querySelector(".thumb").insertAdjacentHTML("beforeend",'<span class="liveb" hidden><i></i><b>0</b>&nbsp;playing</span>');
   if (g.thumb==="cg") el.querySelector(".thumb").prepend(thumbCanvas());
   if (g.thumb==="math") el.querySelector(".thumb").prepend(mathThumb());
@@ -744,6 +782,7 @@ for (const g of GAMES){
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
   if (g.thumb==="hoops") el.querySelector(".thumb").prepend(hoopsThumb());
+  if (g.thumb==="munch") el.querySelector(".thumb").prepend(munchThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
   if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
@@ -863,6 +902,7 @@ pollLive(); setInterval(pollLive,20000);
 // ------------------------------------------------------------
 const CLASS_GAMES=[
   { id:"math-race", ico:"🧮", skill:"Addition · subtraction · times tables · division · money", len:"3 × 1-min rounds", view:"You pick the question type", desc:"Answers are checked as they're typed, so quick, accurate answers win. Round-by-round leaderboards keep everyone going." },
+  { id:"marble-munch", ico:"🦛", skill:"Math facts: + − × ÷ and money (you pick)", len:"~1–2 minutes", view:"Watch the whole bowl", desc:"Students mash Space to chomp marbles rolling around the bowl, then answer a quick question to keep each one (you set 2–10 seconds). Ends when every marble is eaten." },
   { id:"mathsketball", ico:"🏀", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Three right answers earn three shots; stop the power meter in the green to score. Ends when 60% of the class has 10 baskets." },
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
@@ -912,6 +952,12 @@ $("joinForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("joi
 //  Views: Who's playing? → Student · Teacher · Guest. Games remember the choice (jgh_mode) and "Back" returns here.
 // ------------------------------------------------------------
 const VIEWS=["home","student","teacher","guest"];
+// Educational / Just for fun (student + teacher views). Educational is the default every visit; the choice lasts this tab only.
+function setKind(k){
+  k=k==="fun"?"fun":"edu"; document.body.dataset.k=k; ss.set("jgh_kind",k);
+  document.querySelectorAll(".kswitch button").forEach(b=>{ const on=b.dataset.k===k; b.classList.toggle("on",on); b.setAttribute("aria-selected",on); });
+}
+document.addEventListener("click",e=>{ const b=e.target.closest(".kswitch button"); if (b) setKind(b.dataset.k); });
 const ls={ get(k){ try{ return localStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} } };
 const ss={ get(k){ try{ return sessionStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ sessionStorage.setItem(k,v); }catch{} } };
 function profile(){ try{ const p=JSON.parse(ls.get("jgh_student")||"null"); return p&&p.first&&p.last&&p.nick&&p.school?p:null; }catch{ return null; } }
@@ -941,6 +987,7 @@ function setView(v,push){
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if (b) setView(b.dataset.go,true); });
 addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if (VIEWS.includes(h)) setView(h); });
 { const h=location.hash.slice(1); setView(VIEWS.includes(h)?h:(ss.get("jgh_view")||"home")); }
+setKind(ss.get("jgh_kind")||"edu");
 
 // Student: name first (saved on this device, with the game token), then one big code box
 function studentView(){
@@ -971,7 +1018,7 @@ $("sCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCa
 $("sCodeForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("sCode").value.trim().toUpperCase(),$("sErr")); });
 
 // Teacher: compact list of the whole-class games, each with one big button
-$("tList").innerHTML=CLASS_GAMES.map(c=>{ const g=GAMES.find(x=>x.id===c.id); return `<div class="tl">
+$("tList").innerHTML=CLASS_GAMES.map(c=>{ const g=GAMES.find(x=>x.id===c.id); return `<div class="tl" data-edu="${EDU.has(c.id)?1:""}">
   <span class="ico">${c.ico}</span><div class="tx"><b>${g.title}</b><span>${c.skill}</span></div><span class="len">⏱ ${c.len}</span>
   <a class="open" href="${g.path}?play=teacher">Open a Lobby</a></div>`; }).join("");
 </script>

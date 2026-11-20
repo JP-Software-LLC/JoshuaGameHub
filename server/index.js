@@ -12,6 +12,7 @@
 //   Typing Cowboys:  start{} pos{d=words,x=0} finish{time,extra=words missed}
 //   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
 //   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
+//   Marble Munch:    start{} fire{} (one chomp) ans{v} · host: mode{} digits{} qtime{s}
 //   Sky Climb:       start{} in{x=-1|0|1} (steer, on change) fire{} (flap)
 //   Teacher Mode:    digits{d="1"|"12"|"2"} (Math Race, Hurdle Dash) · prog{round,n} (live score) · start{} twice = skip the 10 s countdown
 //                    server sends board{code,rows:[{pid,name,v}]} each second while playing; lobby carries closeIn + pending players
@@ -30,12 +31,13 @@ const { ArrowRoom }=require("./arrowroom");
 const { MemoryRoom }=require("./memoryroom");
 const { TypingRoom }=require("./typingroom");
 const { HoopsRoom }=require("./hoopsroom");
+const { MunchRoom }=require("./munchroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -114,7 +116,7 @@ function replay(c,r){
 async function spectate(c,m){
   const fail=msg=>c.send(JSON.stringify({ t:"error", code:"spectate", msg }));
   let t=null; try{ t=typeof m.auth==="string"&&m.auth?await AUTH.teacherFromToken(m.auth):null; }catch{ t=null; }
-  if (!t || t.viewed_by || !AUTH.isAdminEmail(t.email)) return fail("Watching games is only for site admins. Sign in on the teacher page first.");
+  { const why=t?AUTH.adminProblem(t):"Watching games is only for site admins. Sign in on the teacher page first."; if (why) return fail(why); }
   const code=cleanCode(m.code), room=rooms.get(code);
   if (!room) return fail("That game has ended.");
   c.spectator=true; c.name=c.name||"Spectator";
@@ -165,6 +167,8 @@ async function onMessage(c,m){
     case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
     case "digits": return toRoom(c,{ t:"digits", d:String(m.d||"").slice(0,3) });
     case "goal":   return toRoom(c,{ t:"goal", goal:m.goal|0 });
+    case "qtime":  return toRoom(c,{ t:"qtime", s:m.s|0 });
+    case "ans":    return toRoom(c,{ t:"ans", v:Math.max(-1,Math.min(99999,m.v|0)) });
     case "prog":  return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
       let acct=null;

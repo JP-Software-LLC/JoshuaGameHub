@@ -5,7 +5,6 @@ const db=require("./db");
 const A=require("./auth");
 const C=require("./classdata");
 const STATS=require("./stats");
-const ADMINS=()=>new Set(String(process.env.ADMIN_EMAILS||"").toLowerCase().split(/[,\s]+/).filter(Boolean));
 
 const PENDING_TTL=24*3600;            // unsaved Teacher Mode games are kept for 24 h
 const json=(res,status,body)=>{ res.writeHead(status,{ "content-type":"application/json","cache-control":"no-store",...CORS }); res.end(JSON.stringify(body)); };
@@ -15,16 +14,18 @@ const ipOf=req=>String(req.headers["x-forwarded-for"]||req.socket.remoteAddress|
 
 function makeApi(bus,host={}){
   const pendingKey=c=>`cg:pending:${c}`;
-  async function needTeacher(req){
+  async function needTeacher(req,opt={}){
     const t=await A.teacherFromToken(String(req.headers.authorization||"").replace(/^Bearer /,""));
     if (!t) throw A.httpErr(401,"Please sign in.");
+    // an admin-issued temporary password must be replaced before anything else can be changed
+    if (t.must_change && !t.viewed_by && req.method!=="GET" && !opt.pwSetup) throw A.httpErr(403,"Please choose a new password first.");
     // admin "view as" sessions are read-only
     if (t.viewed_by && req.method!=="GET") throw A.httpErr(403,"View only: you're looking at this teacher's account as an admin, so nothing can be changed.");
     return t;
   }
   async function needAdmin(req){
     const t=await needTeacher(req);
-    if (t.viewed_by || !ADMINS().has(String(t.email).toLowerCase())) throw A.httpErr(403,"This page is only for site admins.");
+    const why=A.adminProblem(t); if (why) throw A.httpErr(403,why);
     return t;
   }
   async function needRole(t,classId,want){
@@ -33,7 +34,7 @@ function makeApi(bus,host={}){
     return role;
   }
   const routes=[
-    ["GET","/api/config",async()=>({ googleClientId:process.env.GOOGLE_CLIENT_ID||null, emailEnabled:A.emailEnabled(), noVerify:A.noVerify() })],
+    ["GET","/api/config",async()=>({ googleClientId:process.env.GOOGLE_CLIENT_ID||null, emailEnabled:A.emailEnabled(), noVerify:A.noVerify(), questions:A.QUESTIONS })],
     // ---- analytics: the hub reports which view was picked; site admins (ADMIN_EMAILS) read the totals
     ["POST","/api/hit",async(req,b)=>{ if (STATS.isBot(req.headers["user-agent"])) return { ok:true };   // crawlers never count
       if (b.mode) STATS.mode(String(b.mode)); if (b.view!==undefined) STATS.view(b.view,String(b.play||"")); return { ok:true }; }],
@@ -56,6 +57,7 @@ function makeApi(bus,host={}){
       return { now:Date.now(), games }; }],
     ["GET","/api/admin/teachers",async req=>{ await needAdmin(req); const schools=await C.loadSchools();
       const rows=await db.all(`select t.id,t.email,t.display_name,t.school_id,(t.google_sub is not null) as google,t.created_at,t.last_login_at,t.bricks::float8 as bricks,t.castle_games,
+        (t.pw_hash is not null) as has_password, t.must_change, (t.recovery_hash is not null) as has_recovery, (t.locked_until is not null and t.locked_until>now()) as locked,
         (select count(*) from class_members m where m.teacher_id=t.id and m.role='owner')::int as classes,
         (select count(*) from class_members m where m.teacher_id=t.id and m.role='coteacher')::int as shared,
         (select count(*) from students s join classes c on c.id=s.class_id where c.owner_id=t.id)::int as students,
@@ -93,11 +95,40 @@ function makeApi(bus,host={}){
     ["POST","/api/admin/tournaments/:id/end",async(req,b,p)=>{ await needAdmin(req); const r=await db.one("update tournaments set ended_at=now() where id=$1 and ended_at is null returning id",[p.id]);
       if (!r) throw A.httpErr(404,"No running tournament with that id."); return { ok:true }; }],
     // open a read-only session as that teacher (the /teacher/ page uses it in its own tab)
+    // ---- admins: edit / delete teacher accounts
+    ["PATCH","/api/admin/teachers/:id",async(req,b,p)=>{ await needAdmin(req);
+      const t=await db.one("select * from teachers where id=$1",[p.id]); if (!t) throw A.httpErr(404,"Teacher not found.");
+      const name=b.displayName===undefined?t.display_name:String(b.displayName).replace(/[<>]/g,"").trim().slice(0,60);
+      const school=b.schoolId===undefined?t.school_id:(b.schoolId&&await C.schoolById(b.schoolId)?b.schoolId:null);
+      let email=t.email;
+      if (b.email!==undefined){ email=A.cleanEmail(b.email); if (!A.validEmail(email)) throw A.httpErr(400,"That email doesn't look right.");
+        if (email!==t.email && await db.one("select id from teachers where email=$1",[email])) throw A.httpErr(409,"Another teacher already uses that email."); }
+      await db.q("update teachers set display_name=$2, school_id=$3, email=$4 where id=$1",[t.id,name,school,email]);
+      return { ok:true }; }],
+    ["DELETE","/api/admin/teachers/:id",async(req,b,p)=>{ const a=await needAdmin(req);
+      if (+p.id===+a.id) throw A.httpErr(400,"You can't delete your own account from here.");
+      const r=await db.one("delete from teachers where id=$1 returning id",[p.id]); if (!r) throw A.httpErr(404,"Teacher not found.");
+      return { ok:true }; }],                                           // cascades: their classes, students, saved games, sessions
+    ["POST","/api/admin/teachers/:id/signout",async(req,b,p)=>{ const a=await needAdmin(req);
+      await db.q("delete from auth_sessions where teacher_id=$1 and viewed_by is null and token_hash<>$2",[p.id,a.s_hash]); return { ok:true }; }],
+    ["POST","/api/admin/teachers/:id/unlock",async(req,b,p)=>{ await needAdmin(req);
+      await db.q("update teachers set failed_logins=0, locked_until=null where id=$1",[p.id]); return { ok:true }; }],
+    ["POST","/api/admin/teachers/:id/temp-password",async(req,b,p)=>{ const a=await needAdmin(req);
+      if (+p.id===+a.id) throw A.httpErr(400,"Change your own password on the teacher page.");
+      return { password:await A.tempPassword(p.id) }; }],
     ["POST","/api/admin/teachers/:id/view",async(req,b,p)=>{ const a=await needAdmin(req); return A.viewAsSession(p.id,a.id); }],
     ["GET","/api/schools",async()=>({ schools:await C.loadSchools() })],
     // ---- auth
     ["POST","/api/auth/email",async(req,b)=>A.startEmailLogin(b.email,ipOf(req))],
     ["POST","/api/auth/email/verify",async(req,b)=>A.verifyEmailLogin(b.token)],
+    // passwords (scrypt) + one recovery question for resetting without email
+    ["POST","/api/auth/password",async(req,b)=>A.passwordLogin(b.email,String(b.password||""),ipOf(req))],
+    ["POST","/api/auth/register",async(req,b)=>A.register(b,ipOf(req))],
+    ["POST","/api/auth/recover/question",async(req,b)=>A.recoveryQuestion(b.email,ipOf(req))],
+    ["POST","/api/auth/recover",async(req,b)=>A.recover({ email:b.email, answer:String(b.answer||""), password:String(b.password||"") },ipOf(req))],
+    ["POST","/api/me/password",async(req,b)=>{ const t=await needTeacher(req,{ pwSetup:true });
+      if (A.limited("sp:"+t.id,10,15*60e3)) throw A.httpErr(429,"Too many tries. Please wait a few minutes.");
+      return { teacher:await A.setPassword(t,{ current:String(b.current||""), password:String(b.password||""), question:b.question?String(b.question):undefined, answer:String(b.answer||"") }) }; }],
     ["POST","/api/auth/google",async(req,b)=>A.googleLogin(b.credential)],
     ["POST","/api/auth/logout",async req=>{ await A.logout(String(req.headers.authorization||"").replace(/^Bearer /,"")); return { ok:true }; }],
     ["GET","/api/me",async req=>{ const t=await needTeacher(req); return { teacher:A.publicTeacher(t), school:await C.schoolById(t.school_id), viewAs:!!t.viewed_by, castle:{ bricks:+t.bricks||0, games:t.castle_games||0 } }; }],

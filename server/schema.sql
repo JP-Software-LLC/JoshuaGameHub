@@ -140,3 +140,14 @@ CREATE TABLE IF NOT EXISTS tournaments (
 );
 CREATE INDEX IF NOT EXISTS tournaments_school ON tournaments(school_id, started_at DESC);
 ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS saved_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- passwords (scrypt) + one recovery question (answer hashed the same way); lockout after repeated failures
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS pw_hash TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS pw_set_at TIMESTAMPTZ;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS must_change BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS recovery_q TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS recovery_hash TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS failed_logins INT NOT NULL DEFAULT 0;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+-- how a session was opened: password · google · link (email link) · email (EMAIL_VERIFY=off) · recover · view
+ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS method TEXT;
