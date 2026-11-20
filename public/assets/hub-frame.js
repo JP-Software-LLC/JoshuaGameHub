@@ -12,6 +12,31 @@
     fetch(base+"/api/hit",{ method:"POST", headers:{ "content-type":"application/json" }, keepalive:true,
       body:JSON.stringify({ view:location.pathname, play:new URLSearchParams(location.search).get("play")||"" }) }).catch(()=>{});
   }catch{} });
+  // ?spectate=CODE&pid=N&who=Name: admin watch mode (opened from /admin/live/). The page's own socket is
+  // rewritten so its "hello" becomes spectate{code,pid,auth} and everything else it would send is dropped,
+  // so the watcher sees exactly what that player's (or the teacher's) screen gets and can never act in the game.
+  const SPY=new URLSearchParams(location.search);
+  if (SPY.get("spectate")){
+    const code=SPY.get("spectate").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4), pid=SPY.get("pid")||"", who=(SPY.get("who")||"").slice(0,40);
+    const Native=window.WebSocket;
+    class SpyWS extends Native {
+      send(raw){ let m=null; try{ m=JSON.parse(raw); }catch{ return; }
+        if (m.t==="hello"){ let auth; try{ auth=localStorage.getItem("jgh_auth")||undefined; }catch{}
+          return super.send(JSON.stringify({ t:"spectate", code, pid, auth })); }
+        if (m.t==="ping"||m.t==="leave") return super.send(raw); }
+      set onmessage(fn){ super.onmessage=fn&&(e=>{ try{ const t=JSON.parse(e.data).t; if (t==="welcome") return; }catch{} fn.call(this,e); }); }
+      get onmessage(){ return super.onmessage; }
+    }
+    window.WebSocket=SpyWS;
+    addEventListener("load",()=>setTimeout(()=>{
+      const ci=document.getElementById("codeIn"), bj=document.getElementById("bJoin")||document.getElementById("btnJoin");
+      if (ci && bj){ ci.value=code; bj.click(); }
+      const b=document.createElement("div");
+      b.textContent=`👀 Watching${who?" "+who:""} · ${code} · read only`;
+      b.style.cssText="position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:99999;background:rgba(200,30,60,.92);color:#fff;font:600 13px system-ui,sans-serif;padding:6px 14px;border-radius:999px;pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.4)";
+      document.body.appendChild(b);
+    },300));
+  }
   // ?demo=1: the hub's live bot-match preview. No bar, no buttons, no input: the game page starts a
   // bots-only match itself (each game checks the same flag) and we just hide everything that isn't the game.
   if (/[?&]demo=1/.test(location.search)){
@@ -25,7 +50,7 @@
   const me=document.currentScript, ALWAYS=me&&me.hasAttribute("data-always"), PAD=me&&me.hasAttribute("data-pad");
   const GAMES=[
     ["/clean-getaway/","Clean Getaway","🏦"],["/arrow-blitz/","Arrow Blitz","🏹"],["/math-race/","Math Race","➗"],
-    ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/mathsketball/","Mathsketball","🏀"],["/bear-attack/","Bear Attack!","🐻"],
+    ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/mathsketball/","Mathsketball","🏀"],["/marble-munch/","Marble Munch","🦛"],["/bear-attack/","Bear Attack!","🐻"],
     ["/memory-tiles/","Memory Tiles","🧠"],["/odds-evens/","Odds or Evens","✂️"],["/typing-cowboys/","Typing Cowboys","🤠"],["/star-cannons/","Star Cannons","🚀"],["/dart-party/","Dart Party","🎈"],["/sky-climb/","Sky Climb","🪽"],["/word-rush/","Word Rush","🔤"],
   ];
   const here=location.pathname.replace(/index\.html$/,"");
