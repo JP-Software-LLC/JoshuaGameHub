@@ -38,8 +38,8 @@
 <script src="../../config.js" onerror="window.CG_CONFIG={server:''}"></script>
 <script src="/admin/admin.js"></script>
 <script>
-const GAMES={ cg:["Clean Getaway","/clean-getaway/"], math:["Math Race","/math-race/"], arrows:["Arrow Blitz","/arrow-blitz/"], rush:["Rush Hour","/rush-hour/"], hurdle:["Hurdle Dash","/hurdle-dash/"], hoops:["Mathsketball","/mathsketball/"], munch:["Marble Munch","/marble-munch/"], bear:["Bear Attack!","/bear-attack/"], memory:["Memory Tiles","/memory-tiles/"], typing:["Typing Cowboys","/typing-cowboys/"], cannons:["Star Cannons","/star-cannons/"], darts:["Dart Party","/dart-party/"], sky:["Sky Climb","/sky-climb/"], words:["Word Rush","/word-rush/"] };
-const OWN_DEVICE=new Set(["math","arrows","rush","hurdle","typing","hoops"]);   // each student's game runs on their own device
+const GAMES={ cg:["Clean Getaway","/clean-getaway/"], math:["Math Race","/math-race/"], arrows:["Arrow Blitz","/arrow-blitz/"], rush:["Rush Hour","/rush-hour/"], hurdle:["Hurdle Dash","/hurdle-dash/"], hoops:["Mathsketball","/mathsketball/"], munch:["Marble Munch","/marble-munch/"], softball:["Softball Smarts","/softball-smarts/"], bear:["Bear Attack!","/bear-attack/"], memory:["Memory Tiles","/memory-tiles/"], typing:["Typing Cowboys","/typing-cowboys/"], cannons:["Star Cannons","/star-cannons/"], darts:["Dart Party","/dart-party/"], sky:["Sky Climb","/sky-climb/"], words:["Word Rush","/word-rush/"] };
+const OWN_DEVICE=new Set(["math","arrows","rush","hurdle","typing","hoops","softball"]);   // each student's game runs on their own device
 const MODES={ add:"Addition", sub:"Subtraction", mul:"Multiplication", div:"Division", money:"Money" }, DIGITS={ "1":"1 digit", "12":"1 & 2 digits", "2":"2 digits" };
 let data=null, open=null, timer=0;
 const dur=ms=>{ const s=Math.max(0,ms/1000|0); return s<60?s+" s":s<3600?(s/60|0)+" min":(s/3600|0)+" h "+((s%3600)/60|0)+" min"; };
@@ -77,7 +77,7 @@ function detail(){
   const g=data.games.find(x=>x.code===open), el=$("detail");
   if (!g){ el.innerHTML=open?`<div class="msg">Game ${esc(open)} has ended.</div>`:""; return; }
   const t=g.players.find(p=>p.teacher), k=kids(g), own=OWN_DEVICE.has(g.kind);
-  const set=[g.mode&&MODES[g.mode]?["Question type",MODES[g.mode]]:null, g.digits&&DIGITS[g.digits]?["Digits",DIGITS[g.digits]]:null, g.kind==="hoops"&&g.goal?["Basket goal",g.goal]:null].filter(Boolean);
+  const set=[g.mode&&MODES[g.mode]?["Question type",MODES[g.mode]]:null, g.digits&&DIGITS[g.digits]?["Digits",DIGITS[g.digits]]:null, g.kind==="hoops"&&g.goal?["Basket goal",g.goal]:null, g.kind==="softball"&&g.goal?["Run goal",g.goal]:null].filter(Boolean);
   const canWatch=p=>p.connected&&(!own||p.teacher);
   const btn=(p,label,text="👀 Watch")=>canWatch(p)?`<a class="btn" target="_blank" rel="noopener" href="${esc(watchUrl(g,p,label))}">${text}</a>`:"";
   el.innerHTML=`<div class="card">

@@ -13,6 +13,7 @@
 //   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
 //   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
 //   Marble Munch:    start{} fire{} (one chomp) ans{v} · host: mode{} digits{} qtime{s}
+//   Softball Smarts: same as Mathsketball (pos{} finish{}) · host: mode{} digits{} goal{goal} pitch{s}
 //   Sky Climb:       start{} in{x=-1|0|1} (steer, on change) fire{} (flap)
 //   Teacher Mode:    digits{d="1"|"12"|"2"} (Math Race, Hurdle Dash) · prog{round,n} (live score) · start{} twice = skip the 10 s countdown
 //                    server sends board{code,rows:[{pid,name,v}]} each second while playing; lobby carries closeIn + pending players
@@ -32,12 +33,13 @@ const { MemoryRoom }=require("./memoryroom");
 const { TypingRoom }=require("./typingroom");
 const { HoopsRoom }=require("./hoopsroom");
 const { MunchRoom }=require("./munchroom");
+const { SoftballRoom }=require("./softballroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom, softball:SoftballRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -173,6 +175,7 @@ async function onMessage(c,m){
     case "digits": return toRoom(c,{ t:"digits", d:String(m.d||"").slice(0,3) });
     case "goal":   return toRoom(c,{ t:"goal", goal:m.goal|0 });
     case "qtime":  return toRoom(c,{ t:"qtime", s:m.s|0 });
+    case "pitch":  return toRoom(c,{ t:"pitch", s:m.s|0 });
     case "ans":    return toRoom(c,{ t:"ans", v:Math.max(-1,Math.min(99999,m.v|0)) });
     case "prog":  return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
