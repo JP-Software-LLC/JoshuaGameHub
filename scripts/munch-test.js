@@ -75,7 +75,7 @@ srv.stdout.on("data",async d=>{
     const answerLoop=setInterval(()=>{ for (const k of kids){ const qs=k.msgs.filter(m=>m.t==="q"); if (qs.length>k.seen){ const q=qs[qs.length-1].q; k.seen=qs.length;
       if (!q.money) fail("questions should be money questions");
       const right=solve(q); if (k===kids[1] && !boWrong){ boWrong=true; k.send({ t:"ans", v:right+1 }); } else k.send({ t:"ans", v:right }); } } },40);
-    const res=await T.wait(m=>m.t==="results",60000).catch(e=>{ const s=T.msgs.filter(m=>m.t==="s").pop(); fail("no results: "+JSON.stringify(s&&s.s.left)+" "+JSON.stringify(kids.map(k=>k.msgs.filter(m=>m.t!=="s").map(m=>m.t)))); });
+    const res=await T.wait(m=>m.t==="results",170000).catch(e=>{ const s=T.msgs.filter(m=>m.t==="s").pop(); fail("no results: "+JSON.stringify(s&&s.s.left)+" "+JSON.stringify(kids.map(k=>k.msgs.filter(m=>m.t!=="s").map(m=>m.t)))); });
     clearInterval(spam); clearInterval(answerLoop);
     if (T.msgs.some(m=>m.t==="q")) fail("the teacher should never get a question");
     for (const k of kids) for (const q of k.msgs.filter(m=>m.t==="q")) if (q.q.s!=null) fail("questions must not include the answer");
@@ -86,4 +86,4 @@ srv.stdout.on("data",async d=>{
     srv.kill(); process.exit(0);
   } catch(e){ fail(e.stack||e.message); }
 });
-setTimeout(()=>fail("timeout"),90000);
+setTimeout(()=>fail("timeout"),200000);

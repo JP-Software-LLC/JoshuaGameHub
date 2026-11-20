@@ -133,9 +133,14 @@ async function detach(c){
 async function joinRoom(c,code){
   code=cleanCode(code);
   if (!code || !await bus.get(K.room(code))) return c.send(JSON.stringify({ t:"error", code:"noroom", msg:"No room with that code." }));
+  if (c.closed) return;                                   // the browser left before we got here
   await attach(c,code);
   { const r=await bus.get(K.room(code)); if (r) STATS.add("join:"+(r.kind||"cg")); }
   await bus.publish(K.in(code),{ t:"join", cid:c.id, name:c.name, token:c.token });
+  // The socket may have closed WHILE this join was on its way (each await is a Redis round trip). Its "drop" then
+  // reached the room before the join and was ignored, which left a "connected" player with no socket: a ghost
+  // that kept the room open forever. Send the drop again, now that the room knows the player.
+  if (c.closed){ await bus.publish(K.in(code),{ t:"drop", cid:c.id }); if (c.code===code) await detach(c); }
 }
 const gameOf=m=>KINDS[m.game]?m.game:"cg";
 const toRoom=(c,m)=>c.code&&bus.publish(K.in(c.code),Object.assign(m,{cid:c.id}));
@@ -228,12 +233,27 @@ wss.on("connection",(ws,req)=>{
   ws.on("pong",()=>{ c.alive=true; });
   ws.on("message",raw=>{ let m; try{ m=JSON.parse(raw); }catch{ return; } onMessage(c,m).catch(e=>console.error("[msg]",e)); });
   ws.on("close",async ()=>{
-    conns.delete(c);
+    conns.delete(c); c.closed=true; closedCids.set(c.id,Date.now());
     if (c.code){ if (!c.spectator) await toRoom(c,{ t:"drop" }); await detach(c); }   // session kept → reconnect possible
   });
 });
 // drop dead sockets (mobile sleep, network loss) so bots take over quickly
 setInterval(()=>{ for (const c of conns){ if (!c.alive){ c.ws.terminate(); continue; } c.alive=false; c.ws.ping(); } },10000);
+// Safety net against ghost players: a room player marked "connected" whose socket was opened on THIS server and has
+// since closed is certainly gone, so the room gets the drop it missed. (Only sockets this server saw close are
+// touched, so it stays correct with several game servers.) Closed ids are forgotten after an hour.
+const closedCids=new Map();
+setInterval(()=>{
+  const now=Date.now();
+  for (const [id,t] of closedCids) if (now-t>3600e3) closedCids.delete(id);
+  for (const r of rooms.values()){
+    if (r.closed || typeof r.roster4admin!=="function") continue;
+    for (const p of r.roster4admin()) if (p.connected!==false && p.cid && closedCids.has(p.cid)){
+      console.log(`[ghost] ${r.kind}:${r.code} dropping a player whose socket closed`);
+      bus.publish(K.in(r.code),{ t:"drop", cid:p.cid }).catch(()=>{});
+    }
+  }
+},+process.env.GHOST_SWEEP_MS||30000);
 
 server.listen(PORT,()=>console.log(`[game] listening on :${PORT} · instance ${INSTANCE.slice(0,8)} · bus=${bus.kind}`));
 const shutdown=()=>{ console.log("[game] shutting down"); STATS.flush(); for (const r of rooms.values()) r.close(); server.close(); setTimeout(()=>process.exit(0),500); };

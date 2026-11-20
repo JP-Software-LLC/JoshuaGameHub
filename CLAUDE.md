@@ -175,3 +175,9 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 
 ## Hub: Educational / Just for fun
 - Student and Teacher views show a two-tab switch (📚 Educational by default every visit, 🎉 Just for fun; remembered for the tab in sessionStorage `jgh_kind`). `EDU` in `public/index.html` lists the learning games (math race, mathsketball, marble munch, hurdle dash, arrow blitz, typing cowboys, word rush, memory tiles, odds or evens); everything else is "Just for fun". Guest view shows the whole library.
+
+## Ghost players (rooms that never close) — fixed
+- Cause: `joinRoom` awaits several Redis round trips before publishing `join`. If the browser closed in that window, its `drop` reached the room BEFORE the join and was ignored, then the join added a player marked connected with no socket. Rooms only close when nobody is connected, so they stayed open forever (prod showed 3 sockets but 13 "connected" players in 9 rooms).
+- Fix (`server/index.js`): sockets get `c.closed` on close; `joinRoom` skips if already closed and, if the socket closed while the join was in flight, publishes the drop again after the join. Safety net: every `GHOST_SWEEP_MS` (30 s) any room player still "connected" whose socket closed on THIS server (`closedCids`, kept 1 h) gets a drop.
+- Also fixed `RedisBus.subscribe`: the handler is added before awaiting Redis (an unsubscribe during the await deleted the set → "reading 'add'" crash → failed join and a silent relay).
+- `scripts/ghost-test.js` slows the in-memory bus to Redis speed (`BUS_TEST_DELAY_MS`) and slams sockets shut mid-join.
