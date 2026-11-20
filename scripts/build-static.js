@@ -10,6 +10,7 @@ fs.copyFileSync(path.join(root,"shared","rush.js"),path.join(out,"rush.js"));
 fs.copyFileSync(path.join(root,"shared","bear.js"),path.join(out,"bear.js"));
 fs.copyFileSync(path.join(root,"shared","munch.js"),path.join(out,"munch.js"));
 fs.copyFileSync(path.join(root,"shared","softball.js"),path.join(out,"softball.js"));
+fs.copyFileSync(path.join(root,"shared","crossword.js"),path.join(out,"crossword.js"));
 fs.copyFileSync(path.join(root,"shared","hurdle.js"),path.join(out,"hurdle.js"));
 fs.copyFileSync(path.join(root,"shared","typing.js"),path.join(out,"typing.js"));
 fs.copyFileSync(path.join(root,"shared","cannons.js"),path.join(out,"cannons.js"));

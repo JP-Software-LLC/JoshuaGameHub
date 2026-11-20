@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vocab Crossword · Joshua Game Hub</title>
+<meta name="theme-color" content="#1e3a5f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#1b2a3a; --ink2:#5a6b7e; --go:#2563eb; --go2:#1e40af; --or:#f59e0b; --or2:#b45309; --sun:#ffcf33; --ok:#16a34a; --bad:#e5484d; --hl:#fff3b0; --cur:#ffd84d; --line:#1e3a5f;
+    --h:"Lilita One",system-ui,sans-serif; --b:"Nunito",system-ui,sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);font-family:var(--b);-webkit-font-smoothing:antialiased}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#2d5a8c,#1e3a5f 60%,#14273f) fixed #1e3a5f}
+  button,input,textarea{font-family:inherit}
+  [hidden]{display:none!important}
+  .screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:60px 16px 24px}
+  .screen.on{display:flex}
+  .card{width:100%;max-width:560px;background:#fff;border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:14px;position:relative;box-shadow:0 8px 0 rgba(0,0,0,.18),0 30px 60px -25px rgba(0,0,0,.5)}
+  .logo{margin:0;text-align:center;font-family:var(--h);font-weight:400;font-size:50px;line-height:.95;color:var(--sun);-webkit-text-stroke:3px var(--line);paint-order:stroke fill;text-shadow:0 5px 0 var(--line)}
+  .logo small{display:block;font-family:var(--b);font-size:.26em;font-weight:900;letter-spacing:5px;color:var(--ink2);-webkit-text-stroke:0;text-shadow:none;margin-top:8px}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .how div{background:#eef4fb;border-radius:16px;padding:10px;text-align:center;font-size:14px;color:var(--ink2);line-height:1.25;font-weight:700}
+  .how b{display:block;font-size:24px;margin-bottom:2px}
+  .lbl{font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink2)}
+  input.f,textarea.f{width:100%;border:3px solid #e1e9f2;border-radius:14px;padding:10px 14px;font-size:17px;font-weight:700;color:var(--ink);outline:none;background:#f8fbfe}
+  input.f:focus,textarea.f:focus{border-color:var(--go)}
+  textarea.f{min-height:150px;resize:vertical;line-height:1.4}
+  .btn{appearance:none;border:0;border-radius:14px;padding:13px 18px;font-size:16px;font-weight:900;cursor:pointer;color:#fff;background:var(--go);box-shadow:0 4px 0 var(--go2);transition:transform .08s,box-shadow .08s}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--go2)}
+  .btn.orange{background:var(--or);box-shadow:0 4px 0 var(--or2)}
+  .btn.ok{background:var(--ok);box-shadow:0 4px 0 #11702f}
+  .btn.alt{background:#fff;color:var(--ink);box-shadow:0 4px 0 #d6e2ee;border:3px solid #d6e2ee}
+  .btn.sm{padding:8px 12px;font-size:14px}
+  .btn:disabled{opacity:.5;cursor:default}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>.btn{flex:1}
+  .err{min-height:1.2em;margin:0;color:var(--bad);text-align:center;font-weight:800}
+  .note{text-align:center;color:var(--ink2);margin:0;font-weight:700}
+  .code{font-family:var(--h);font-size:52px;letter-spacing:10px;text-align:center;line-height:1}
+  .count{text-align:center;color:var(--ink2);font-weight:800}
+  .grid{display:flex;flex-wrap:wrap;gap:7px;max-height:26vh;overflow:auto}
+  .chip{display:flex;align-items:center;gap:6px;padding:5px 11px 5px 6px;border-radius:999px;background:#f1f6fb;font-weight:800;font-size:14px}
+  .chip i{min-width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;font-weight:900;padding:0 4px}
+  .chip.me{box-shadow:inset 0 0 0 3px var(--go)}
+  .chip.away{opacity:.45}
+
+  /* lobby: the host's vocab list */
+  #lWords{background:#f6f9fd;border:2px dashed #cfdbea;border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  #lWords .cur{font-weight:800;color:var(--ink)}
+  .clues-edit{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto;padding-right:4px}
+  .ce{display:grid;grid-template-columns:110px 1fr 30px;gap:6px;align-items:center}
+  .ce b{font-weight:900;letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+  .ce input{padding:6px 10px;font-size:14px;border-width:2px}
+  .ce.miss input{border-color:#fca5a5;background:#fff5f5}
+  .ce button{border:0;background:#e8eef5;border-radius:9px;height:30px;cursor:pointer}
+
+  /* game */
+  #game{display:none;padding:56px 16px 24px;max-width:1200px;margin:0 auto}
+  #game.on{display:block}
+  .hud{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .hbox{background:#fff;border-radius:14px;padding:6px 14px;font-weight:900;box-shadow:0 4px 0 rgba(0,0,0,.2);font-size:18px}
+  .hbox small{color:var(--ink2);font-size:13px}
+  #pTitle{flex:1;margin:0;font-family:var(--h);font-weight:400;font-size:30px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.3);min-width:200px}
+  .pbody{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:16px;align-items:start}
+  .gridcard{padding:14px;display:flex;overflow:auto;max-width:none}
+  .gridcard #grid{margin:auto}
+  #grid{display:grid;user-select:none;touch-action:manipulation}
+  .cell{position:relative;width:var(--cs);height:var(--cs)}
+  .cell.on{background:#fff;border:1.5px solid var(--line);margin:-.75px;cursor:pointer}
+  .cell.on.hl{background:var(--hl)}
+  .cell.on.done{background:#dcfce7}
+  .cell.on.cur{background:var(--cur)}
+  .cell.on.bad .ch{color:var(--bad)}
+  .cell .n{position:absolute;top:1px;left:3px;font-size:calc(var(--cs)*.26);font-weight:900;color:var(--ink2);line-height:1}
+  .cell .ch{position:absolute;inset:0;display:grid;place-items:center;font-weight:900;font-size:calc(var(--cs)*.58);color:var(--ink);padding-top:calc(var(--cs)*.08)}
+  .cell .ch.rev{color:#7c3aed}
+  .side{display:flex;flex-direction:column;gap:12px}
+  .side .card{max-width:none;gap:6px;padding:16px}
+  .cluebox h3{margin:0;font-family:var(--h);font-weight:400;font-size:22px;color:var(--line)}
+  .cl{display:grid;grid-template-columns:30px 1fr;gap:6px;padding:7px 8px;border-radius:10px;cursor:pointer;font-weight:700;line-height:1.3;font-size:15px}
+  .cl:hover{background:#f1f6fb}
+  .cl.cur{background:var(--cur)}
+  .cl.done{color:#94a3b8;text-decoration:line-through}
+  .cl b{font-weight:900;color:var(--go)}
+  .cl small{color:var(--ink2);font-weight:800}
+  #curClue{background:var(--line);color:#fff;border-radius:16px;padding:12px 16px;font-weight:800;font-size:17px;min-height:50px}
+  #curClue b{color:var(--sun)}
+  .bank{display:flex;flex-wrap:wrap;gap:6px}
+  .bank span{background:#eef4fb;border-radius:999px;padding:4px 12px;font-weight:900;letter-spacing:1px;font-size:14px}
+  .bank span.used{background:#dcfce7;color:#15803d;text-decoration:line-through}
+  #kb{position:fixed;left:-9999px;top:0;opacity:0;width:1px;height:1px}
+  #done{position:fixed;inset:0;display:grid;place-items:center;background:rgba(10,20,40,.55);z-index:20}
+  #done .card{text-align:center;max-width:420px;align-items:center}
+  #done h2{margin:0;font-family:var(--h);font-weight:400;font-size:46px;color:var(--ok)}
+  #feed{position:fixed;top:56px;right:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;z-index:6;pointer-events:none}
+  #feed div{background:rgba(255,255,255,.95);border-radius:12px;padding:4px 10px;font-weight:900;font-size:13px;animation:fade 4s forwards}
+  @keyframes fade{80%{opacity:1}100%{opacity:0}}
+  #count{position:fixed;inset:0;display:grid;place-items:center;z-index:15;pointer-events:none;font-family:var(--h);font-size:min(30vw,200px);color:var(--sun);-webkit-text-stroke:6px var(--line);paint-order:stroke fill}
+
+  /* results */
+  #results .card{max-width:600px;text-align:center}
+  .champ{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .champ .t{font-weight:900;letter-spacing:3px;color:var(--or2);text-transform:uppercase;font-size:14px}
+  .champ h2{margin:0;font-family:var(--h);font-weight:400;font-size:42px;line-height:1.05}
+  .board{display:flex;flex-direction:column;gap:7px;text-align:left}
+  .line{display:grid;grid-template-columns:36px 30px 1fr auto auto;align-items:center;gap:10px;padding:9px 14px;border-radius:14px;background:#f1f6fb;font-weight:800}
+  .line .pos{font-family:var(--h);font-size:22px;color:var(--ink2)}
+  .line i{min-width:26px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:11px;color:#fff;font-weight:900}
+  .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .line .cl2{color:var(--ink2);font-size:13px}
+  .line .tm{font-family:var(--h);font-size:20px;font-weight:400;min-width:58px;text-align:right}
+  .line.p1{background:#fff4cc;box-shadow:inset 0 0 0 3px var(--sun)}
+  .line.me{box-shadow:inset 0 0 0 3px var(--go)}
+  .you{display:flex;justify-content:space-between;font-weight:800;color:var(--ink2);padding:0 6px}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:30}
+  #exitBtn{position:fixed;top:12px;right:12px;z-index:9;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff;border:0;color:var(--ink2);box-shadow:0 3px 0 rgba(0,0,0,.25);cursor:pointer}
+  @media (max-width:860px){ .pbody{grid-template-columns:1fr} .how{grid-template-columns:1fr} .logo{font-size:40px} }
+</style>
+<script src="/assets/hub-frame.js" defer></script>
+</head>
+<body data-ck-board="code">
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+<input id="kb" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Type a letter">
+
+<!-- MENU -->
+<section class="screen on" id="menu"><div class="card">
+  <h1 class="logo">VOCAB CROSSWORD<small>READ · THINK · FILL IT IN</small></h1>
+  <div class="how">
+    <div><b>📖</b>Read a clue</div>
+    <div><b>⌨️</b>Tap the squares and type the word</div>
+    <div><b>🏆</b>Finish the whole crossword to win</div>
+  </div>
+  <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
+  <div class="row"><button class="btn" id="bPublic">Play online</button><button class="btn orange" id="bPrivate">Private game</button></div>
+  <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="flex:1;text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bTeacher">🍎 Teacher mode · use your own vocab words</button>
+  <button class="btn alt" id="bSolo">Practice puzzle (solo)</button>
+  <p class="err" id="err"></p>
+</div></section>
+
+<!-- LOBBY -->
+<section class="screen" id="lobby"><div class="card">
+  <div class="lbl" id="lKind" style="text-align:center">Private game</div>
+  <div class="code" id="lCode">----</div>
+  <div class="count" id="lCount">1 / 40 players</div>
+  <div class="grid" id="lGrid"></div>
+  <div id="lWords">
+    <div class="cur" id="wCur">No word list yet: a built-in puzzle will be picked.</div>
+    <div id="wHost">
+      <div id="wStep1" style="display:flex;flex-direction:column;gap:8px">
+        <input class="f" id="wTitle" maxlength="40" placeholder="Title (e.g. Science Week 4)">
+        <textarea class="f" id="wList" placeholder="Your vocab words, one per line (or split by commas)&#10;habitat&#10;predator&#10;camouflage&#10;..."></textarea>
+        <div class="row"><button class="btn sm" id="bLook">Look up clues 🔎</button><button class="btn sm alt" id="bClear" style="flex:0 0 auto">Use a built-in puzzle</button></div>
+        <span class="note" style="text-align:left;font-size:13px">3–30 words, 3–20 letters each. Clues come from a free online dictionary and you can change any of them.</span>
+      </div>
+      <div id="wStep2" hidden style="display:flex;flex-direction:column;gap:8px">
+        <div class="lbl" id="wStatus">Looking up clues…</div>
+        <div class="clues-edit" id="cList"></div>
+        <div class="row"><button class="btn sm alt" id="bBackW" style="flex:0 0 auto">← Words</button><button class="btn sm ok" id="bUse">Use these words ✓</button></div>
+      </div>
+    </div>
+  </div>
+  <p class="note" id="lNote"></p>
+  <div class="row"><button class="btn orange" id="bStart">Start game!</button><button class="btn alt" id="bLeave" style="flex:0 0 auto">Leave</button></div>
+</div></section>
+
+<!-- GAME -->
+<section id="game">
+  <div class="hud">
+    <h2 id="pTitle">Crossword</h2>
+    <div class="hbox" id="hPlace">–</div>
+    <div class="hbox" id="hWords">0 <small>/ 0 words</small></div>
+    <div class="hbox" id="hClock">0:00</div>
+    <button class="btn sm alt" id="bCheck">✓ Check</button>
+    <button class="btn sm alt" id="bHint">💡 Reveal a letter</button>
+  </div>
+  <div class="pbody">
+    <div class="card gridcard"><div id="grid"></div></div>
+    <div class="side">
+      <div id="curClue">Tap a square to start.</div>
+      <div class="card"><span class="lbl">Word bank</span><div class="bank" id="bank"></div></div>
+      <div class="card cluebox"><h3>Across</h3><div id="across"></div><h3 style="margin-top:8px">Down</h3><div id="down"></div></div>
+    </div>
+  </div>
+</section>
+<div id="done" hidden><div class="card"><div style="font-size:60px">🎉</div><h2>SOLVED!</h2><b id="dTime" style="font-family:var(--h);font-size:28px;font-weight:400"></b><p class="note" id="dNote"></p><button class="btn" id="bDoneOk" hidden>Play another</button></div></div>
+<div id="count" hidden></div>
+<div id="feed"></div>
+
+<!-- RESULTS -->
+<section class="screen" id="results"><div class="card">
+  <div class="champ" id="champ"></div>
+  <div class="board" id="rBoard"></div>
+  <div class="you" id="rYou"></div>
+  <div class="row"><button class="btn" id="bAgain">Back to lobby</button><a class="btn alt" href="../" style="text-align:center;text-decoration:none;flex:0 0 auto">Game hub</a></div>
+</div></section>
+<canvas id="confetti"></canvas>
+
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
+<script src="../crossword.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
+const pcol=i=>`hsl(${(i*137.508+20)%360},72%,52%)`;
+const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
+const fmt1=t=>t==null?"–":`${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}`;
+
+let screen="menu";
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); $("game").classList.toggle("on",id==="game"); screen=id;
+  if (id!=="game") $("done").hidden=true;
+  const t=id==="menu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t); scrollTo(0,0);
+}
+const err=t=>$("err").textContent=t||"";
+$("nameIn").value=store.get("cg_name")||"";
+const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store.set("cg_name",n); return n; };
+function toast(t){ const f=$("feed"); const d=document.createElement("div"); d.textContent=t; f.prepend(d); while (f.children.length>3) f.lastChild.remove(); setTimeout(()=>d.remove(),4000); }
+
+// ============================================================
+//  CLUES: Datamuse first (most common sense first), Free Dictionary API (dictionaryapi.dev) as backup. Free, no key.
+// ============================================================
+function parseWords(text){
+  const out=[], seen=new Set();
+  for (const raw of String(text).split(/[\n,;]+/)){ const w=XW.clean(raw); if (w.length<3||w.length>20||seen.has(w)) continue; seen.add(w); out.push(w); if (out.length>=30) break; }
+  return out;
+}
+const stemOf=w=>w.toLowerCase().replace(/(ing|ed|es|s|e|y)$/,"");
+function tidy(def, word){
+  let d=String(def).replace(/\s+/g," ").trim().split(/;\s/)[0].replace(/\.$/,"");     // keep it short: first part only
+  const stem=stemOf(word);
+  if (stem.length>=3) d=d.replace(new RegExp("\\b"+stem+"[a-z]*","gi"),"___");          // never give the answer away
+  return d.charAt(0).toUpperCase()+d.slice(1);
+}
+function pickDef(cands, word){
+  const stem=stemOf(word), bad=c=>(new RegExp("\\b"+stem,"i").test(c.d)?2:0)+(c.d.length>200?1:0)+(c.d.length<10?1:0);
+  const best=cands.filter(c=>c.d).map((c,i)=>({ ...c, i })).sort((a,b)=>bad(a)-bad(b)||a.i-b.i)[0];
+  return best?tidy(best.d,word)+(best.pos?` (${best.pos})`:""):"";
+}
+async function lookup(word){
+  const w=word.toLowerCase();
+  try{
+    const r=await fetch("https://api.datamuse.com/words?md=d&max=1&sp="+encodeURIComponent(w));
+    if (r.ok){ const j=await r.json(); const e=j.find(x=>x.word===w&&x.defs);
+      if (e){ const POS={ n:"noun", v:"verb", adj:"adjective", adv:"adverb" };
+        const d=pickDef(e.defs.slice(0,4).map(s=>{ const [p,t]=s.split("\t"); return { d:(t||"").replace(/^\([^)]*\)\s*/,""), pos:POS[p]||"" }; }),w); if (d) return d; } }
+  }catch{}
+  try{
+    const r=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(w));
+    if (r.ok){ const j=await r.json(), c=[];
+      for (const e of j) for (const m of e.meanings||[]) (m.definitions||[]).slice(0,2).forEach(d=>c.push({ d:d.definition, pos:m.partOfSpeech }));
+      const d=pickDef(c,w); if (d) return d; }
+  }catch{}
+  return "";
+}
+const CACHE=JSON.parse(store.get("xw_defs")||"{}");     // the teacher's own edits are remembered too
+let draft=[];                                            // [{ word, clue }]
+$("wTitle").value=store.get("xw_title")||""; $("wList").value=store.get("xw_words")||"";
+$("bLook").onclick=async()=>{
+  const words=parseWords($("wList").value);
+  if (words.length<3){ $("wCur").textContent="⚠️ Please type at least 3 words (3–20 letters each)."; return; }
+  store.set("xw_title",$("wTitle").value); store.set("xw_words",$("wList").value);
+  draft=words.map(word=>({ word, clue:CACHE[word]||"" }));
+  $("wStep1").hidden=true; $("wStep2").hidden=false; renderClueList();
+  const todo=draft.filter(x=>!x.clue); let done=draft.length-todo.length, i=0;
+  const status=()=>$("wStatus").textContent=done<draft.length?`Looking up clues… ${done} / ${draft.length}`:"Check the clues. Change any you like.";
+  status();
+  const worker=async()=>{ while (i<todo.length){ const x=todo[i++]; const d=await lookup(x.word); if (!x.clue&&d){ x.clue=d; CACHE[x.word]=d; } done++; status(); renderClueList(); } };
+  await Promise.all([worker(),worker(),worker(),worker()]);
+  store.set("xw_defs",JSON.stringify(CACHE));
+};
+function renderClueList(){
+  const f=document.activeElement&&document.activeElement.dataset.i;
+  $("cList").innerHTML=draft.map((x,i)=>`<div class="ce ${x.clue?"":"miss"}"><b>${esc(x.word)}</b><input class="f" data-i="${i}" value="${esc(x.clue)}" placeholder="Write a clue…" maxlength="160"><button type="button" data-del="${i}" title="Remove word">✕</button></div>`).join("");
+  if (f!=null){ const el=$("cList").querySelector(`input[data-i="${f}"]`); if (el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length); } }
+}
+$("cList").addEventListener("input",e=>{ const i=e.target.dataset.i; if (i==null) return; draft[i].clue=e.target.value; CACHE[draft[i].word]=e.target.value; e.target.parentNode.classList.toggle("miss",!e.target.value.trim()); });
+$("cList").addEventListener("click",e=>{ const d=e.target.dataset.del; if (d==null) return; draft.splice(+d,1); renderClueList(); });
+$("bBackW").onclick=()=>{ $("wStep1").hidden=false; $("wStep2").hidden=true; };
+$("bUse").onclick=()=>{
+  const empty=draft.filter(x=>!x.clue.trim());
+  if (empty.length){ $("wStatus").textContent=`Please write a clue for: ${empty.map(x=>x.word).join(", ")}`; return; }
+  if (draft.length<3){ $("wStatus").textContent="You need at least 3 words."; return; }
+  store.set("xw_defs",JSON.stringify(CACHE));
+  Net.send({ t:"xw", xw:{ title:$("wTitle").value.trim()||"Vocabulary Crossword", w:draft.map(x=>[x.word,x.clue.trim()]) } });
+  $("wStep1").hidden=false; $("wStep2").hidden=true;
+};
+$("bClear").onclick=()=>Net.send({ t:"xw", clear:true });
+
+// ============================================================
+//  PUZZLE
+// ============================================================
+const G={ mode:"", me:0, players:new Map(), snap:[], finished:new Map(), startAt:0, done:false, sentAt:0, hints:0, solvedAt:0 };
+let L=null, cells=new Map(), cur=null, dir="a", saveKey="", locked=true;
+const K=(r,c)=>r*1000+c;
+function beginGame({ xw, seed, players, me, inMs, mode }){
+  Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), snap:[], finished:new Map(), startAt:performance.now()+inMs, done:false, sentAt:0, hints:0, solvedAt:0 });
+  const clue=new Map(xw.w.map(([w,c])=>[XW.clean(w),c]));
+  L=XW.build(xw.w.map(x=>x[0]), seed||1); L.placed.forEach(x=>x.clue=clue.get(x.word)||"");
+  cells=new Map();
+  for (const x of L.placed) for (let i=0;i<x.word.length;i++){ const r=x.r+(x.dir==="d"?i:0), c=x.c+(x.dir==="a"?i:0), k=K(r,c);
+    if (!cells.has(k)) cells.set(k,{ r, c, sol:x.word[i], v:"", words:{} }); cells.get(k).words[x.dir]=x; }
+  for (const x of L.placed) cells.get(K(x.r,x.c)).n=x.n;
+  saveKey="xw_save_"+seed+"_"+L.placed.length;                    // a rejoin mid-game keeps your letters
+  const saved=mode==="online"?JSON.parse(sessionStorage.getItem(saveKey)||"{}"):{};
+  for (const [k,v] of Object.entries(saved)) if (cells.has(+k)) cells.get(+k).v=v;
+  $("pTitle").textContent=xw.title||"Crossword";
+  locked=true; show("game"); buildGrid(); renderClues(); cur=null; select(L.placed.find(x=>x.n===1)||L.placed[0]);
+}
+function buildGrid(){
+  const g=$("grid"), cs=Math.max(24,Math.min(46,Math.floor(Math.min((g.parentNode.clientWidth||innerWidth*0.5)-30,760)/L.w)));
+  g.style.setProperty("--cs",cs+"px"); g.style.gridTemplateColumns=`repeat(${L.w},${cs}px)`;
+  let html="";
+  for (let r=0;r<L.h;r++) for (let c=0;c<L.w;c++){ const x=cells.get(K(r,c));
+    html+=x?`<div class="cell on" data-k="${K(r,c)}">${x.n?`<span class="n">${x.n}</span>`:""}<span class="ch"></span></div>`:`<div class="cell"></div>`; }
+  g.innerHTML=html; for (const [k,x] of cells) x.el=g.querySelector(`[data-k="${k}"]`); paint();
+}
+addEventListener("resize",()=>{ if (screen==="game"&&L) buildGrid(); });
+function renderClues(){
+  const line=x=>`<div class="cl" data-n="${x.n}" data-d="${x.dir}"><b>${x.n}</b><span>${esc(x.clue)} <small>(${x.word.length})</small></span></div>`;
+  const by=d=>L.placed.filter(x=>x.dir===d).sort((a,b)=>a.n-b.n).map(line).join("")||`<span class="note" style="text-align:left">None</span>`;
+  $("across").innerHTML=by("a"); $("down").innerHTML=by("d");
+  $("bank").innerHTML=[...L.placed].sort((a,b)=>a.word.localeCompare(b.word)).map(x=>`<span data-w="${x.word}">${x.word.toLowerCase()}</span>`).join("");
+}
+const wordCells=x=>Array.from({length:x.word.length},(_,i)=>cells.get(K(x.r+(x.dir==="d"?i:0),x.c+(x.dir==="a"?i:0))));
+const solved=x=>wordCells(x).every(c=>c.v===c.sol);
+const solvedCount=()=>L?L.placed.filter(solved).length:0;
+function select(word,cell){
+  if (!word) return; dir=word.dir;
+  cur={ word, cell:cell||wordCells(word).find(c=>!c.v)||wordCells(word)[0] };
+  paint();
+  $("curClue").innerHTML=`<b>${word.n} ${word.dir==="a"?"Across":"Down"}</b> · ${esc(word.clue)} <span style="opacity:.7">(${word.word.length} letters)</span>`;
+}
+function paint(){
+  const inW=cur?new Set(wordCells(cur.word)):new Set();
+  for (const x of cells.values()){ const ch=x.el.querySelector(".ch"); ch.textContent=x.v; ch.classList.toggle("rev",!!x.rev);
+    x.el.classList.toggle("hl",inW.has(x)); x.el.classList.toggle("cur",!!cur&&cur.cell===x); x.el.classList.toggle("bad",!!x.bad&&x.v!==x.sol);
+    x.el.classList.toggle("done",Object.values(x.words).some(solved)); }
+  document.querySelectorAll(".cl").forEach(el=>{ const w=L.placed.find(x=>x.n==el.dataset.n&&x.dir===el.dataset.d); el.classList.toggle("cur",!!cur&&cur.word===w); el.classList.toggle("done",solved(w)); });
+  document.querySelectorAll("#bank span").forEach(el=>el.classList.toggle("used",L.placed.some(x=>x.word===el.dataset.w&&solved(x))));
+  $("hWords").innerHTML=`${solvedCount()} <small>/ ${L.placed.length} words</small>`;
+}
+$("grid").addEventListener("pointerdown",e=>{
+  const el=e.target.closest(".cell.on"); if (!el) return; e.preventDefault();
+  const c=cells.get(+el.dataset.k);
+  if (cur&&cur.cell===c&&c.words.a&&c.words.d) select(c.words[dir==="a"?"d":"a"],c);   // tap again = switch direction
+  else select(c.words[dir]||c.words.a||c.words.d,c);
+  $("kb").focus({ preventScroll:true });
+});
+document.querySelector(".cluebox").addEventListener("click",e=>{ const el=e.target.closest(".cl"); if (!el) return;
+  select(L.placed.find(x=>x.n==el.dataset.n&&x.dir===el.dataset.d)); $("kb").focus({ preventScroll:true }); });
+function move(step){ const cs=wordCells(cur.word), i=cs.indexOf(cur.cell)+step; if (i>=0&&i<cs.length) cur.cell=cs[i]; }
+function nextWord(){ const order=[...L.placed].sort((a,b)=>(a.dir>b.dir?1:-1)||a.n-b.n), i=order.indexOf(cur.word);
+  for (let k=1;k<=order.length;k++){ const w=order[(i+k)%order.length]; if (!solved(w)) return select(w); } }
+const canType=()=>screen==="game"&&cur&&!locked&&!G.done;
+function typeLetter(ch){
+  if (!canType()) return; const c=cur.cell; c.v=ch; c.bad=false; c.rev=false;
+  if (solved(cur.word)){ save(); paint(); if (!checkWin()) nextWord(); return; }
+  const cs=wordCells(cur.word), after=cs.slice(cs.indexOf(c)+1).find(x=>!x.v); if (after) cur.cell=after; else move(1);
+  save(); paint();
+}
+function backLetter(){ if (!canType()) return; if (cur.cell.v) cur.cell.v=""; else { move(-1); cur.cell.v=""; } save(); paint(); }
+function arrow(dr,dc){ if (!cur) return; const want=dc?"a":"d", c=cur.cell;
+  if (dir!==want&&c.words[want]) return select(c.words[want],c);
+  const n=cells.get(K(c.r+dr,c.c+dc)); if (n) select(n.words[want]||n.words.a||n.words.d,n); }
+addEventListener("keydown",e=>{
+  if (e.key==="Escape"&&screen!=="menu") return exitGame();
+  if (screen!=="game"||e.ctrlKey||e.metaKey||e.altKey) return;
+  if (e.target.tagName==="INPUT"&&e.target.id!=="kb") return;
+  if (/^[a-z]$/i.test(e.key)){ e.preventDefault(); typeLetter(e.key.toUpperCase()); }
+  else if (e.key==="Backspace"){ e.preventDefault(); backLetter(); }
+  else if (e.key==="ArrowRight"){ e.preventDefault(); arrow(0,1); } else if (e.key==="ArrowLeft"){ e.preventDefault(); arrow(0,-1); }
+  else if (e.key==="ArrowDown"){ e.preventDefault(); arrow(1,0); } else if (e.key==="ArrowUp"){ e.preventDefault(); arrow(-1,0); }
+  else if (e.key==="Enter"||e.key==="Tab"){ e.preventDefault(); if (cur) nextWord(); }
+});
+$("kb").addEventListener("input",e=>{ const v=e.target.value.toUpperCase().replace(/[^A-Z]/g,""); e.target.value=""; for (const ch of v) typeLetter(ch); });
+function save(){ if (G.mode!=="online") return; const o={}; for (const [k,x] of cells) if (x.v) o[k]=x.v; try{ sessionStorage.setItem(saveKey,JSON.stringify(o)); }catch{} }
+$("bCheck").onclick=()=>{ if (!canType()) return; let wrong=0; for (const x of cells.values()) if (x.v&&x.v!==x.sol){ x.bad=true; wrong++; } paint();
+  $("curClue").innerHTML=wrong?`<b>${wrong} letter${wrong>1?"s":""}</b> in red ${wrong>1?"need":"needs"} another look.`:"<b>Looking good!</b> Every letter so far is right."; };
+$("bHint").onclick=()=>{ if (!canType()) return; const c=wordCells(cur.word).find(x=>x.v!==x.sol); if (!c) return nextWord();
+  c.v=c.sol; c.rev=true; c.bad=false; cur.cell=c; G.hints++; save(); paint(); if (!checkWin()&&solved(cur.word)) nextWord(); $("kb").focus({ preventScroll:true }); };
+function checkWin(){
+  if (G.done||![...cells.values()].every(x=>x.v===x.sol)) return false;
+  G.done=true; const t=(performance.now()-G.startAt)/1000; G.solvedAt=t;
+  if (G.mode==="online"){ Net.send({ t:"pos", d:L.placed.length, x:0 }); Net.send({ t:"finish", time:t, extra:G.hints }); }
+  $("dTime").textContent=fmt1(t);
+  $("dNote").textContent=(G.hints?`${G.hints} hint${G.hints>1?"s":""} used. `:"No hints! ")+(G.mode==="solo"?"Great work!":"Waiting for the rest of the class…");
+  $("bDoneOk").hidden=G.mode!=="solo"; $("done").hidden=false; confetti(); return true;
+}
+$("bDoneOk").onclick=()=>$("bSolo").click();
+
+// ============================================================
+//  LOOP: countdown, clock, progress to the server, standings
+// ============================================================
+let lastCount=-1;
+function standings(){
+  const mine={ pid:G.me, d:solvedCount(), fin:G.done, ft:G.solvedAt };
+  const others=G.snap.filter(q=>q[0]!==G.me).map(q=>({ pid:q[0], d:q[1], fin:!!q[3], ft:G.finished.get(q[0]) }));
+  return [mine,...others].sort((a,b)=>(b.fin-a.fin)||(a.fin&&b.fin?(a.ft??0)-(b.ft??0):b.d-a.d));
+}
+setInterval(()=>{
+  if (screen!=="game"||!L) return;
+  const now=performance.now(), rt=(now-G.startAt)/1000;
+  if (rt<0){ const c=Math.ceil(-rt); if (c!==lastCount){ lastCount=c; $("count").hidden=false; $("count").textContent=c; } return; }
+  if (locked){ locked=false; $("count").hidden=true; lastCount=-1; $("kb").focus({ preventScroll:true }); }
+  $("hClock").textContent=fmt(G.done?G.solvedAt:rt);
+  if (G.mode==="online"){
+    if (!G.done && now-G.sentAt>500){ G.sentAt=now; Net.send({ t:"pos", d:solvedCount(), x:0 }); }
+    const all=standings(), place=all.findIndex(a=>a.pid===G.me)+1, suf=(place%100>10&&place%100<14)?"th":["th","st","nd","rd"][place%10]||"th";
+    $("hPlace").hidden=false; $("hPlace").innerHTML=`${place}${suf} <small>/ ${all.length}</small>`;
+  } else $("hPlace").hidden=true;
+},150);
+
+// ============================================================
+//  SOLO: a built-in practice puzzle
+// ============================================================
+$("bSolo").onclick=()=>{
+  myName(); Net.close();
+  const p=XW.PUZZLES[Math.random()*XW.PUZZLES.length|0];
+  beginGame({ xw:p, seed:(Math.random()*1e9)|0, players:[{ pid:1, name:myName(), color:0 }], me:1, inMs:3000, mode:"solo" });
+};
+
+// ============================================================
+//  RESULTS — top 3 or top 15 % (whichever is more) + your place
+// ============================================================
+const topCount=n=>Math.min(n,Math.max(3,Math.ceil(n*0.15)));
+function showResults(rank,dist){
+  $("done").hidden=true;
+  const w=rank[0]; if (!w){ show("lobby"); renderLobby(); return; }
+  const n=topCount(rank.length), best=w.time;
+  $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🏆</div><div class="t">${w.pid===G.me?"You won!":"Crossword champion!"}</div><h2>${esc(w.name)}</h2>`;
+  const val=e=>e.time!=null?fmt1(e.time):`✏️ ${Math.round(e.d||0)}/${dist}`;
+  const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl2">${e.time!=null&&e.extra?`${e.extra} hints`:""}</span><span class="tm">${val(e)}</span></div>`;
+  $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
+  const mi=rank.findIndex(e=>e.pid===G.me);
+  $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].time!=null?fmt1(rank[mi].time)+" (+"+(rank[mi].time-best).toFixed(1)+"s)":val(rank[mi])}</span>`:"";
+  show("results"); confetti();
+}
+$("bAgain").onclick=()=>{ show("lobby"); renderLobby(); };
+function confetti(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=$("confetti"), x=c.getContext("2d"); c.width=innerWidth; c.height=innerHeight;
+  const P=Array.from({length:140},(_,i)=>({ x:Math.random()*innerWidth, y:-20-Math.random()*innerHeight*0.5, v:2+Math.random()*4, s:5+Math.random()*7, r:Math.random()*6, c:`hsl(${i*47%360},80%,60%)` }));
+  const t0=performance.now();
+  (function f(now){ const age=(now-t0)/1000; x.clearRect(0,0,c.width,c.height);
+    for (const p of P){ p.y+=p.v; p.r+=0.08; x.save(); x.globalAlpha=Math.max(0,1-Math.max(0,age-2.8)/1.4); x.translate(p.x+Math.sin(p.r)*14,p.y); x.rotate(p.r); x.fillStyle=p.c; x.fillRect(-p.s/2,-p.s/3,p.s,p.s*0.66); x.restore(); }
+    if (age<4.2) requestAnimationFrame(f); else x.clearRect(0,0,c.width,c.height); })(t0);
+}
+
+// ============================================================
+//  NETWORK
+// ============================================================
+const Net={
+  ws:null, want:false, retry:0, queue:[], pid:0, code:null, lobby:null, token:store.get("cg_token"),
+  url(){ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; if (s) return s; if (!location.host) return null; return (location.protocol==="https:"?"wss://":"ws://")+location.host; },
+  open(){
+    this.want=true; if (this.ws&&this.ws.readyState<=1) return;
+    const url=this.url(); if (!url) return err("Online play needs the game server.");
+    const ws=this.ws=new WebSocket(url);
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
+    ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
+  },
+  send(m){ if (this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify(m)); else if (this.want){ this.queue.push(m); this.open(); } },
+  close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
+};
+function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
+  if (teacherIntercept(m)) return;
+  switch (m.t){
+    case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
+    case "joined":
+      if (m.game!=="crossword"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
+      Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
+    case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
+    case "go": if (!m.xw) break; beginGame({ xw:m.xw, seed:m.seed, players:m.players, me:Net.pid, inMs:m.in, mode:"online" }); break;
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); break;
+    case "ps": if (G.mode==="online") G.snap=m.p; break;
+    case "fin": if (m.pid!==Net.pid){ G.finished.set(m.pid,m.time); const pl=G.players.get(m.pid); if (pl && screen==="game") toast(`🏆 ${pl.name} finished!`); } break;
+    case "results": if (G.mode==="online") showResults(m.rank,m.dist); break;
+    case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
+  }
+}
+let lobbyTimer=0;
+function renderLobby(){
+  const L=Net.lobby; if (!L) return;
+  $("lKind").textContent=L.pub?"Online game":"Private game";
+  $("lCode").textContent=L.code;
+  $("lCount").textContent=`${L.players.length} / ${L.max} players`;
+  $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
+  const host=L.host===Net.pid;
+  $("wCur").textContent=L.xw?`✅ Using "${L.xw.title}" (${L.xw.n} words)`:host?"No word list yet: a built-in puzzle will be picked. Add your own words below.":"The host can add their own vocab words. Otherwise a built-in puzzle is picked.";
+  $("wHost").hidden=!host||L.state!=="lobby";
+  $("bStart").style.display=host?"":"none";
+  clearInterval(lobbyTimer);
+  const note=()=>{
+    let t=L.state==="playing"?"A game is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
+    if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
+    $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t;
+  };
+  const note2=()=>{ note(); teacherLobby(L); }; note2(); lobbyTimer=setInterval(note2,500);
+}
+function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
+$("bPublic").onclick=()=>goOnline({ t:"quick", game:"crossword" });
+$("bPrivate").onclick=()=>goOnline({ t:"create", game:"crossword" });
+$("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Game codes are 4 letters."); goOnline({ t:"join", code:c }); };
+$("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
+$("bStart").onclick=()=>Net.send({ t:"start" });
+$("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+
+// ============================================================
+//  TEACHER MODE — the teacher adds their vocab list in the lobby, then watches live standings
+// ============================================================
+function teacherLobby(L){
+  if (!L || !L.teacher) return;
+  const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), t=L.players.find(p=>p.pid===L.teacher);
+  $("lCount").textContent=`${kids.length} / ${L.max-1} students`;
+  $("lKind").textContent="🍎 Teacher mode · private game";
+  $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+  $("lNote").textContent=iTeach?"Share this code with your class. You won't play. Everyone solves the same crossword; you can end it any time.":`🍎 ${t?t.name:"Your teacher"} will start the game.`;
+}
+function teacherIntercept(m){
+  if (m.t==="joined" && Net.wantTeacher && m.game==="crossword"){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
+  return teacherView(m);
+}
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"crossword" }); });
+
+const CV={ on:false, players:new Map(), fin:new Map(), el:null, n:0, title:"" };
+function classView(m){
+  CV.on=true; CV.players=new Map(m.players.map(p=>[p.pid,p])); CV.fin=new Map(); CV.rows=[]; CV.n=m.dist; CV.title=m.xw?.title||"";
+  G.mode="online"; G.me=Net.pid; G.players=CV.players;
+  if (!CV.el){ CV.el=document.createElement("div"); CV.el.id="classView";
+    CV.el.style.cssText="position:fixed;inset:0;z-index:6;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto;background:rgba(15,25,45,.85);backdrop-filter:blur(4px)";
+    CV.el.addEventListener("click",e=>{ if (e.target.id==="cvEnd") Net.send({ t:"end" }); });
+    document.body.appendChild(CV.el); }
+  document.querySelectorAll(".screen").forEach(x=>x.classList.remove("on")); screen="class";
+  CV.el.style.display="flex"; CV.start=performance.now()+m.in; renderCV();
+  clearInterval(CV.tick); CV.tick=setInterval(()=>CV.on&&renderCV(),1000);
+}
+function renderCV(){
+  if (!CV.on) return;
+  const rows=CV.rows||[];
+  for (const r of rows) if (!CV.players.has(r[0])) CV.players.set(r[0],{ pid:r[0], name:"…", color:0 });
+  const all=[...CV.players.values()].map(p=>{ const q=rows.find(r=>r[0]===p.pid); return { p, d:q?q[1]:0, done:q?!!q[3]:false, t:CV.fin.get(p.pid) }; })
+    .sort((a,b)=>(b.done-a.done)||(a.done&&b.done?a.t-b.t:b.d-a.d));
+  const secs=Math.max(0,(performance.now()-CV.start)/1000), pre=performance.now()<CV.start;
+  const shown=Math.min(all.length,Math.max(3,Math.ceil(all.length*0.15))), rest=all.length-shown, doneN=all.filter(a=>a.done).length;
+  CV.el.innerHTML=`<div style="width:min(900px,100%);background:#fff;border-radius:22px;padding:22px 24px;box-shadow:0 30px 70px -20px #000;font-family:inherit;color:#1b2a3a">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <div><div style="font-weight:900;letter-spacing:2px;font-size:13px;color:#b45309">🍎 CLASS VIEW · ${esc(CV.title)}</div><div style="font-size:30px;font-weight:900">${pre?"Get ready…":"Crossword in progress"}</div>
+        <div style="font-weight:800;color:#5a6b7e">${doneN} of ${all.length} finished · ${CV.n} words</div></div>
+      <div style="display:flex;align-items:center;gap:14px"><div style="font-size:34px;font-weight:900;font-variant-numeric:tabular-nums">${pre?Math.ceil((CV.start-performance.now())/1000):fmt(secs)}</div>
+        <button id="cvEnd" class="btn sm alt" type="button">End game</button></div></div>
+    <div style="font-weight:900;letter-spacing:1px;font-size:12px;color:#5a6b7e;margin:-4px 0 8px">TOP ${shown} OF ${all.length}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${all.slice(0,shown).map((a,i)=>`<div style="display:grid;grid-template-columns:34px minmax(90px,180px) 1fr 78px;gap:10px;align-items:center;font-weight:800">
+      <span style="font-size:18px;color:#5a6b7e">${i+1}</span><span style="display:flex;align-items:center;gap:8px;min-width:0"><i style="width:14px;height:14px;border-radius:4px;flex:none;background:${pcol(a.p.color)}"></i><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.p.name)}</span></span>
+      <span style="height:14px;border-radius:8px;background:#e8eef5;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,100*a.d/CV.n)}%;background:${a.done?"#16a34a":pcol(a.p.color)};border-radius:8px"></i></span>
+      <span style="text-align:right;font-variant-numeric:tabular-nums">${a.done&&a.t!=null?fmt1(a.t):`✏️ ${a.d}/${CV.n}`}</span></div>`).join("")}</div>
+    ${rest?`<div style="margin-top:14px;padding:12px 14px;border-radius:14px;background:#f1f6fb;font-weight:800;color:#5a6b7e;text-align:center">+ ${rest} more student${rest===1?"":"s"} still solving. Keep going! 💪</div>`:""}</div>`;
+}
+function endCV(){ CV.on=false; clearInterval(CV.tick); if (CV.el) CV.el.style.display="none"; }
+function teacherView(m){
+  if (m.t==="go" && m.teacher && m.teacher===Net.pid){ classView(m); return true; }
+  if (CV.on && m.t==="ps"){ CV.rows=m.p; renderCV(); return true; }
+  if (CV.on && m.t==="addp"){ if (m.p) CV.players.set(m.p.pid,m.p); return true; }
+  if (CV.on && m.t==="fin"){ CV.fin.set(m.pid,m.time); renderCV(); return true; }
+  if (CV.on && m.t==="results"){ endCV(); showResults(m.rank,m.dist); return true; }
+  if (m.t==="lobby" && CV.on){ Net.lobby=m; m.at=performance.now(); return true; }
+  return false;
+}
+function exitGame(){
+  if (screen==="menu"){ location.href="../"; return; }
+  if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
+  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); endCV(); G.mode=""; L=null;
+  show("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.search).get("play"); if (!q) return; history.replaceState(null,"",location.pathname);
+  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo"||q==="try") $("bSolo").click(); });
+addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
+  $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+</script>
+</body>
+</html>

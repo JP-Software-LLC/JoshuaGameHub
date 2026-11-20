@@ -32,6 +32,7 @@ function serve(req,res){
   else if (p==="/bear.js") file=path.join(ROOT,"shared","bear.js");
   else if (p==="/munch.js") file=path.join(ROOT,"shared","munch.js");
   else if (p==="/softball.js") file=path.join(ROOT,"shared","softball.js");
+  else if (p==="/crossword.js") file=path.join(ROOT,"shared","crossword.js");
   else if (p==="/hurdle.js") file=path.join(ROOT,"shared","hurdle.js");
   else if (p==="/wordsearch.js") file=path.join(ROOT,"shared","wordsearch.js");
   else if (p==="/sky.js") file=path.join(ROOT,"shared","sky.js");

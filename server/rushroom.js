@@ -57,7 +57,7 @@ class RushRoom extends RoomBase {
         return;
       case "finish":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
+        p.fin=Math.max(20,Math.min((this.constructor.MAX_MS||MAX_RACE_MS)/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
         this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
         if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),this.constructor.AFTER_FIRST||AFTER_FIRST_MS);
         this.checkAllDone(); return;
@@ -114,7 +114,7 @@ class RushRoom extends RoomBase {
     this.state="playing"; this.register(); this.lobby();
     this.send({ ...this.goMsg(), in:COUNTDOWN_MS });
     this.relay=setInterval(()=>this.send({ t:"ps", p:this.racers().map(q=>[q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]) }),RELAY_MS);
-    this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+MAX_RACE_MS);
+    this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+(this.constructor.MAX_MS||MAX_RACE_MS));
   }
   checkAllDone(){
     const frac=this.constructor.END_FRAC;            // Mathsketball: the round ends once this share of the class has finished

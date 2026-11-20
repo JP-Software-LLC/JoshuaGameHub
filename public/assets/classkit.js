@@ -217,6 +217,7 @@ const HOW={
   "math-race":"Solve each sum as fast as you can. Type the answer with the number keys. Get it right and the next one appears!",
   "arrow-blitz":"Arrows appear on screen. Press the same arrow keys in the same order. Each one gets longer!",
   "mathsketball":"Answer 3 math questions right, then take 3 shots. Press Space (or SHOOT) when the line is in the green! Reach the basket goal to win.",
+  "crossword":"Read a clue, then tap the squares and type the word. Use the word bank if you get stuck! Finish the whole crossword to win.",
   "softball-smarts":"The pitch comes in slow motion. Type the answer before the ball reaches you! Faster answers hit farther: single, double, triple or HOME RUN. Wrong or too slow = strike.",
   "marble-munch":"Mash Space (or CHOMP) when a marble rolls past your hippo. Caught one? Answer the question before the timer runs out to keep it!",
   "hurdle-dash":"Tap ← → (or the big buttons) to run. At each hurdle, answer the sum to jump over it!",

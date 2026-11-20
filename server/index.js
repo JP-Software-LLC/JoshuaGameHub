@@ -13,6 +13,7 @@
 //   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
 //   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
 //   Marble Munch:    start{} fire{} (one chomp) ans{v} · host: mode{} digits{} qtime{s}
+//   Vocab Crossword: start{} pos{d=words solved} finish{time,extra=hints} · host: xw{xw:{title,w:[[word,clue]]}|clear} end{}
 //   Softball Smarts: same as Mathsketball (pos{} finish{}) · host: mode{} digits{} goal{goal} pitch{s}
 //   Sky Climb:       start{} in{x=-1|0|1} (steer, on change) fire{} (flap)
 //   Teacher Mode:    digits{d="1"|"12"|"2"} (Math Race, Hurdle Dash) · prog{round,n} (live score) · start{} twice = skip the 10 s countdown
@@ -34,12 +35,13 @@ const { TypingRoom }=require("./typingroom");
 const { HoopsRoom }=require("./hoopsroom");
 const { MunchRoom }=require("./munchroom");
 const { SoftballRoom }=require("./softballroom");
+const { CrosswordRoom }=require("./crosswordroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom, softball:SoftballRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom, softball:SoftballRoom, crossword:CrosswordRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -193,6 +195,8 @@ async function onMessage(c,m){
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "fire":   return toRoom(c,{ t:"fire" });
     case "words":  return toRoom(c,{ t:"words", text:String(m.text||"").slice(0,1200), title:String(m.title||"").slice(0,40) });
+    case "xw":     return toRoom(c,{ t:"xw", clear:!!m.clear, xw:m.xw&&typeof m.xw==="object"?{ title:String(m.xw.title||"").slice(0,40), w:Array.isArray(m.xw.w)?m.xw.w.slice(0,40).map(x=>Array.isArray(x)?[String(x[0]||"").slice(0,24),String(x[1]||"").slice(0,200)]:null):[] }:null });
+    case "end":    return toRoom(c,{ t:"end" });
     case "claim":  return toRoom(c,{ t:"claim", a:Array.isArray(m.a)?m.a.slice(0,4).map(v=>v|0):[] });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
