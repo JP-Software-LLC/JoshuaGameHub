@@ -20,7 +20,7 @@ function gate(e){
 }
 (function nav(){
   const here=location.pathname.replace(/index\.html$/,"");
-  const tabs=[["/admin/","📊 Analytics"],["/admin/live/","🟢 Live now"],["/admin/teachers/","🍎 Teachers"],["/admin/schools/","🏫 Schools & tournaments"]];
+  const tabs=[["/admin/","📊 Analytics"],["/admin/live/","🟢 Live now"],["/admin/teachers/","🍎 Teachers"],["/admin/students/","🎒 Students"],["/admin/schools/","🏫 Schools & tournaments"]];
   const el=document.createElement("nav"); el.className="anav"; el.setAttribute("aria-label","Admin pages");
   el.innerHTML=`<a class="brand" href="/admin/">JGH <span>Admin</span></a>${tabs.map(([h,t])=>`<a class="tab" href="${h}"${here===h?' aria-current="page"':""}>${t}</a>`).join("")}
     <span class="sp"></span><a class="out" href="/">← Back to the site</a>`;

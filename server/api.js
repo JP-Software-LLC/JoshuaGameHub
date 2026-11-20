@@ -95,6 +95,40 @@ function makeApi(bus,host={}){
     ["POST","/api/admin/tournaments/:id/end",async(req,b,p)=>{ await needAdmin(req); const r=await db.one("update tournaments set ended_at=now() where id=$1 and ended_at is null returning id",[p.id]);
       if (!r) throw A.httpErr(404,"No running tournament with that id."); return { ok:true }; }],
     // open a read-only session as that teacher (the /teacher/ page uses it in its own tab)
+    // ---- admin Students board. One student = same first name (any case) + same last initial.
+    // Sources: student_activity (every named join / game start in a teacher room) + saved class results (place, bricks).
+    ["GET","/api/admin/students",async req=>{ await needAdmin(req);
+      const days=Math.max(1,Math.min(3650,+new URL(req.url,"http://x").searchParams.get("days")||30));
+      const since=`now()-($1||' days')::interval`;
+      const act=await db.all(`select kind,first_name,last_initial,nickname,school_id,game,room_code,teacher_id,at from student_activity where at>${since}`,[String(days)]);
+      const res=await db.all(`select s.first_name,s.last_initial,s.nickname,s.school_id,g.game,g.saved_by as teacher_id,g.ended_at as at,r.place,r.bricks,g.player_count
+        from session_results r join students s on s.id=r.student_id join game_sessions g on g.id=r.session_id where g.ended_at>${since}`,[String(days)]);
+      const schools=await C.loadSchools().catch(()=>[]), sch=id=>{ const x=schools.find(s=>String(s.id)===String(id)); return x?`${x.name}, ${x.state}`:""; };
+      const tRows=await db.all("select id,display_name,email from teachers"), tname=id=>{ const t=tRows.find(r=>+r.id===+id); return t?(t.display_name||t.email):""; };
+      const by=new Map();
+      const who=r=>{ const first=String(r.first_name||"").trim(), key=first.toLowerCase()+"|"+String(r.last_initial||"").toUpperCase();
+        let s=by.get(key);
+        if (!s){ s={ key, first:first?first[0].toUpperCase()+first.slice(1):"?", last:String(r.last_initial||"").toUpperCase(), nicks:new Map(), schools:new Set(), teachers:new Set(),
+          joins:0, rooms:new Set(), plays:0, games:{}, saved:0, wins:0, top3:0, bricks:0, places:[], first_at:null, last_at:null }; by.set(key,s); }
+        if (r.nickname) s.nicks.set(r.nickname,(s.nicks.get(r.nickname)||0)+1);
+        if (r.school_id) s.schools.add(r.school_id); if (r.teacher_id) s.teachers.add(+r.teacher_id);
+        const at=new Date(r.at); if (!s.first_at||at<s.first_at) s.first_at=at; if (!s.last_at||at>s.last_at) s.last_at=at;
+        return s; };
+      for (const r of act){ const s=who(r);
+        if (r.kind==="join"){ s.joins++; s.rooms.add(r.room_code+"@"+new Date(r.at).toISOString().slice(0,10)); }
+        else { s.plays++; s.games[r.game]=(s.games[r.game]||0)+1; } }
+      for (const r of res){ const s=who(r); s.saved++; s.bricks+=+r.bricks||0;
+        if (r.place){ s.places.push(+r.place); if (+r.place===1) s.wins++; if (+r.place<=3) s.top3++; } }
+      const students=[...by.values()].map(s=>{ const fav=Object.entries(s.games).sort((a,b)=>b[1]-a[1])[0];
+        return { key:s.key, first:s.first, last:s.last, nicknames:[...s.nicks.entries()].sort((a,b)=>b[1]-a[1]).map(x=>x[0]),
+          schools:[...s.schools].map(sch).filter(Boolean), teachers:[...s.teachers].map(tname).filter(Boolean),
+          joins:s.joins, plays:s.plays, games:s.games, favorite:fav?fav[0]:null, saved:s.saved, wins:s.wins, top3:s.top3, bricks:s.bricks,
+          avgPlace:s.places.length?Math.round(10*s.places.reduce((a,b)=>a+b,0)/s.places.length)/10:null, firstSeen:s.first_at, lastSeen:s.last_at }; })
+        .sort((a,b)=>b.plays-a.plays||b.joins-a.joins||a.first.localeCompare(b.first));
+      const dayAgo=Date.now()-864e5, weekAgo=Date.now()-7*864e5;
+      return { days, students, totals:{ students:students.length, today:students.filter(s=>new Date(s.lastSeen)>dayAgo).length,
+        week:students.filter(s=>new Date(s.lastSeen)>weekAgo).length, joins:act.filter(r=>r.kind==="join").length,
+        plays:act.filter(r=>r.kind==="play").length, saved:res.length } }; }],
     // ---- admins: edit / delete teacher accounts
     ["PATCH","/api/admin/teachers/:id",async(req,b,p)=>{ await needAdmin(req);
       const t=await db.one("select * from teachers where id=$1",[p.id]); if (!t) throw A.httpErr(404,"Teacher not found.");

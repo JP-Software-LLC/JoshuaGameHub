@@ -55,7 +55,7 @@ class RoomBase {
   }
   async register(){
     if (this.closed) return;
-    if (this.state==="playing" && this.statState!=="playing") STATS.add("play:"+this.kind);
+    if (this.state==="playing" && this.statState!=="playing"){ STATS.add("play:"+this.kind); this.logActivity("play",this.roster4admin()); }
     this.statState=this.state;
     const humans=this.humanCount();
     await this.bus.set(K.room(this.code),{ owner:this.instanceId, kind:this.kind, pub:this.isPublic, state:this.state, humans, max:this.max }, ROOM_TTL);
@@ -88,7 +88,23 @@ class RoomBase {
     const st=CD.cleanStudent(msg); if (!st) return this.send({ t:"whoareyou", known:null, error:"Please type your first name." },p.cid);
     p.student=st; p.name=st.nick;
     this.send({ t:"iamok", student:st },p.cid);
+    if (!this.joinLogged) this.joinLogged=new Set();                      // once per student per room
+    const key=st.first.toLowerCase()+"|"+st.last;
+    if (!this.joinLogged.has(key)){ this.joinLogged.add(key); this.logActivity("join",[p]); }
+    if (this.state==="playing") this.logActivity("play",[p]);             // joined a game that's already running
     this.lobby();
+  }
+  // admin Students board: who joined / played (named students in teacher rooms only). Never blocks or breaks a game.
+  logActivity(kind,players){
+    if (!this.teacher) return;
+    const rows=(players||[]).filter(p=>p && p.student && p.pid!==this.teacher);
+    if (!rows.length) return;
+    const tid=this.teacherAcct&&this.teacherAcct.teacherId||null, vals=[], args=[];
+    rows.forEach((p,i)=>{ const st=p.student, b=i*8;
+      vals.push("("+[1,2,3,4,5,6,7,8].map(k=>"$"+(b+k)).join(",")+")");
+      args.push(kind,st.first,st.last||"",st.nick||"",st.school||null,this.kind,this.code,tid); });
+    db.q("insert into student_activity(kind,first_name,last_initial,nickname,school_id,game,room_code,teacher_id) values "+vals.join(","),args)
+      .catch(e=>console.error("[activity]",e.message));
   }
   // rows: [{ pid, place, score, stats, log }] → saved to the teacher's class, or held 24 h for "See class results"
   async recordSession(mode,rows,summary={}){
