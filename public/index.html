@@ -475,7 +475,6 @@ const GAMES=[
   { id:"rush-hour", demo:true, teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", demo:true, teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
   { id:"mathsketball", demo:true, teach:true, kind:"hoops", cat:"Brainy", title:"MATHSKETBALL", path:"/mathsketball/", blurb:"Answer 3 sums, then shoot 3 hoops. First to 10 baskets!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"hoops" },
-  { id:"marble-munch", demo:true, teach:true, kind:"munch", cat:"Brainy", title:"MARBLE MUNCH", path:"/marble-munch/", blurb:"Mash Space to chomp marbles. Answer fast to keep them!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"munch" },
   { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", demo:true, teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", demo:true, teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
@@ -782,7 +781,6 @@ for (const g of GAMES){
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
   if (g.thumb==="hoops") el.querySelector(".thumb").prepend(hoopsThumb());
-  if (g.thumb==="munch") el.querySelector(".thumb").prepend(munchThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
   if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
@@ -902,7 +900,6 @@ pollLive(); setInterval(pollLive,20000);
 // ------------------------------------------------------------
 const CLASS_GAMES=[
   { id:"math-race", ico:"🧮", skill:"Addition · subtraction · times tables · division · money", len:"3 × 1-min rounds", view:"You pick the question type", desc:"Answers are checked as they're typed, so quick, accurate answers win. Round-by-round leaderboards keep everyone going." },
-  { id:"marble-munch", ico:"🦛", skill:"Math facts: + − × ÷ and money (you pick)", len:"~1–2 minutes", view:"Watch the whole bowl", desc:"Students mash Space to chomp marbles rolling around the bowl, then answer a quick question to keep each one (you set 2–10 seconds). Ends when every marble is eaten." },
   { id:"mathsketball", ico:"🏀", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Three right answers earn three shots; stop the power meter in the green to score. Ends when 60% of the class has 10 baskets." },
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
