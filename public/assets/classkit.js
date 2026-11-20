@@ -62,6 +62,7 @@ const css=`
 .ck-sm{position:fixed;inset:var(--jgh-h,58px) 0 0 0;z-index:2147482000;overflow:auto;display:flex;align-items:safe center;justify-content:center;padding:18px;
   background:radial-gradient(900px 500px at 50% 0%,#24325a,#0b0f1a 70%);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#fff}
 .ck-sm[hidden]{display:none}
+.ck-who{margin:0;text-align:center;font-weight:700;opacity:.85}.ck-who a{color:inherit;text-decoration:underline}
 .ck-sm .in{width:min(640px,100%);display:flex;flex-direction:column;gap:16px}
 .ck-sm h1{margin:0;font-size:clamp(34px,6vw,56px);line-height:1.05;letter-spacing:-1px}
 .ck-sm .how{margin:0;font-size:19px;line-height:1.5;color:#d5dcea;background:rgba(255,255,255,.06);border-radius:16px;padding:14px 18px}
@@ -230,42 +231,25 @@ const HOW={
   "clean-getaway":"Grab the cash and get out of the bank without the guards catching you!",
 };
 function studentMenu(){
-  if (MODE!=="student") return;
-  if (/[?&]demo=1/.test(location.search)) return;
-  const $=id=>document.getElementById(id), pick=(...ids)=>ids.map($).find(Boolean);
-  const menu=$("menu"), nameIn=$("nameIn"), codeIn=$("codeIn"), bJoin=pick("bJoin","btnJoin"), bPriv=pick("bPrivate","btnPrivate"), bPub=pick("bPublic","btnPublic"), errEl=pick("err","menuErr");
-  if (!menu || !bJoin || !bPriv) return;
-  const slug=location.pathname.split("/").filter(Boolean)[0]||"";
-  const title=(document.title.split("·")[0]||"").trim();
-  const o=document.createElement("div"); o.className="ck-sm"; o.id="ckSM"; o.hidden=true;
-  o.innerHTML=`<div class="in">
-    <h1>${esc(title)}</h1>
-    <p class="how">${esc(HOW[slug]||"")}</p>
-    <div class="who" id="ckWho"></div>
-    <div class="jr"><button class="big join" type="button" id="ckJoin">Join friends</button><input class="code" id="ckCode4" maxlength="4" placeholder="CODE" autocomplete="off" aria-label="Room code"></div>
-    <button class="big make" type="button" id="ckMake">Make a game</button>
-    <p class="err" id="ckErr" role="status"></p>
-    <button class="quick" type="button" id="ckQuick">Quick join a public game</button>
-  </div>`;
-  document.body.appendChild(o);
-  const q=s=>o.querySelector(s), err=t=>{ q("#ckErr").textContent=t||""; };
-  const who=()=>{ const p=profile(); q("#ckWho").innerHTML=p?`Playing as <b>${esc(p.nick)}</b> · <a href="/#student">change</a>`:`<a href="/#student">Set up your name first →</a>`; return p; };
-  const ready=()=>{ const p=who(); if (!p){ location.href="/#student"; return false; } if (nameIn) nameIn.value=p.nick; store.set("cg_name",p.nick); err(""); if (errEl) errEl.textContent=""; return true; };
-  const code=q("#ckCode4");
-  code.addEventListener("input",()=>{ code.value=code.value.toUpperCase().replace(/[^A-Z]/g,""); err(""); });
-  code.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") q("#ckJoin").click(); });
-  q("#ckJoin").onclick=()=>{ if (code.value.length!==4){ err("Type the 4-letter code first 👉"); code.focus(); return; } if (!ready()) return; if (codeIn) codeIn.value=code.value; bJoin.click(); };
-  q("#ckMake").onclick=()=>{ if (ready()) bPriv.click(); };
-  q("#ckQuick").onclick=()=>{ if (ready()) bPub.click(); };
-  if (!bPub) q("#ckQuick").hidden=true;
-  const vis=()=>!menu.hidden && getComputedStyle(menu).display!=="none" && getComputedStyle(menu).visibility!=="hidden";
-  let sq=0;
-  const sync=()=>{ sq=0; const v=vis(); if (o.hidden===v){ o.hidden=!v; if (v){ who(); setTimeout(()=>code.focus(),60); } }
-    if (v && errEl && errEl.textContent) err(errEl.textContent); };
-  const later=()=>{ if (!sq) sq=requestAnimationFrame(sync); };
-  new MutationObserver(later).observe(document.body,{ subtree:true, attributes:true, attributeFilter:["class","hidden"] });
-  if (errEl) new MutationObserver(later).observe(errEl,{ childList:true, characterData:true, subtree:true });
-  sync();
+  // Students keep the game's own card (title, how-to, art) but only get: the code box + Join, and "Private game".
+  // Name box, Play online, Teacher mode and Solo/Practice are hidden; a small "Playing as …" line replaces the name box.
+  if (MODE!=="student" || /[?&]demo=1/.test(location.search)) return;
+  const $=id=>document.getElementById(id), menu=$("menu"), nameIn=$("nameIn"); if (!menu) return;
+  const p=profile();
+  if (p){ store.set("cg_name",p.nick); if (nameIn) nameIn.value=p.nick; }
+  const hide=el=>{ if (el && menu.contains(el)) el.style.display="none"; };
+  ["bPublic","btnPublic","bTeacher","bSolo","bPractice","btnLocal"].forEach(id=>hide($(id)));
+  const pr=$("pMode"); if (pr) hide(pr.closest(".practice")||pr.parentElement);
+  if (nameIn){
+    const box=nameIn.closest("label")&&nameIn.closest("label").parentElement===menu?nameIn.closest("label"):nameIn.parentElement;
+    const who=document.createElement("p"); who.className="ck-who";
+    who.innerHTML=p?`Playing as <b>${esc(p.nick)}</b> · <a href="/#student">change</a>`:`<a href="/#student">Set up your name first →</a>`;
+    if (box && box!==menu){ box.parentNode.insertBefore(who,box); hide(box); }
+  }
+  // a row left with only "Private game" in it: let that button fill the row
+  const pv=$("bPrivate")||$("btnPrivate"); if (pv) pv.style.flex="1 1 100%";
+  if (!p){ const go=e=>{ e.preventDefault(); e.stopImmediatePropagation(); location.href="/#student"; };
+    [pv,$("bJoin"),$("btnJoin")].forEach(b=>b&&b.addEventListener("click",go,true)); }
 }
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",studentMenu):studentMenu();
 
