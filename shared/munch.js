@@ -81,8 +81,8 @@ class Game {
   addPlayer(p){ if (this.players.some(q=>q.id===p.id)) return; this.players.push(this.newPlayer(p,this.players.length)); }
   removePlayer(id){ const p=this.players.find(q=>q.id===id); if (!p) return; if (p.q) this.spit(p,"left"); this.players=this.players.filter(q=>q!==p); }
   angleOf(i){ return Math.PI/2+2*Math.PI*i/this.players.length; }     // player 0 at the bottom
-  inBowlCap(){ return Math.max(6,Math.ceil(this.players.length*0.6)); }
-  releaseGap(){ return Math.max(0.75,1.6-this.players.length*0.02); }   // "slowly released"
+  inBowlCap(){ return Math.max(12,Math.ceil(this.players.length*1.2)); }   // doubled: lots of marbles rolling at once
+  releaseGap(){ return Math.max(0.375,0.8-this.players.length*0.01); }   // twice as fast as the first version
   release(){
     const a=this.r()*Math.PI*2, r0=T.R*(0.12+this.r()*0.12), A=T.R*(T.ampMin+this.r()*(T.ampMax-T.ampMin));
     const turn=(this.r()<0.5?-1:1)*(0.9+this.r()*0.5), sp=A*Math.sqrt(T.k), va=a+turn;

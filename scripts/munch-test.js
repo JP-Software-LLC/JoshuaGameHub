@@ -16,7 +16,7 @@ for (const n of [2,8,40]){
   while (g.phase==="play"){ g.players.forEach((p,i)=>M.botThink(g,p,bots[i],dt)); g.step(dt); g.drainEvents(); for (const m of g.marbles) maxR=Math.max(maxR,Math.hypot(m.x,m.y)); }
   if (g.time>=M.T.maxT-1) fail(n+" bots: game never finished (marbles stuck out of reach?)");
   if (g.eaten!==g.total || g.ranking().reduce((a,r)=>a+r.score,0)!==g.total) fail(n+": every marble should be kept exactly once");
-  if (n===40 && (g.time<60 || g.time>180)) fail("40 players should take ~1–3 min, took "+g.time.toFixed(0)+" s");
+  if (n===40 && (g.time<30 || g.time>150)) fail("40 players should take ~30 s–2.5 min, took "+g.time.toFixed(0)+" s");
 }
 { // nobody chomping: every marble keeps rolling out to the rim (ellipses never shrink into a circle in the middle)
   const g=new M.Game(Array.from({length:8},(_,i)=>({ id:i+1, name:"b"+i })),{ seed:9 }), far=new Map();
@@ -47,7 +47,7 @@ for (const n of [2,8,40]){
   catchOne(); const b2=g.marbles.length; for (let i=0;i<3.2*40;i++) g.step(1/40);
   if (g.players[0].q || g.players[0].slow!==1 || g.marbles.length<b2+1) fail("too slow should spit it back");
 }
-console.log("OK: marble munch rules — every marble reaches the rim, 3 per player, right = keep, wrong/slow = spit, 40 players ≈ 1–2 min");
+console.log("OK: marble munch rules — every marble reaches the rim, 3 per player, right = keep, wrong/slow = spit, 40 players ≈ 1 min");
 
 // ---------- online, Teacher Mode
 const PORT=22800+(Math.random()*300|0);
