@@ -273,10 +273,10 @@ const cv=$("cv"), ctx=cv.getContext("2d");
 let W=0, H=0, S=1, DPR=1;
 function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
 addEventListener("resize",resize); resize();
-const OUT=4.2;                                   // room around the rim for the hippos
-function layout(){ S=Math.min(W,H*(G.teacherView?1:0.97))/(2*(T.R+OUT)); }
-const cx=()=>W/2, cy=()=>H/2+(G.teacherView?14:0);
-
+const OUT=1.7+2.35*1.45+1.6;                       // room around the rim for the biggest hippos + their name tags
+const BOTTOM=()=>G.teacherView||screen!=="game"?0:(isTouch?96:58);        // keep the hint bar / CHOMP button clear of your hippo
+function layout(){ S=Math.min(W,H-BOTTOM())/(2*(T.R+OUT)); }
+const cx=()=>W/2, cy=()=>(H-BOTTOM())/2+(G.teacherView?14:0);
 function drawBackdrop(t){
   const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.75);
   g.addColorStop(0,"#5a2d9c"); g.addColorStop(1,"#1d0b3d"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
@@ -306,10 +306,9 @@ function drawMarble(x,y,hue,r){
 }
 // one hippo, at angle a on the rim, facing the middle. ch = chomp left (0–1), quiz = holding a marble
 function drawHippo(a,col,ch,quiz,held,score,name,me,n,t,id){
-  const spacing=2*Math.PI*(T.R+1.6)/n, sc=Math.min(1.25,spacing/3.4);
-  const lungeK=ch>0?1-Math.abs(1-2*ch):0, lunge=lungeK*T.reach;                         // same in-and-out as the rules
-  ctx.save(); ctx.translate(cx()+Math.cos(a)*(T.R+1.7)*S, cy()+Math.sin(a)*(T.R+1.7)*S); ctx.rotate(a+Math.PI/2); ctx.scale(S,S);
-  // here: −y points into the bowl
+  const sc=MUNCH.hippoScale(n), lungeK=MUNCH.lungeOf(ch), lunge=lungeK*T.reach;           // same size + in-and-out as the rules (MUNCH.mouthAt)
+  ctx.save(); ctx.translate(cx()+Math.cos(a)*(T.R+1.7)*S, cy()+Math.sin(a)*(T.R+1.7)*S); ctx.rotate(a-Math.PI/2); ctx.scale(S,S);
+  // here: −y points into the bowl (toward the middle), +y away from it
   const bob=Math.sin(t*3+id)*0.05;
   ctx.fillStyle="rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(0.15,1.05*sc,1.7*sc,1.3*sc,0,0,7); ctx.fill();
   ctx.fillStyle=col; ctx.strokeStyle="rgba(40,10,70,.55)"; ctx.lineWidth=0.08;
@@ -335,7 +334,7 @@ function drawHippo(a,col,ch,quiz,held,score,name,me,n,t,id){
   }
   ctx.restore();
   // label outside the bowl, kept upright
-  const lx=cx()+Math.cos(a)*(T.R+3.25)*S, ly=cy()+Math.sin(a)*(T.R+3.25)*S;
+  const lr=T.R+1.7+2.35*sc+0.35, lx=cx()+Math.cos(a)*lr*S, ly=cy()+Math.sin(a)*lr*S;     // name tag just behind the hippo
   const showName=me||n<=14||G.teacherView;
   ctx.textAlign="center"; ctx.textBaseline="middle";
   const fs=Math.max(10,Math.min(16,S*0.62*Math.max(0.65,sc)));

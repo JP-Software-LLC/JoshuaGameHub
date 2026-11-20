@@ -17,11 +17,11 @@ const T = {
   k: 3.6,                 // pull toward the middle (ω² — one loop ≈ 3.3 s)
   bend: 0.3,              // extra pull near the rim → the ellipses slowly turn
   ampMin: 0.9, ampMax: 1.15,   // each marble's swing, as a share of R (so they all reach the hippos)
-  thin: 0.4,              // ellipse width ÷ length at most (rounder orbits would never reach the rim)
+  thin: 0.4, spin: 0.22,              // ellipse width ÷ length at most (rounder orbits would never reach the rim)
   reach: 2.6,             // how far a chomp reaches into the bowl from the rim
   chompT: 0.26,           // jaws open + lunge
   chompCd: 0.1,           // after a chomp, before the next one
-  perPlayer: 3, minMarbles: 12,
+  perPlayer: 3, minMarbles: 8,
   qTime: 4, qMin: 2, qMax: 10,
   spitImmune: 1.2,        // the spitter can't catch the same marble straight back
   maxT: 6 * 60,
@@ -54,6 +54,15 @@ function questionStream(seed, mode="add", digits="12"){
     const key=q.top+q.op+q.bottom; if (key===prev) continue; prev=key;
     q.len=String(q.s).length; return q; } };
 }
+// Hippo geometry, shared by the rules and the drawing so the catch zone IS the mouth you see.
+// Hippos sit just outside the rim (body centre at R+1.7), facing the middle; sc shrinks them as the class grows.
+// A chomp lunges the head straight in (up to T.reach) and back out; ch = chomp time left, 0–1.
+const hippoScale=n=>Math.min(1.45,2*Math.PI*(T.R+1.6)/Math.max(1,n)/3.4);
+const lungeOf=ch=>ch>0?1-Math.abs(1-2*ch):0;
+function mouthAt(n,i,ch){
+  const sc=hippoScale(n), a=Math.PI/2+2*Math.PI*i/Math.max(1,n), d=T.R+1.7-1.2*sc-lungeOf(ch)*T.reach;
+  return { x:Math.cos(a)*d, y:Math.sin(a)*d, r:0.85*sc, a, sc };
+}
 const angDiff=(a,b)=>{ let d=(a-b)%(2*Math.PI); if (d>Math.PI) d-=2*Math.PI; if (d<-Math.PI) d+=2*Math.PI; return d; };
 
 class Game {
@@ -72,7 +81,6 @@ class Game {
   addPlayer(p){ if (this.players.some(q=>q.id===p.id)) return; this.players.push(this.newPlayer(p,this.players.length)); }
   removePlayer(id){ const p=this.players.find(q=>q.id===id); if (!p) return; if (p.q) this.spit(p,"left"); this.players=this.players.filter(q=>q!==p); }
   angleOf(i){ return Math.PI/2+2*Math.PI*i/this.players.length; }     // player 0 at the bottom
-  halfW(){ return Math.min(1.1,Math.PI/this.players.length*0.92); }  // jaws never overlap a neighbour's
   inBowlCap(){ return Math.max(6,Math.ceil(this.players.length*0.6)); }
   releaseGap(){ return Math.max(0.75,1.6-this.players.length*0.02); }   // "slowly released"
   release(){
@@ -117,8 +125,10 @@ class Game {
       m.vx*=g; m.vy*=g;
       // keep the ellipse long and thin (sideways spin ≤ T.thin of a full swing) so every marble keeps reaching the rim
       const rr=Math.sqrt(r2);
-      if (rr>0.5){ const A=Math.sqrt(2*m.E/T.k), Lmax=T.thin*Math.sqrt(T.k)*A*A, L=m.x*m.vy-m.y*m.vx;
-        if (Math.abs(L)>Lmax){ const tx=-m.y/rr, ty=m.x/rr, vt=L/rr, want=Math.sign(L)*Lmax/rr, dv=(want-vt)*Math.min(1,3*dt); m.vx+=tx*dv; m.vy+=ty*dv; } }
+      if (rr>0.5){ const A=Math.sqrt(2*m.E/T.k), Lmax=(this.players.length<=4?0.75:T.thin)*Math.sqrt(T.k)*A*A, L=m.x*m.vy-m.y*m.vx;
+        // ...but never a straight line through the middle: a little spin makes every ellipse slowly turn (the bowl's pull is stronger near the rim), so it sweeps past every hippo instead of missing the same ones forever
+        const Lmin=T.spin*Math.sqrt(T.k)*A*A, aL=Math.abs(L), want=aL>Lmax?Lmax:aL<Lmin?Lmin:aL;
+        if (want!==aL){ const tx=-m.y/rr, ty=m.x/rr, sg=L<0?-1:1, dv=(sg*want-L)/rr*Math.min(1,3*dt); m.vx+=tx*dv; m.vy+=ty*dv; } }
       m.x+=m.vx*dt; m.y+=m.vy*dt;
       const r=Math.hypot(m.x,m.y);
       if (r>R){ const nx=m.x/r, ny=m.y/r, vn=m.vx*nx+m.vy*ny; if (vn>0){ m.vx-=2*vn*nx; m.vy-=2*vn*ny; } m.x=nx*R; m.y=ny*R; }
@@ -130,7 +140,6 @@ class Game {
       if (d>0 && d<D){ const nx=dx/d, ny=dy/d, push=(D-d)/2; a.x-=nx*push; a.y-=ny*push; b.x+=nx*push; b.y+=ny*push;
         const rv=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny; if (rv<0){ a.vx+=rv*nx; a.vy+=rv*ny; b.vx-=rv*nx; b.vy-=rv*ny; } } }
     // hippos
-    const hw=this.halfW();
     this.players.forEach((p,i)=>{
       if (p.cd>0) p.cd-=dt;
       if (p.q){ p.qLeft-=dt; if (p.qLeft<=0){ p.slow++; this.spit(p,"time"); } return; }
@@ -138,8 +147,9 @@ class Game {
       p.chomp-=dt;
       const a=this.angleOf(i);
       // jaws sweep in and back out: the mouth is deepest in the middle of the chomp
-      const k=1-Math.abs(1-2*Math.max(0,p.chomp)/T.chompT), inner=T.R-T.reach*Math.max(0.35,k);
-      const hit=this.marbles.find(m=>m.imm!==p.id && Math.hypot(m.x,m.y)>=inner-T.mr && Math.abs(angDiff(Math.atan2(m.y,m.x),a))<=hw+T.mr/T.R);
+      // only a marble INSIDE the open mouth counts (jaws must be at least a third open)
+      const ch=Math.max(0,p.chomp)/T.chompT, M=mouthAt(this.players.length,i,ch);
+      const hit=lungeOf(ch)<0.3?null:this.marbles.find(m=>m.imm!==p.id && Math.hypot(m.x-M.x,m.y-M.y)<=M.r+T.mr);
       if (hit){
         this.marbles=this.marbles.filter(m=>m!==hit);
         p.q=p.stream(); p.qLeft=this.qTime; p.held=hit.hue||1; p.chomp=0;
@@ -172,10 +182,11 @@ function botThink(g, p, bot, dt){
     if (bot.think<=0){ g.answer(p.id, bot.r()<bot.acc?p.q.s:p.q.s+1); bot.think=0; }
     return;
   }
-  const i=g.players.indexOf(p), a=g.angleOf(i), hw=g.halfW();
-  const near=g.marbles.some(m=>{ const r=Math.hypot(m.x,m.y); return r>T.R-T.reach-1.2 && Math.abs(angDiff(Math.atan2(m.y,m.x),a))<hw*1.8; });
+  // a marble close to where the mouth will be mid-chomp
+  const i=g.players.indexOf(p), M=mouthAt(g.players.length,i,0.5);
+  const near=g.marbles.some(m=>Math.hypot(m.x-M.x,m.y-M.y)<M.r+T.mr+3.2);
   if ((near && bot.r()<bot.react*dt*20) || bot.r()<0.02*dt*20) g.chomp(p.id);
 }
 
-return { T, MODES, rng, cash, questionStream, angDiff, Game, makeBot, botThink };
+return { T, MODES, rng, cash, questionStream, angDiff, hippoScale, lungeOf, mouthAt, Game, makeBot, botThink };
 });

@@ -11,7 +11,7 @@ const fail=m=>{ console.error("FAIL:",m); try{ srv.kill(); }catch{} process.exit
 // ---------- rules
 for (const n of [2,8,40]){
   const g=new M.Game(Array.from({length:n},(_,i)=>({ id:i+1, name:"b"+i })),{ seed:n*13 });
-  if (g.total!==Math.max(12,n*3)) fail("marbles should be 3 per player (min 12)");
+  if (g.total!==Math.max(8,n*3)) fail("marbles should be 3 per player (min 8)");
   const bots=g.players.map((p,i)=>M.makeBot(i+1,i/(n-1))), dt=1/40; let maxR=0;
   while (g.phase==="play"){ g.players.forEach((p,i)=>M.botThink(g,p,bots[i],dt)); g.step(dt); g.drainEvents(); for (const m of g.marbles) maxR=Math.max(maxR,Math.hypot(m.x,m.y)); }
   if (g.time>=M.T.maxT-1) fail(n+" bots: game never finished (marbles stuck out of reach?)");
@@ -22,6 +22,18 @@ for (const n of [2,8,40]){
   const g=new M.Game(Array.from({length:8},(_,i)=>({ id:i+1, name:"b"+i })),{ seed:9 }), far=new Map();
   for (let i=0;i<40*60;i++){ g.step(1/40); for (const m of g.marbles) far.set(m.id,Math.max(far.get(m.id)||0,Math.hypot(m.x,m.y))); }
   if (far.size<6 || [...far.values()].some(r=>r<M.T.R-M.T.reach)) fail("every marble should reach the hippos' jaws: "+[...far.values()].map(r=>r.toFixed(1)));
+}
+{ // a chomp only catches a marble that is INSIDE the open mouth (never one beside it, never by just pressing Space)
+  const mk=()=>{ const g=new M.Game(Array.from({length:8},(_,i)=>({ id:i+1, name:"b"+i })),{ seed:4 }); g.releaseIn=1e9; return g; };
+  const put=(g,x,y)=>g.marbles.push({ id:99, x, y, vx:0, vy:0, E:1e-9, imm:0, immT:0, hue:1 });
+  const chompFor=(g,s)=>{ g.chomp(1); let e=null; for (let t=0;t<s*40;t++){ g.step(1/40); g.marbles.forEach(m=>{ if (m.id===99){ m.vx=0; m.vy=0; m.x=g.__x; m.y=g.__y; } }); e=e||g.drainEvents().find(x=>x.type==="catch"); } return e; };
+  let g=mk(); if (chompFor(g,0.5)) fail("an empty bowl must never give a question");
+  const mid=M.mouthAt(8,0,0.5);                                  // where player 1's mouth is mid-chomp
+  g=mk(); g.__x=mid.x; g.__y=mid.y; put(g,mid.x,mid.y); if (!chompFor(g,0.5)) fail("a marble inside the mouth should be caught");
+  const side=M.mouthAt(8,1,0.5);                                 // right in front of the NEIGHBOUR's mouth
+  g=mk(); g.__x=side.x; g.__y=side.y; put(g,side.x,side.y); if (chompFor(g,0.5)) fail("a marble in front of another hippo must not be caught");
+  g=mk(); g.__x=0; g.__y=0; put(g,0,0); if (chompFor(g,0.5)) fail("a marble in the middle of the bowl is out of reach");
+  if (Math.hypot(mid.x,mid.y)>=M.T.R) fail("the mouth must lunge INTO the bowl");
 }
 { // right keeps it, wrong spits it back, too slow spits it back
   const g=new M.Game([{ id:1, name:"A" },{ id:2, name:"B" }],{ seed:3, qTime:3 });
@@ -67,7 +79,7 @@ srv.stdout.on("data",async d=>{
     T.send({ t:"start" }); await sleep(30); T.send({ t:"start" });
     const st=await T.wait(m=>m.t==="start");
     if (st.teacher!==tj.pid || st.players.some(p=>p.pid===tj.pid) || st.players.length!==2 || st.qtime!==6) fail("teacher listed as a player / qtime not sent");
-    const s0=await T.wait(m=>m.t==="s"); if (s0.s.p.length!==2 || s0.s.total!==12) fail("2 hippos and 12 marbles expected");
+    const s0=await T.wait(m=>m.t==="s"); if (s0.s.p.length!==2 || s0.s.total!==8) fail("2 hippos and 8 marbles expected");
     // students mash Space and answer every question right (Ann) or wrong once first (Bo)
     let boWrong=false;
     const spam=setInterval(()=>{ for (const k of kids) k.send({ t:"fire" }); },60);
@@ -81,7 +93,7 @@ srv.stdout.on("data",async d=>{
     for (const k of kids) for (const q of k.msgs.filter(m=>m.t==="q")) if (q.q.s!=null) fail("questions must not include the answer");
     if (!kids[1].msgs.some(m=>m.t==="res"&&m.ok===false)) fail("a wrong answer should be told");
     if (res.rank.length!==2 || res.rank.some(e=>e.pid===tj.pid)) fail("teacher in the results");
-    if (res.rank[0].score+res.rank[1].score!==12 || res.rank[0].score<res.rank[1].score) fail("results should rank by marbles kept: "+JSON.stringify(res.rank));
+    if (res.rank[0].score+res.rank[1].score!==8 || res.rank[0].score<res.rank[1].score) fail("results should rank by marbles kept: "+JSON.stringify(res.rank));
     console.log("OK: marble munch online — host-only mode + 2–10 s timer, teacher never plays, questions only to the catcher, ends when every marble is kept, ranked by marbles");
     srv.kill(); process.exit(0);
   } catch(e){ fail(e.stack||e.message); }
