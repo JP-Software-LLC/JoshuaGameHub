@@ -89,7 +89,7 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 ## Typing Cowboys rules
 - `public/typing-cowboys/`. Each player's cowboy rides its own lane (carnival derby). Type the word: an exact match advances automatically (no Space). Space/Enter on a wrong word = next word, no penalty, horse doesn't move. 22 correct words to finish (~1 min at 20 wpm; words avg ~4.2 letters).
 - `shared/typing.js` = word list (kid-safe), seeded list (same words for everyone), bots (served at /typing.js). Server = `server/typingroom.js`, a `RushRoom` subclass: pos{d=words}, finish{time, extra=words missed}. `AFTER_FIRST` = 4 min so the race waits for slower typists (6 min hard cap); results show the top max(3, 15 %).
-- Shows up to 8 lanes: you, the top 3 and the riders nearest you. Teacher mode = live standings board.
+- Shows up to 8 lanes: you, the top 3 and the riders nearest you. Teacher mode = THE WHOLE RACE on the big screen: every student's horse in its own lane with lane number + nickname (2 columns above 16 riders), small header with timer and "N of M finished"; late joiners get a lane.
 
 ## Star Cannons rules
 - `public/star-cannons/`. Server-authoritative like Bear Attack: `shared/cannons.js` (served at /cannons.js, also runs solo in the browser) + `server/cannonroom.js`. Client sends in{x:-1|0|1}; server sends s{s,e} 20×/s.
@@ -127,7 +127,7 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - Student mode replaces each game's menu with: name · how to play · Join friends + code · Make a game · Quick join (ClassKit `studentMenu`).
 - Teacher view: compact list of whole-class games, each with "Open a Lobby" (`?play=teacher`).
 - Teacher rooms: students without a name show as "⏳ Joining…"; Start runs a 10 s countdown on every screen (press again to start now); a live leaderboard + join code shows on the teacher's screen (top 3 or 15% only), each student sees their own score.
-- Late joiners: Math Race/Arrow Blitz jump into the current round, races start from 0, Word Rush/Darts/Sky/Cannons add a new player; Bear Attack and Memory Tiles wait for the next game.
+- Late joiners (EVERY online game, tested by `scripts/latejoin-test.js`): Math Race/Arrow Blitz jump into the current round; races (incl. Mathsketball) start from 0; Word Rush/Darts/Sky/Cannons add a new player; Bear Attack drops a new skater onto the ice away from the bear and its path (`Game.addPlayer`); Memory Tiles adds them on a random tile and the round they join in never counts against them (`safeRound`); Clean Getaway lets them take over a bot seat mid-match.
 - Math Race + Hurdle Dash: teacher picks 1 digit (default), 1 & 2 digits, or 2 digits. Backspace works. Hurdle Dash: no falling; a wrong answer shows the right one and gives a new sum.
 - Any screen that appears ignores taps for 1 s (hub-frame tap guard).
 
@@ -150,3 +150,12 @@ Priorities: visuals and gameplay feel. Security is low priority (no accounts, us
 - `public/mathsketball/` (kind `hoops`). Up to 40, teacher mode. Cycle: answer 3 questions right (Math Race generator, modes add/sub/mul/div/money + teacher digits; checked on last digit, wrong = red flash + quick shake (<0.5 s), input clears, SAME question until right (no answer shown, no skipping)) → 3 shots → repeat until the basket goal (host/teacher picks 6–50 in the lobby, default 10; sent as `goal{goal}`, carried as lobby `goal` and go `dist`).
 - Shot: needle sweeps left→right→left (ping-pong) over a smooth red→yellow→GREEN (middle)→yellow→red gradient; Space/SHOOT/tap stops it. Zones by distance from the middle: green ≤ .05 (93 %), yellow ≤ .2 (75→30 %), red beyond (22→2 %). Meter gets slightly faster per basket.
 - `shared/hoops.js` (rules + bots, served at /hoops.js) + `server/hoopsroom.js` (a `RushRoom` subclass with MODES + END_FRAC). pos{d=baskets, x=0 quiz/1 shooting}, finish{time, extra=shots}. Round ends for everyone when 60 % of the class reaches the goal (solo: 5 of 8). Results/teacher board: top max(3, 15 %). Tested by `scripts/hoops-test.js`.
+
+## Bots & the online count
+- `STATS.isBot(ua)` (server/stats.js): crawler / link-preview / headless / script user agents. Their WebSockets are refused (close 1008) and their `/api/hit` page views are ignored. Real browsers (incl. Chromebooks, iPads) pass.
+- "Online" (hub count via `/health` `connections`, and the admin "Peak online") counts only sockets that are IN A ROOM, never bare open sockets. Tested by `scripts/bots-test.js`.
+
+## Admin "Live now" + spectators
+- `/admin/live/` (admins only, `GET /api/admin/live`, polled every 3 s): every room open on THIS game-server instance (`RoomBase.adminInfo()`): game, code, state, public/private, open time, teacher account (name, email, school, class), settings (mode/digits/goal), each player (nickname, student first name + last initial, school, connected, live progress from `liveRows`), watcher count.
+- Spectate: a game page opened with `?spectate=CODE&pid=N&who=Name` — `hub-frame.js` wraps `WebSocket` so the page's `hello` becomes `spectate{code,pid,auth}` and every other outgoing message is dropped; it then presses the page's own Join button. The server checks the admin token, marks the socket `spectator`, mirrors that player's directed messages (`c.spy` = their cid) and replays the relay's recent-message log (latest message per type per recipient, plus every `f`/`fin`/`addp`; countdowns adjusted) so a mid-game watcher catches up.
+- Watchers are invisible and read-only: the room never hears about them (no join, no drop), they never count as online, and the server ignores everything they send except ping/leave. Own-device games (math, arrows, rush, hurdle, typing, hoops) can only be watched through the teacher's screen. Tested by `scripts/spectate-test.js`.

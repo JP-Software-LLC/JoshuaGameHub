@@ -20,7 +20,7 @@ const K={
 class RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose, kind, max){
     Object.assign(this,{ code, isPublic, bus, instanceId, onClose, kind, max });
-    this.state="lobby"; this.emptySince=Date.now(); this.closed=false;
+    this.state="lobby"; this.emptySince=Date.now(); this.closed=false; this.openedAt=Date.now();
     this.teacher=0;          // Teacher Mode: pid of a private room's host who runs it without playing
     this.closeAt=0;          // Teacher Mode: when the start countdown ends
     this.onIn=m=>{ try{ if (!this.classStart(m)) this.handle(m); }catch(e){ console.error(`[${kind}:${code}]`,e); } };
@@ -115,6 +115,22 @@ class RoomBase {
     }
     return this.bus.publish(K.out(this.code), to?{to,m}:{m});
   }
+  // ---- admin "Live now" page (read only): who is in this room and how they're doing
+  roster4admin(){
+    if (this.players instanceof Map) return [...this.players.values()];
+    return (this.slots||[]).map((s,i)=>s&&{ ...s, pid:i }).filter(Boolean);    // Clean Getaway seats
+  }
+  adminInfo(){
+    let rows=null; try{ rows=this.state==="playing"?this.liveRows():null; }catch{ rows=null; }
+    const prog=new Map((rows||[]).map((r,i)=>[r.pid,{ v:r.v, rank:i+1 }]));
+    return { code:this.code, kind:this.kind, pub:this.isPublic, state:this.state, teacher:this.teacher||0, host:this.host||0,
+      teacherAcct:this.teacherAcct||null, openedAt:this.openedAt, startedAt:this.startedAt||null,
+      mode:this.mode||null, digits:this.digits||null, goal:this.dist||null,
+      players:this.roster4admin().map(p=>({ pid:p.pid, name:p.name, student:p.student||null, connected:p.connected!==false,
+        teacher:!!this.teacher&&p.pid===this.teacher, progress:prog.get(p.pid)||null })) };
+  }
+  // spectator: the connection id of a player, so a watcher sees exactly what that player's screen gets
+  cidOf(pid){ const p=this.roster4admin().find(q=>String(q.pid)===String(pid)); return p&&p.connected!==false?p.cid:null; }
   saveSession(token){ if (token) this.bus.set(K.sess(token),{ code:this.code },3*3600); }
   // Close as soon as nobody is connected, unless someone only DROPPED (lost connection) mid-game
   // and may reconnect: then wait EMPTY_GRACE_MS. Explicit leaves never hold a room open.

@@ -35,6 +35,13 @@ class Game {
   drainEvents(){ const e=this.events; this.events=[]; return e; }
   alive(){ return this.players.filter(p=>p.alive); }
   setPhase(p,t){ this.phase=p; this.timer=t; this.phaseT=t; }
+  // late joiner: drops onto a random tile; the round they join in never counts against them (they missed the pictures)
+  addPlayer(pl){
+    if (this.players.some(q=>q.id===pl.id) || this.phase==="over") return;
+    const s=this.r()*T.N*T.N|0;
+    this.players.push({ id:pl.id, name:pl.name, bot:!!pl.bot, x:s%T.N, y:(s/T.N)|0, alive:true, outRound:null, correct:0, safeRound:this.round });
+    this.solo=false;
+  }
   start(){ this.nextRound(); }
   nextRound(){
     this.round++;
@@ -61,7 +68,7 @@ class Game {
       case "reveal": this.setPhase("hide",T.hideT); this.emit("hide",{}); break;
       case "hide": this.setPhase("decide",T.decideT); this.emit("decide",{ target:this.target }); break;
       case "decide": {
-        const A=this.alive(), ok=A.filter(p=>this.tiles[p.y*T.N+p.x]===this.target);
+        const A=this.alive().filter(p=>p.safeRound!==this.round), ok=A.filter(p=>this.tiles[p.y*T.N+p.x]===this.target);
         const out=ok.length?A.filter(p=>!ok.includes(p)):[];                // nobody right → nobody out this round
         for (const p of ok) p.correct++;
         for (const p of out){ p.alive=false; p.outRound=this.round; }

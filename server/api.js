@@ -13,7 +13,7 @@ const CORS={ "access-control-allow-origin":"*","access-control-allow-headers":"a
 async function body(req){ let s=""; for await (const c of req){ s+=c; if (s.length>200e3) throw A.httpErr(413,"Too much data."); } try{ return s?JSON.parse(s):{}; }catch{ throw A.httpErr(400,"Bad JSON."); } }
 const ipOf=req=>String(req.headers["x-forwarded-for"]||req.socket.remoteAddress||"").split(",")[0].trim();
 
-function makeApi(bus){
+function makeApi(bus,host={}){
   const pendingKey=c=>`cg:pending:${c}`;
   async function needTeacher(req){
     const t=await A.teacherFromToken(String(req.headers.authorization||"").replace(/^Bearer /,""));
@@ -35,9 +35,25 @@ function makeApi(bus){
   const routes=[
     ["GET","/api/config",async()=>({ googleClientId:process.env.GOOGLE_CLIENT_ID||null, emailEnabled:A.emailEnabled(), noVerify:A.noVerify() })],
     // ---- analytics: the hub reports which view was picked; site admins (ADMIN_EMAILS) read the totals
-    ["POST","/api/hit",async(req,b)=>{ if (b.mode) STATS.mode(String(b.mode)); if (b.view!==undefined) STATS.view(b.view,String(b.play||"")); return { ok:true }; }],
+    ["POST","/api/hit",async(req,b)=>{ if (STATS.isBot(req.headers["user-agent"])) return { ok:true };   // crawlers never count
+      if (b.mode) STATS.mode(String(b.mode)); if (b.view!==undefined) STATS.view(b.view,String(b.play||"")); return { ok:true }; }],
     ["GET","/api/admin/stats",async req=>{ await needAdmin(req); return STATS.report(+new URL(req.url,"http://x").searchParams.get("days")||30); }],
     // every teacher account, newest first, with what they've set up
+    // ---- live games on this server right now (admin "Live now" page). Read only.
+    ["GET","/api/admin/live",async req=>{ await needAdmin(req);
+      const games=host.live?host.live():[];
+      const tids=[...new Set(games.map(g=>g.teacherAcct&&g.teacherAcct.teacherId).filter(Boolean))], cids=[...new Set(games.map(g=>g.teacherAcct&&g.teacherAcct.classId).filter(Boolean))];
+      const schools=await C.loadSchools().catch(()=>[]);
+      const tRows=tids.length?await db.all("select id,email,display_name,school_id from teachers where id=any($1)",[tids]).catch(()=>[]):[];
+      const cRows=cids.length?await db.all("select id,name from classes where id=any($1)",[cids]).catch(()=>[]):[];
+      const sch=id=>{ const s=schools.find(x=>String(x.id)===String(id)); return s?`${s.name}, ${s.state}`:""; };
+      for (const g of games){
+        const a=g.teacherAcct||{}, tr=tRows.find(r=>+r.id===+a.teacherId), cr=cRows.find(r=>+r.id===+a.classId);
+        g.account=tr?{ id:+tr.id, email:tr.email, name:tr.display_name||"", school:sch(tr.school_id) }:null;
+        g.className=cr?cr.name:null; delete g.teacherAcct;
+        for (const p of g.players) if (p.student) p.student={ ...p.student, school:sch(p.student.school)||p.student.school||"" };
+      }
+      return { now:Date.now(), games }; }],
     ["GET","/api/admin/teachers",async req=>{ await needAdmin(req); const schools=await C.loadSchools();
       const rows=await db.all(`select t.id,t.email,t.display_name,t.school_id,(t.google_sub is not null) as google,t.created_at,t.last_login_at,t.bricks::float8 as bricks,t.castle_games,
         (select count(*) from class_members m where m.teacher_id=t.id and m.role='owner')::int as classes,

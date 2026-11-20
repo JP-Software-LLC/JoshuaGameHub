@@ -46,7 +46,7 @@ class Room extends RoomBase {
     let slot=token?this.slots.findIndex(s=>s&&s.token===token):-1;
     if (slot<0){
       slot=this.slots.findIndex(s=>!s);
-      if (slot<0||this.state!=="lobby") return this.send({ t:"error", code:"full", msg:"That room is full or already playing." },cid);
+      if (slot<0) return this.send({ t:"error", code:"full", msg:"That room is full." },cid);      // mid-game: an empty seat is a bot, the newcomer takes it over
       this.slots[slot]={ cid,name,token,ready:false,connected:true };
     } else Object.assign(this.slots[slot],{ cid,name,connected:true });
     this.emptySince=0;

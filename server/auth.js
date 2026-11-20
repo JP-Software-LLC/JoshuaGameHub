@@ -88,4 +88,5 @@ const logout=token=>db.q("delete from auth_sessions where token_hash=$1",[hash(t
 const publicTeacher=t=>({ id:+t.id, email:t.email, displayName:t.display_name||"", schoolId:t.school_id||null, google:!!t.google_sub });
 function httpErr(status,msg){ const e=new Error(msg); e.status=status; return e; }
 
-module.exports={ noVerify, hash, newToken, cleanEmail, validEmail, limited, sendEmail, emailEnabled, startEmailLogin, verifyEmailLogin, googleLogin, teacherFromToken, viewAsSession, logout, publicTeacher, httpErr, APP_URL };
+const isAdminEmail=e=>new Set(String(process.env.ADMIN_EMAILS||"").toLowerCase().split(/[,\s]+/).filter(Boolean)).has(String(e||"").toLowerCase());
+module.exports={ isAdminEmail, noVerify, hash, newToken, cleanEmail, validEmail, limited, sendEmail, emailEnabled, startEmailLogin, verifyEmailLogin, googleLogin, teacherFromToken, viewAsSession, logout, publicTeacher, httpErr, APP_URL };

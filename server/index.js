@@ -45,6 +45,8 @@ const bus=createBus();
 const rooms=new Map();           // rooms OWNED by this instance
 const relays=new Map();          // code -> {conns:Set, fn}  (out-channel subscriptions on this instance)
 const conns=new Set();
+// "online" = sockets actually in a room (an open socket alone, e.g. a scanner or an idle page, is not a player)
+const online=()=>{ let n=0; for (const c of conns) if (c.code && !c.spectator) n++; return n; };   // admin spectators are not players
 
 const id=n=>crypto.randomBytes(n).toString("base64url");
 const { CODE_CHARS, codeOK }=require("./codes");
@@ -80,10 +82,45 @@ async function attach(c,code){
   c.code=code;
   let r=relays.get(code);
   if (!r){
-    r={ conns:new Set(), fn:({to,m})=>{ const s=JSON.stringify(m); for (const x of r.conns) if (!to||to===x.id) x.send(s); } };
+    r={ conns:new Set(), log:[], fn:({to,m})=>{ remember(r,to,m); const s=JSON.stringify(m); for (const x of r.conns) if (!to||to===x.id||(x.spy&&to===x.spy)) x.send(s); } };
     relays.set(code,r); await bus.subscribe(K.out(code),r.fn);
   }
   r.conns.add(c);
+  STATS.conns(online());
+}
+// ---- admin spectators. Each relay keeps the latest message of each kind (per recipient), so a watcher who
+// arrives mid-game can be brought up to date: the latest lobby / start / round / snapshot / board, plus every
+// event that adds up (words found, finishers, late joiners). Players never see any of this.
+const REPLAY_SKIP=new Set(["pong","welcome","whoareyou","iamok","classresults","error"]);
+const REPLAY_ALL=new Set(["f","fin","addp"]);
+function remember(r,to,m){
+  if (!m || REPLAY_SKIP.has(m.t)) return;
+  const key=(to||"*")+":"+m.t;
+  if (!REPLAY_ALL.has(m.t)){ const i=r.log.findIndex(e=>e.key===key); if (i>=0) r.log.splice(i,1); }
+  r.log.push({ key, to:to||null, m, at:Date.now() });
+  if (r.log.length>300) r.log.splice(0,r.log.length-300);
+}
+function replay(c,r){
+  for (const e of r.log){
+    if (e.to && e.to!==c.spy) continue;
+    let m=e.m;
+    if (typeof m.in==="number"){                       // countdowns/timers: take off the time since it was sent
+      const el=Date.now()-e.at; m={ ...m, in:m.t==="go"?m.in-el:Math.max(0,m.in-el) };
+      if (typeof e.m.dur==="number") m.dur=Math.max(0,e.m.dur-Math.max(0,el-e.m.in));
+    }
+    c.send(JSON.stringify(m));
+  }
+}
+async function spectate(c,m){
+  const fail=msg=>c.send(JSON.stringify({ t:"error", code:"spectate", msg }));
+  let t=null; try{ t=typeof m.auth==="string"&&m.auth?await AUTH.teacherFromToken(m.auth):null; }catch{ t=null; }
+  if (!t || t.viewed_by || !AUTH.isAdminEmail(t.email)) return fail("Watching games is only for site admins. Sign in on the teacher page first.");
+  const code=cleanCode(m.code), room=rooms.get(code);
+  if (!room) return fail("That game has ended.");
+  c.spectator=true; c.name=c.name||"Spectator";
+  c.spy=room.cidOf(m.pid)||"-";                      // whose screen to mirror ("-" = only what everyone gets)
+  await attach(c,code);
+  replay(c,relays.get(code));
 }
 async function detach(c){
   const code=c.code; if (!code) return; c.code=null;
@@ -102,6 +139,12 @@ const gameOf=m=>KINDS[m.game]?m.game:"cg";
 const toRoom=(c,m)=>c.code&&bus.publish(K.in(c.code),Object.assign(m,{cid:c.id}));
 
 async function onMessage(c,m){
+  if (m.t==="spectate") return spectate(c,m);
+  if (c.spectator){                                   // watchers are read only: they can never act in a game
+    if (m.t==="ping") return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
+    if (m.t==="leave"){ c.spectator=false; c.spy=null; return detach(c); }
+    return;
+  }
   switch (m.t){
     case "hello": {
       c.teacherId=null;
@@ -151,7 +194,7 @@ async function leave(c){
 }
 
 // ---- HTTP + WebSocket
-const api=makeApi(bus);
+const api=makeApi(bus,{ live:()=>[...rooms.values()].filter(r=>!r.closed).map(r=>{ const i=r.adminInfo(); i.watchers=[...(relays.get(r.code)?.conns||[])].filter(x=>x.spectator).length; return i; }) });
 if (process.env.DATABASE_URL) DB.connect().catch(e=>console.error("[db] connect failed:",e.message));   // real Postgres: connect now. PGlite (dev) starts lazily on first use so it never stalls a game
 const server=http.createServer(async (req,res)=>{
   if (req.url.startsWith("/api/")) return api.handle(req,res);
@@ -160,7 +203,7 @@ const server=http.createServer(async (req,res)=>{
     res.writeHead(redis?200:503,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"}); // hub reads the online count
     const games={};                                   // players per game (rooms hosted on this instance)
     for (const r of rooms.values()) games[r.kind]=(games[r.kind]||0)+r.connectedCount();
-    return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:conns.size, games }));
+    return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:online(), games }));
   }
   // hub "Have a code?" box: which game does this room code belong to?
   if (req.url.startsWith("/room?")){
@@ -172,16 +215,17 @@ const server=http.createServer(async (req,res)=>{
   serveStatic(req,res);
 });
 const wss=new WebSocketServer({ server, maxPayload:64*1024 });   // score/finish messages may carry a per-question log
-wss.on("connection",ws=>{
+wss.on("connection",(ws,req)=>{
+  if (STATS.isBot(req&&req.headers["user-agent"])){ ws.close(1008,"bots can't play"); return; }   // crawlers/scripts: no rooms, no stats
   if (conns.size>=MAX_CONN){ ws.close(1013,"server full"); return; }
   const c={ id:id(9), ws, name:null, token:null, code:null, alive:true,
     send:s=>{ if (ws.readyState===1) ws.send(s); } };
-  conns.add(c); STATS.conns(conns.size);
+  conns.add(c);
   ws.on("pong",()=>{ c.alive=true; });
   ws.on("message",raw=>{ let m; try{ m=JSON.parse(raw); }catch{ return; } onMessage(c,m).catch(e=>console.error("[msg]",e)); });
   ws.on("close",async ()=>{
     conns.delete(c);
-    if (c.code){ await toRoom(c,{ t:"drop" }); await detach(c); }   // session kept → reconnect possible
+    if (c.code){ if (!c.spectator) await toRoom(c,{ t:"drop" }); await detach(c); }   // session kept → reconnect possible
   });
 });
 // drop dead sockets (mobile sleep, network loss) so bots take over quickly
