@@ -1,5 +1,5 @@
 // ClassKit — shared by every whole-class game page.
-//  • Students joining a teacher's room: "Who are you?" (first name, last initial, nickname). Classmates see the nickname only.
+//  • Students joining a teacher's room: full-screen sign-in (school email + nickname; name + school come from the email). Classmates see the nickname only.
 //  • Signed-in teachers: pick which class is playing before hosting, so results save automatically.
 //  • After a Teacher Mode game: a "See class results" button (saved session, or "create a free account to save").
 // Pages call: ClassKit.auth() in hello · ClassKit.teacherMsg() · ClassKit.beginTeacher(go) · ClassKit.onNet(m) first in onNet.
@@ -84,6 +84,44 @@ const css=`
 .ck-dig button{appearance:none;border:2px solid rgba(127,140,160,.45);background:rgba(127,140,160,.12);color:inherit;border-radius:10px;padding:8px 12px;font:700 15px inherit;font-family:inherit;cursor:pointer}
 .ck-dig button.on{background:#3b82f6;border-color:#3b82f6;color:#fff}
 .ck-dig button:disabled{cursor:default;opacity:.6}.ck-dig button.on:disabled{opacity:1}
+.ck-full{position:fixed;inset:0;z-index:9999;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#0b0d12;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.ck-full .ck-in{width:min(680px,100%);display:flex;flex-direction:column}
+.ck-full h3{margin:0 0 4vh;text-align:center;font-size:clamp(30px,5.4vw,52px);line-height:1.15}
+.ck-full p{margin:0 0 4vh;text-align:center;font-size:clamp(22px,3.6vw,32px);color:#c9d3e3}
+.ck-full label{font-weight:800;font-size:clamp(22px,3.6vw,32px);margin:0 0 10px}
+.ck-full input{font:700 clamp(24px,4.4vw,38px) system-ui,sans-serif;padding:18px 20px;border-radius:20px;border:4px solid #2b3550;background:#fff;color:#10131b;outline:none;margin-bottom:28px;width:100%;min-width:0}
+.ck-full input:focus{border-color:#58c27d;box-shadow:0 0 0 8px rgba(88,194,125,.25)}
+.ck-full input::placeholder{color:#c3c9d3}
+.ck-full .ck-go{appearance:none;border:0;cursor:pointer;border-radius:20px;background:#58c27d;color:#08240f;font:800 clamp(28px,4.6vw,40px) system-ui,sans-serif;padding:22px;box-shadow:0 5px 0 #2f7d4a;width:100%}
+.ck-full .ck-go:disabled{opacity:.6}
+.ck-full .ck-alt{appearance:none;border:0;background:none;color:#aab6cf;font-size:22px;margin-top:22px;cursor:pointer;text-decoration:underline}
+.ck-full .ck-err{text-align:center;font-weight:700;color:#ffb3b3;font-size:clamp(18px,2.6vw,24px);min-height:1.4em;margin:0 0 12px}
+.ck-tl{position:fixed;inset:0;z-index:9990;overflow:auto;background:#0b0d12;color:#eef2fb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px 16px 40px}
+.ck-tl[hidden]{display:none}
+.ck-tl *{letter-spacing:normal;text-transform:none;box-sizing:border-box}
+.ck-tl .tlh{max-width:none;width:auto;column-count:auto}
+.ck-tl .tlin{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.ck-tl .tls{background:#141a26;border:1px solid #2b3550;border-radius:22px;padding:20px 22px}
+.ck-tl .tlk{background:none;border:0;box-shadow:none;padding:0;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8fa0c0;margin:0 0 8px}
+.ck-tl .tlc{text-align:center;padding:26px 16px}
+.ck-tl .tlc b{display:block;font:800 clamp(80px,17vw,170px)/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;color:#fff;margin:4px 0 10px;padding-left:.14em}
+.ck-tl .tlc span{font-size:clamp(17px,2.4vw,22px);color:#c9d3e3}
+.ck-tl .tlw{margin-top:16px;font-size:18px;color:#c9d3e3}
+.ck-tl .tlw i{font-style:normal;display:inline-block;background:#1f2a3e;border-radius:999px;padding:4px 12px;margin:4px 3px 0;font-size:15px;color:#fff}
+.ck-tl .tlh{font-size:clamp(19px,2.6vw,24px);line-height:1.45;margin:0}
+.ck-tl .tlo{display:flex;flex-direction:column;gap:14px}
+.ck-tl .tlo .ck-dig{margin:0}
+.ck-tl .tlgo{appearance:none;border:0;cursor:pointer;border-radius:20px;background:#58c27d;color:#08240f;font:800 clamp(26px,4vw,38px) system-ui,sans-serif;padding:22px;box-shadow:0 5px 0 #2f7d4a;width:100%}
+.ck-tl .tlgo:active{transform:translateY(3px);box-shadow:0 2px 0 #2f7d4a}
+.ck-tl .tlgo small{display:block;font-size:17px;font-weight:600}
+.ck-tl .tlr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ck-tl .tlb{appearance:none;cursor:pointer;border-radius:16px;border:2px solid #2b3550;background:#141a26;color:#eef2fb;font:700 19px system-ui,sans-serif;padding:16px}
+.ck-tl .tlb:hover{border-color:#8fa0c0} .ck-tl .tlb.tlred{color:#ffb3b3}
+.ck-tl .tlm{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.ck-tl .tlm h4{margin:0 0 8px;font-size:15px;color:#8fa0c0;text-transform:uppercase;letter-spacing:1px}
+.ck-tl .tlm button{display:block;width:100%;text-align:left;appearance:none;cursor:pointer;border-radius:12px;border:1px solid #2b3550;background:#1b2333;color:#fff;font:600 17px system-ui,sans-serif;padding:11px 12px;margin-bottom:8px}
+.ck-tl .tlm button:hover{border-color:#58c27d}
+@media (max-width:560px){ .ck-tl .tlr{grid-template-columns:1fr} }
 .ck-toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9998;background:#16202e;color:#fff;border-radius:999px;padding:8px 16px;font:600 14px system-ui,sans-serif;animation:ckpop .3s}`;
 const st=document.createElement("style"); st.textContent=css; document.head.appendChild(st);
 function overlay(html){ close(); const o=document.createElement("div"); o.className="ck-ov"; o.id="ckOv"; o.innerHTML=`<div class="ck-card">${html}</div>`; document.body.appendChild(o); return o; }
@@ -92,53 +130,44 @@ function toast(t){ const d=document.createElement("div"); d.className="ck-toast"
 
 // ---------- students: who are you?
 const MODE=(()=>{ try{ return localStorage.getItem("jgh_mode")||""; }catch{ return ""; } })();
-function profile(){ try{ const p=JSON.parse(store.get("jgh_student")||"null"); return p&&p.first&&p.last&&p.nick&&p.school?p:null; }catch{ return null; } }
-let SCHOOLS=null;
-async function schoolOptions(sel,pick){
-  if (!SCHOOLS){ try{ SCHOOLS=(await api("/api/schools")).schools||[]; }catch{ SCHOOLS=[]; } }
-  const states=[...new Set(SCHOOLS.map(x=>x.state))];
-  sel.innerHTML=`<option value="">${SCHOOLS.length?"Pick your school…":"No schools yet"}</option>`+states.map(st=>`<optgroup label="${esc(st||"Other")}">${SCHOOLS.filter(x=>x.state===st).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</optgroup>`).join("");
-  sel.value=SCHOOLS.some(x=>x.id===pick)?pick:"";
-}
+function profile(){ try{ const p=JSON.parse(store.get("jgh_student")||"null"); return p&&p.email&&p.first&&p.nick&&p.school?p:null; }catch{ return null; } }
+function full(html){ close(); const o=document.createElement("div"); o.className="ck-full"; o.id="ckOv"; o.innerHTML=`<div class="ck-in">${html}</div>`; document.body.appendChild(o); return o; }
 let teacherSchool=null;
 function askStudent(known,error){
-  const send=s=>{ store.set("jgh_student",JSON.stringify(s)); store.set("cg_name",s.nick); Net.send({ t:"iam", ...s }); close(); };
+  const send=s=>{ store.set("jgh_student",JSON.stringify(s)); store.set("cg_name",s.nick); Net.send({ t:"iam", first:s.first, last:s.last, nick:s.nick, school:s.school }); close(); };
   const mine=profile();
-  if (mine && !error && (MODE==="student" || (known && known.first===mine.first && known.last===mine.last))) return send(mine);   // set up on the student hub: no questions
-  if (!known && mine && !error) known=mine;
-  if (known && !known.school) known=null;            // older saved students: ask again so we get their school
-  if (known && !error){
-    const o=overlay(`<h3>Welcome back, ${esc(known.first)}${known.last?" "+esc(known.last)+".":""}! 👋</h3>
-      <p>You'll play as <b>${esc(known.nick)}</b>. Is that you?</p>
-      <div class="ck-row"><button class="ck-btn" id="ckYes" style="flex:1">Yes, that's me</button><button class="ck-btn alt" id="ckNo">Not me</button></div>`);
-    o.querySelector("#ckYes").onclick=()=>send({ first:known.first, last:known.last, nick:known.nick, school:known.school });
-    o.querySelector("#ckNo").onclick=()=>askStudent(null);
+  if (mine && !error && (MODE==="student" || (known && known.first===mine.first && known.last===mine.last))) return send(mine);   // signed in on the student hub: no questions
+  if (mine && !error){
+    const o=full(`<h3>Is this you? 👋</h3><p><b>${esc(mine.first)}${mine.last?" "+esc(mine.last)+".":""}</b><br>playing as <b>${esc(mine.nick)}</b></p>
+      <button class="ck-go" id="ckYes">Yes, that's me</button><button class="ck-alt" id="ckNo">No, sign in</button>`);
+    o.querySelector("#ckYes").onclick=()=>send(mine);
+    o.querySelector("#ckNo").onclick=()=>{ store.set("jgh_student",null); askStudent(null); };
     return;
   }
-  let prev={}; try{ prev=JSON.parse(store.get("jgh_student")||"{}"); }catch{}
-  const o=overlay(`<h3>Joining your teacher's game</h3>
-    <p>Only your teacher sees your first name. Everyone else sees your nickname.</p>
-    <div class="ck-row"><div class="ck-f"><label for="ckFirst">First name</label><input id="ckFirst" maxlength="20" autocomplete="off" value="${esc(prev.first)}"></div>
-      <div class="ck-f" style="flex:0 0 96px"><label for="ckLast">Last initial</label><input id="ckLast" maxlength="1" autocomplete="off" value="${esc(prev.last)}" style="text-transform:uppercase;text-align:center"></div></div>
-    <div class="ck-f"><label for="ckNick">Nickname (what classmates see)</label><input id="ckNick" maxlength="14" autocomplete="off" value="${esc(prev.nick)}" placeholder="e.g. Rocket"></div>
-    <div class="ck-f"><label for="ckSchool">School</label><select id="ckSchool"><option value="">Loading…</option></select></div>
+  let prev={}; try{ prev=JSON.parse(store.get("jgh_student")||"{}")||{}; }catch{}
+  const o=full(`<h3>Sign in</h3>
+    <label for="ckEmail">1. Your school email</label><input id="ckEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@school.org" value="${esc(prev.email)}">
+    <label for="ckNick">2. Pick a nickname</label><input id="ckNick" maxlength="14" autocomplete="off" placeholder="Rocket" value="${esc(prev.nick)}">
     <p class="ck-err" id="ckErr">${esc(error||"")}</p>
-    <button class="ck-btn" id="ckGo" style="width:100%">Let's play!</button>`);
-  schoolOptions(o.querySelector("#ckSchool"),prev.school||teacherSchool);
-  const go=()=>{ const s={ first:o.querySelector("#ckFirst").value.trim(), last:o.querySelector("#ckLast").value.trim().toUpperCase(), nick:o.querySelector("#ckNick").value.trim(),
-      school:o.querySelector("#ckSchool").value||(SCHOOLS&&!SCHOOLS.length?"-":"") };
-    if (!s.first) return o.querySelector("#ckErr").textContent="Please type your first name.";
-    if (!/^\p{L}$/u.test(s.last)) return o.querySelector("#ckErr").textContent="Please add the first letter of your last name.";
-    if (!s.school) return o.querySelector("#ckErr").textContent="Please pick your school.";
-    send(s); };
-  o.querySelector("#ckGo").onclick=go;
-  o.querySelectorAll("input,select").forEach(i=>i.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") go(); }));
-  setTimeout(()=>o.querySelector("#ckFirst").focus(),50);
+    <button class="ck-go" id="ckGo">Let's go ➜</button>`);
+  const em=o.querySelector("#ckEmail"), nk=o.querySelector("#ckNick"), er=o.querySelector("#ckErr"), btn=o.querySelector("#ckGo");
+  const go=async()=>{ const email=em.value.trim().toLowerCase(), nick=nk.value.trim().slice(0,14);
+    if (!email.includes("@")){ er.textContent="Type your school email."; return em.focus(); }
+    if (!nick){ er.textContent="Pick a nickname."; return nk.focus(); }
+    btn.disabled=true; er.textContent="Checking…";
+    try{ const d=await api("/api/student/email",{ method:"POST", body:JSON.stringify({ email }) }); send({ email, first:d.first, last:d.last||"", nick, school:d.school }); }
+    catch(e){ er.textContent=e.message||"Couldn't reach the server. Try again."; em.focus(); }
+    finally{ btn.disabled=false; } };
+  btn.onclick=go;
+  em.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") nk.focus(); });
+  nk.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") go(); });
+  setTimeout(()=>(em.value?nk:em).focus(),50);
 }
 
 // ---------- teachers: which class is playing?
 async function beginTeacher(go){
   ClassKit.classId=null;
+  try{ if (sessionStorage.getItem("ck_moved")){ sessionStorage.removeItem("ck_moved"); return go(); } }catch{}
   if (!store.get("jgh_auth")) return go();
   let classes;
   try{ classes=(await api("/api/classes")).classes; }
@@ -165,6 +194,59 @@ function resultsButton(m){
   document.body.appendChild(d);
 }
 
+// ---------- teacher lobby screen: code · how to play · options · Start countdown · Close / Move
+const KIND_PATH={ math:"math-race", arrows:"arrow-blitz", hurdle:"hurdle-dash", rush:"rush-hour", bear:"bear-attack", memory:"memory-tiles", typing:"typing-cowboys", cannons:"star-cannons", darts:"dart-party", sky:"sky-climb", words:"word-rush", hoops:"mathsketball", munch:"marble-munch", softball:"softball-smarts", crossword:"crossword" };
+const CATS=[["🧮 Math",[["math","Math Race"],["munch","Marble Munch"],["softball","Softball Smarts"],["hoops","Mathsketball"],["hurdle","Hurdle Dash"]]],["🔤 Vocabulary",[["words","Word Rush"],["crossword","Vocab Crossword"]]],["⌨️ Typing",[["typing","Typing Cowboys"],["arrows","Arrow Blitz"]]],
+  ["🎉 Just for fun",[["memory","Memory Tiles"],["cannons","Star Cannons"],["darts","Dart Party"],["sky","Sky Climb"],["rush","Rush Hour"],["bear","Bear Attack!"]]]];
+const OPT_SEL=["#lMode","#custom","#lWords"];          // game option blocks (Math Race question type, Word Rush word list) moved onto this screen
+function teacherLobby(L){
+  let o=document.getElementById("ckTL");
+  const show=L.state==="lobby" && !!L.teacher && L.teacher===me.pid;
+  if (!show){ if (o) o.hidden=true; return; }
+  const slug=location.pathname.split("/").filter(Boolean)[0]||"";
+  if (!o){
+    o=document.createElement("div"); o.id="ckTL"; o.className="ck-tl";
+    o.innerHTML=`<div class="tlin">
+      <div class="tls tlc"><div class="tlk">Join code</div><b id="ckTLCode"></b><span>Students: open <b style="display:inline;font:inherit;color:#fff;letter-spacing:0">joshuagamehub.website</b> → Student → type this code</span><div class="tlw" id="ckTLWho"></div></div>
+      <div class="tls"><div class="tlk">How to play</div><p class="tlh">${esc(HOW[slug]||"")}</p></div>
+      <div class="tls" id="ckTLOpt" hidden><div class="tlk">Game options</div><div class="tlo" id="ckTLOpts"></div></div>
+      <button class="tlgo" id="ckTLGo" type="button">Start countdown</button>
+      <div class="tlr"><button class="tlb tlred" id="ckTLClose" type="button">Close lobby &amp; leave</button><button class="tlb" id="ckTLMove" type="button">Move lobby to a different game</button></div>
+      <div class="tls" id="ckTLMv" hidden><div class="tlk">Move everyone to…</div><div class="tlm">${CATS.map(([c,gs])=>`<div><h4>${c}</h4>${gs.map(([k,t])=>`<button type="button" data-k="${k}">${esc(t)}</button>`).join("")}</div>`).join("")}</div></div>
+    </div>`;
+    document.body.appendChild(o);
+    o.querySelector("#ckTLGo").onclick=()=>Net.send({ t:"start" });
+    o.querySelector("#ckTLClose").onclick=()=>{ if (confirm("Close this lobby? Every student is sent back to the start.")) Net.send({ t:"close" }); };
+    o.querySelector("#ckTLMove").onclick=()=>{ const m=o.querySelector("#ckTLMv"); m.hidden=!m.hidden; if (!m.hidden) m.scrollIntoView({ behavior:"smooth" }); };
+    o.querySelector("#ckTLMv").addEventListener("click",e=>{ const b=e.target.closest("button[data-k]"); if (b) Net.send({ t:"move", game:b.dataset.k }); });
+    o.querySelectorAll("button").forEach(b=>b.addEventListener("keydown",e=>e.stopPropagation()));
+  }
+  o.hidden=false;
+  // game-specific options: move the page's own option blocks here (they keep working: pages update them by id)
+  const opts=o.querySelector("#ckTLOpts");
+  OPT_SEL.forEach(sel=>{ const n=document.querySelector(sel); if (!n || opts.contains(n)) return; const box=n.closest("#lobby>div>div, #lobby .panel>div")||n; opts.appendChild(n.id==="custom"?n:box); });
+  const dig=document.getElementById("ckDigits"); if (dig && !opts.contains(dig)) opts.appendChild(dig);
+  o.querySelector("#ckTLOpt").hidden=!opts.children.length || [...opts.children].every(c=>c.hidden||getComputedStyle(c).display==="none");
+  o.querySelector("#ckTLCode").textContent=L.code||"----";
+  const kids=(L.players||[]).filter(p=>p.pid!==L.teacher);
+  o.querySelector("#ckTLWho").innerHTML=kids.length?`<b style="display:inline;font:700 20px system-ui;letter-spacing:0;color:#fff;margin:0">${kids.length} joined</b><br>${kids.map(p=>`<i>${p.pending||!p.name?"⏳ Joining…":esc(p.name)}</i>`).join("")}`:"Waiting for students to join…";
+  const go=o.querySelector("#ckTLGo");
+  if (L.closeIn>0){ const s=Math.max(0,Math.ceil((L.closeIn-(performance.now()-L.at))/1000)); go.innerHTML=`Starting in ${s}…<small>Press again to start right now</small>`; }
+  else go.textContent="Start countdown";
+}
+function onMoved(m){
+  const path="/"+(KIND_PATH[m.game]||"")+"/";
+  const iTeach=last&&last.teacher&&last.teacher===me.pid;
+  if (iTeach){ try{ sessionStorage.setItem("ck_moved","1"); }catch{} location.href=path+"?play=teacher"; }
+  else { const t=full(`<h3>Moving to a new game…</h3><p>Your teacher picked a different game. Hang on!</p>`); setTimeout(()=>location.href=path+"?join="+encodeURIComponent(m.code),700); }
+}
+function onClosed(){
+  const iTeach=last&&last.teacher&&last.teacher===me.pid;
+  if (iTeach){ location.href="/#teacher"; return; }
+  full(`<h3>Your teacher closed the game</h3><p>Thanks for playing!</p>`);
+  setTimeout(()=>location.href="/#student",2500);
+}
+
 // ---------- lobby extras: start countdown (teacher pressed Start), "you're in" for students, room code while playing
 const me={ pid:0 }; let last=null, cdTimer=0;
 function el(id,cls){ let d=document.getElementById(id); if (!d){ d=document.createElement("div"); d.id=id; document.body.appendChild(d); } d.className=cls; return d; }
@@ -176,6 +258,7 @@ function onLobby(L){
   if (L.state==="lobby"){ drop("ckBoard"); drop("ckMe"); drop("ckCode"); }
   if (L.state==="lobby" && L.closeIn>0){
     const tick=()=>{ const s=Math.max(0,Math.ceil((L.closeIn-(performance.now()-L.at))/1000));
+      if (iTeach){ teacherLobby(L); return; }
       el("ckCount","ck-banner").innerHTML=`<b>${s}</b><div>${iTeach?"Starting soon…":"The game is starting!"}<small>${iTeach?"Press Start again to begin right now.":document.getElementById("ckOv")?"Finish typing your name!":"Get ready…"}</small></div>`; };
     tick(); cdTimer=setInterval(tick,200); return;
   }
@@ -184,6 +267,7 @@ function onLobby(L){
   if (L.state==="playing" && !L.teacher && !L.pub && L.code) el("ckCode","ck-me").innerHTML=`Room <span>${esc(L.code)}</span> · friends can join`;
   if (L.state==="playing" && iTeach && !document.getElementById("ckBoard")) onBoard({ code:L.code, rows:[] });
   digitPicker(L);
+  teacherLobby(L);
 }
 // Math Race + Hurdle Dash + Mathsketball: the host (teacher) picks how many digits each number has
 function digitPicker(L){
@@ -266,6 +350,8 @@ window.ClassKit={
   onNet(m){
     if (m.t==="joined") me.pid=m.pid;
     if (m.t==="lobby") onLobby(m);
+    if (m.t==="moved"){ onMoved(m); return true; }
+    if (m.t==="closed"){ onClosed(); return true; }
     if (m.t==="board"){ onBoard(m); return true; }
     if (m.t==="whoareyou"){ teacherSchool=m.school||null; askStudent(m.known,m.error); return true; }
     if (m.t==="iamok"){ toast(`You're playing as ${m.student.nick}`); return true; }
