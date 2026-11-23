@@ -81,7 +81,7 @@ const css=`
 .ck-dig{display:flex;flex-direction:column;gap:6px;margin:4px 0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 .ck-dig>span{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.75}
 .ck-dig>div{display:flex;gap:6px;flex-wrap:wrap}
-.ck-dig button{appearance:none;border:2px solid rgba(127,140,160,.45);background:rgba(127,140,160,.12);color:inherit;border-radius:10px;padding:8px 12px;font:700 15px inherit;font-family:inherit;cursor:pointer}
+.ck-dig button{appearance:none;border:2px solid rgba(127,140,160,.45);background:rgba(127,140,160,.12);color:inherit;border-radius:10px;padding:8px 12px;font-weight:700;font-size:16px;font-family:inherit;cursor:pointer}
 .ck-dig button.on{background:#3b82f6;border-color:#3b82f6;color:#fff}
 .ck-dig button:disabled{cursor:default;opacity:.6}.ck-dig button.on:disabled{opacity:1}
 .ck-full{position:fixed;inset:0;z-index:9999;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#0b0d12;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -96,32 +96,32 @@ const css=`
 .ck-full .ck-go:disabled{opacity:.6}
 .ck-full .ck-alt{appearance:none;border:0;background:none;color:#aab6cf;font-size:22px;margin-top:22px;cursor:pointer;text-decoration:underline}
 .ck-full .ck-err{text-align:center;font-weight:700;color:#ffb3b3;font-size:clamp(18px,2.6vw,24px);min-height:1.4em;margin:0 0 12px}
-.ck-tl{position:fixed;inset:0;z-index:9990;overflow:auto;background:#0b0d12;color:#eef2fb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px 16px 40px}
+/* teacher lobby: lives INSIDE the game's own menu card (inherits its fonts + colours) */
+body.ck-teach .screen.on:not(#menu){display:none!important}
+body.ck-teach #menu{display:flex!important}
+body.ck-teach .ck-hid{display:none!important}
+.ck-tl{margin-top:14px;display:flex;flex-direction:column;gap:12px;text-align:center;color:inherit;font-family:inherit}
 .ck-tl[hidden]{display:none}
-.ck-tl *{letter-spacing:normal;text-transform:none;box-sizing:border-box}
-.ck-tl .tlh{max-width:none;width:auto;column-count:auto}
-.ck-tl .tlin{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
-.ck-tl .tls{background:#141a26;border:1px solid #2b3550;border-radius:22px;padding:20px 22px}
-.ck-tl .tlk{background:none;border:0;box-shadow:none;padding:0;font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8fa0c0;margin:0 0 8px}
-.ck-tl .tlc{text-align:center;padding:26px 16px}
-.ck-tl .tlc b{display:block;font:800 clamp(80px,17vw,170px)/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;color:#fff;margin:4px 0 10px;padding-left:.14em}
-.ck-tl .tlc span{font-size:clamp(17px,2.4vw,22px);color:#c9d3e3}
-.ck-tl .tlw{margin-top:16px;font-size:18px;color:#c9d3e3}
-.ck-tl .tlw i{font-style:normal;display:inline-block;background:#1f2a3e;border-radius:999px;padding:4px 12px;margin:4px 3px 0;font-size:15px;color:#fff}
-.ck-tl .tlh{font-size:clamp(19px,2.6vw,24px);line-height:1.45;margin:0}
-.ck-tl .tlo{display:flex;flex-direction:column;gap:14px}
+.ck-tl *{box-sizing:border-box;font-family:inherit}
+.ck-tl .tlk{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:.7}
+.ck-tl .tlc{font-weight:900;font-size:clamp(64px,11vw,110px);line-height:1;letter-spacing:.12em;padding-left:.12em;margin:2px 0}
+.ck-tl .tlc+div{font-size:15px;opacity:.85}
+.ck-tl .tlw{font-size:15px} .ck-tl .tlw i{font-style:normal;display:inline-block;border:1px solid currentColor;border-radius:999px;padding:2px 10px;margin:3px 2px 0;font-size:13px;opacity:.85}
+.ck-tl .tlo{display:flex;flex-direction:column;gap:12px;text-align:left;padding:12px;border-radius:14px;border:1px dashed rgba(127,127,127,.5)}
+.ck-tl .tlo[hidden]{display:none}
+.ck-tl .tlo>.tlk{text-align:center}
 .ck-tl .tlo .ck-dig{margin:0}
-.ck-tl .tlgo{appearance:none;border:0;cursor:pointer;border-radius:20px;background:#58c27d;color:#08240f;font:800 clamp(26px,4vw,38px) system-ui,sans-serif;padding:22px;box-shadow:0 5px 0 #2f7d4a;width:100%}
-.ck-tl .tlgo:active{transform:translateY(3px);box-shadow:0 2px 0 #2f7d4a}
-.ck-tl .tlgo small{display:block;font-size:17px;font-weight:600}
-.ck-tl .tlr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.ck-tl .tlb{appearance:none;cursor:pointer;border-radius:16px;border:2px solid #2b3550;background:#141a26;color:#eef2fb;font:700 19px system-ui,sans-serif;padding:16px}
-.ck-tl .tlb:hover{border-color:#8fa0c0} .ck-tl .tlb.tlred{color:#ffb3b3}
-.ck-tl .tlm{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
-.ck-tl .tlm h4{margin:0 0 8px;font-size:15px;color:#8fa0c0;text-transform:uppercase;letter-spacing:1px}
-.ck-tl .tlm button{display:block;width:100%;text-align:left;appearance:none;cursor:pointer;border-radius:12px;border:1px solid #2b3550;background:#1b2333;color:#fff;font:600 17px system-ui,sans-serif;padding:11px 12px;margin-bottom:8px}
-.ck-tl .tlm button:hover{border-color:#58c27d}
-@media (max-width:560px){ .ck-tl .tlr{grid-template-columns:1fr} }
+.ck-tl .tlgo{appearance:none;border:0;cursor:pointer;border-radius:16px;background:#2fa65a;color:#fff;font-weight:800;font-size:24px;line-height:1.1;padding:16px;box-shadow:0 5px 0 #1f7a40;width:100%}
+.ck-tl .tlgo:active{transform:translateY(3px);box-shadow:0 2px 0 #1f7a40}
+.ck-tl .tlgo small{display:block;font-size:14px;font-weight:600;opacity:.9}
+.ck-tl .tlr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ck-tl .tlb{appearance:none;cursor:pointer;border-radius:14px;border:2px solid rgba(127,127,127,.45);background:transparent;color:inherit;font-weight:700;font-size:16px;padding:12px 10px}
+.ck-tl .tlb:hover{border-color:currentColor} .ck-tl .tlred{color:#d23c3c}
+.ck-tl .tlm{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;text-align:left}
+.ck-tl .tlm h4{margin:0 0 6px;font-size:12px;letter-spacing:1px;text-transform:uppercase;opacity:.7}
+.ck-tl .tlm button{display:block;width:100%;text-align:left;appearance:none;cursor:pointer;border-radius:10px;border:1px solid rgba(127,127,127,.45);background:transparent;color:inherit;font-weight:600;font-size:14px;padding:8px 10px;margin-bottom:6px}
+.ck-tl .tlm button:hover{border-color:#2fa65a}
+@media (max-width:520px){ .ck-tl .tlr{grid-template-columns:1fr} }
 .ck-toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9998;background:#16202e;color:#fff;border-radius:999px;padding:8px 16px;font:600 14px system-ui,sans-serif;animation:ckpop .3s}`;
 const st=document.createElement("style"); st.textContent=css; document.head.appendChild(st);
 function overlay(html){ close(); const o=document.createElement("div"); o.className="ck-ov"; o.id="ckOv"; o.innerHTML=`<div class="ck-card">${html}</div>`; document.body.appendChild(o); return o; }
@@ -199,37 +199,48 @@ const KIND_PATH={ math:"math-race", arrows:"arrow-blitz", hurdle:"hurdle-dash", 
 const CATS=[["🧮 Math",[["math","Math Race"],["munch","Marble Munch"],["softball","Softball Smarts"],["hoops","Mathsketball"],["hurdle","Hurdle Dash"]]],["🔤 Vocabulary",[["words","Word Rush"],["crossword","Vocab Crossword"]]],["⌨️ Typing",[["typing","Typing Cowboys"],["arrows","Arrow Blitz"]]],
   ["🎉 Just for fun",[["memory","Memory Tiles"],["cannons","Star Cannons"],["darts","Dart Party"],["sky","Sky Climb"],["rush","Rush Hour"],["bear","Bear Attack!"]]]];
 const OPT_SEL=["#lMode","#custom","#lWords"];          // game option blocks (Math Race question type, Word Rush word list) moved onto this screen
+let tlOn=false;
+// the game's menu card becomes the teacher lobby: its title + tips stay, its buttons/name box hide, our block is added
+function setTeach(on){
+  const card=document.querySelector("#menu > *")||document.getElementById("menu");
+  if (on===tlOn || !card) return; tlOn=on;
+  document.body.classList.toggle("ck-teach",on);
+  if (on){ [...card.children].forEach(c=>{ if (c.id==="ckTL") return;
+      if (c.matches("input,button,select,label,form,textarea")||c.querySelector("input,button,select,textarea")||/your name|name$/i.test((c.textContent||"").trim())&&c.textContent.length<30) c.classList.add("ck-hid"); }); }
+  else card.querySelectorAll(".ck-hid").forEach(c=>c.classList.remove("ck-hid"));
+  const o=document.getElementById("ckTL"); if (o) o.hidden=!on;
+}
 function teacherLobby(L){
+  const lob=document.getElementById("lobby");
+  const show=L.state==="lobby" && !!L.teacher && L.teacher===me.pid && (!lob || lob.classList.contains("on") || tlOn);
+  if (!show){ setTeach(false); return; }
+  const card=document.querySelector("#menu > *")||document.getElementById("menu"); if (!card) return;
   let o=document.getElementById("ckTL");
-  const show=L.state==="lobby" && !!L.teacher && L.teacher===me.pid;
-  if (!show){ if (o) o.hidden=true; return; }
-  const slug=location.pathname.split("/").filter(Boolean)[0]||"";
   if (!o){
     o=document.createElement("div"); o.id="ckTL"; o.className="ck-tl";
-    o.innerHTML=`<div class="tlin">
-      <div class="tls tlc"><div class="tlk">Join code</div><b id="ckTLCode"></b><span>Students: open <b style="display:inline;font:inherit;color:#fff;letter-spacing:0">joshuagamehub.website</b> → Student → type this code</span><div class="tlw" id="ckTLWho"></div></div>
-      <div class="tls"><div class="tlk">How to play</div><p class="tlh">${esc(HOW[slug]||"")}</p></div>
-      <div class="tls" id="ckTLOpt" hidden><div class="tlk">Game options</div><div class="tlo" id="ckTLOpts"></div></div>
+    o.innerHTML=`<div><div class="tlk">Join code</div><div class="tlc" id="ckTLCode"></div><div>Students: <b>joshuagamehub.website</b> → Student → type this code</div></div>
+      <div class="tlw" id="ckTLWho"></div>
+      <div class="tlo" id="ckTLOpt" hidden><div class="tlk">Game options</div><div id="ckTLOpts" style="display:flex;flex-direction:column;gap:12px"></div></div>
       <button class="tlgo" id="ckTLGo" type="button">Start countdown</button>
       <div class="tlr"><button class="tlb tlred" id="ckTLClose" type="button">Close lobby &amp; leave</button><button class="tlb" id="ckTLMove" type="button">Move lobby to a different game</button></div>
-      <div class="tls" id="ckTLMv" hidden><div class="tlk">Move everyone to…</div><div class="tlm">${CATS.map(([c,gs])=>`<div><h4>${c}</h4>${gs.map(([k,t])=>`<button type="button" data-k="${k}">${esc(t)}</button>`).join("")}</div>`).join("")}</div></div>
-    </div>`;
-    document.body.appendChild(o);
+      <div id="ckTLMv" hidden><div class="tlm">${CATS.map(([c,gs])=>`<div><h4>${c}</h4>${gs.map(([k,t])=>`<button type="button" data-k="${k}">${esc(t)}</button>`).join("")}</div>`).join("")}</div></div>`;
+    card.appendChild(o);
     o.querySelector("#ckTLGo").onclick=()=>Net.send({ t:"start" });
     o.querySelector("#ckTLClose").onclick=()=>{ if (confirm("Close this lobby? Every student is sent back to the start.")) Net.send({ t:"close" }); };
-    o.querySelector("#ckTLMove").onclick=()=>{ const m=o.querySelector("#ckTLMv"); m.hidden=!m.hidden; if (!m.hidden) m.scrollIntoView({ behavior:"smooth" }); };
+    o.querySelector("#ckTLMove").onclick=()=>{ const m=o.querySelector("#ckTLMv"); m.hidden=!m.hidden; };
     o.querySelector("#ckTLMv").addEventListener("click",e=>{ const b=e.target.closest("button[data-k]"); if (b) Net.send({ t:"move", game:b.dataset.k }); });
-    o.querySelectorAll("button").forEach(b=>b.addEventListener("keydown",e=>e.stopPropagation()));
+    o.addEventListener("keydown",e=>{ if (e.target.tagName!=="INPUT"&&e.target.tagName!=="TEXTAREA") return; e.stopPropagation(); });
+    // the page's own Leave/exit takes it back to its menu: drop the lobby view
+    if (lob) new MutationObserver(()=>{ if (tlOn && !lob.classList.contains("on") && !(last&&last.state==="lobby"&&last.teacher===me.pid&&Net.ws&&Net.ws.readyState===1)) setTeach(false); }).observe(lob,{ attributes:true, attributeFilter:["class"] });
   }
-  o.hidden=false;
-  // game-specific options: move the page's own option blocks here (they keep working: pages update them by id)
+  setTeach(true);
   const opts=o.querySelector("#ckTLOpts");
-  OPT_SEL.forEach(sel=>{ const n=document.querySelector(sel); if (!n || opts.contains(n)) return; const box=n.closest("#lobby>div>div, #lobby .panel>div")||n; opts.appendChild(n.id==="custom"?n:box); });
+  OPT_SEL.forEach(sel=>{ const n=document.querySelector(sel); if (!n || opts.contains(n)) return; const box=n.closest("#lobby>div>div, #lobby .panel>div")||n; opts.appendChild(n.id==="custom"||n.id==="lWords"?n:box); });
   const dig=document.getElementById("ckDigits"); if (dig && !opts.contains(dig)) opts.appendChild(dig);
-  o.querySelector("#ckTLOpt").hidden=!opts.children.length || [...opts.children].every(c=>c.hidden||getComputedStyle(c).display==="none");
+  o.querySelector("#ckTLOpt").hidden=!opts.children.length;
   o.querySelector("#ckTLCode").textContent=L.code||"----";
   const kids=(L.players||[]).filter(p=>p.pid!==L.teacher);
-  o.querySelector("#ckTLWho").innerHTML=kids.length?`<b style="display:inline;font:700 20px system-ui;letter-spacing:0;color:#fff;margin:0">${kids.length} joined</b><br>${kids.map(p=>`<i>${p.pending||!p.name?"⏳ Joining…":esc(p.name)}</i>`).join("")}`:"Waiting for students to join…";
+  o.querySelector("#ckTLWho").innerHTML=kids.length?`<b>${kids.length} joined</b><br>${kids.map(p=>`<i>${p.pending||!p.name?"⏳ Joining…":esc(p.name)}</i>`).join("")}`:"Waiting for students to join…";
   const go=o.querySelector("#ckTLGo");
   if (L.closeIn>0){ const s=Math.max(0,Math.ceil((L.closeIn-(performance.now()-L.at))/1000)); go.innerHTML=`Starting in ${s}…<small>Press again to start right now</small>`; }
   else go.textContent="Start countdown";
