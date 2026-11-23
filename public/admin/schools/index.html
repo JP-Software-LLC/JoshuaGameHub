@@ -21,7 +21,7 @@
     <p class="err" id="aErr"></p>
   </div>
   <div id="out"><div class="msg">Loading…</div></div>
-  <p class="note">A school can only be removed when no teacher uses it (rename it instead). Students who picked a removed school are asked to pick again. A school's id never changes, so renaming is always safe.</p>
+  <p class="note">A school can only be removed when no teacher uses it (edit it instead). Students who picked a removed school are asked to pick again. A school's id never changes, so editing is always safe.</p>
 </main>
 
 <dialog id="dlg"><form method="dialog" id="dForm"><h3 id="dTitle"></h3><div id="dBody"></div><p class="err" id="dErr"></p>
@@ -42,7 +42,7 @@ async function load(){
       <td class="left" style="min-width:210px">${T?`<span class="tag live">⚔️ LIVE</span> <b>${esc(T.name)}</b><br><span class="zero">first to 🧱 ${n(T.goal)} · since ${ago(T.startedAt)}</span>`
         :L?`<span class="zero">Last: ${esc(L.name)}${L.winner?` · 🏆 ${esc(L.winner)}`:" · stopped"}</span>`:`<span class="zero">—</span>`}</td>
       <td><div class="row" style="justify-content:flex-end;flex-wrap:nowrap">${T?`<button class="btn ghost" data-end="${T.id}" data-name="${esc(T.name)}">End tournament</button>`:`<button class="btn purple" data-start="${esc(s.id)}">⚔️ Start tournament</button>`}
-        <button class="btn ghost" data-edit="${esc(s.id)}">Rename</button><button class="btn ghost" data-del="${esc(s.id)}" ${s.teachers?'disabled title="Teachers use this school"':""}>Remove</button></div></td></tr>`; }).join("")
+        <button class="btn ghost" data-edit="${esc(s.id)}">✏️ Edit</button><button class="btn ghost" data-del="${esc(s.id)}" ${s.teachers?'disabled title="Teachers use this school"':""}>Remove</button></div></td></tr>`; }).join("")
       :`<tr><td colspan="6">No schools yet. Add the first one above.</td></tr>`}</tbody></table></div>`;
   $("out").querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>startTour(SCHOOLS.find(s=>s.id===b.dataset.start)));
   $("out").querySelectorAll("[data-end]").forEach(b=>b.onclick=()=>endTour(b.dataset.end,b.dataset.name));
@@ -70,7 +70,7 @@ async function endTour(id,name){
   try{ await api(`/api/admin/tournaments/${id}/end`,"POST",{}); load(); }catch(e){ alert(e.message); }
 }
 function rename(s){
-  ask("Rename school",[{ k:"name", label:"School name", v:s.name, attrs:'maxlength="80"' },{ k:"state", label:"State (2 letters)", v:s.state, attrs:'maxlength="2" style="text-transform:uppercase"' },
+  ask("Edit school",[{ k:"name", label:"School name", v:s.name, attrs:'maxlength="80"' },{ k:"state", label:"State (2 letters)", v:s.state, attrs:'maxlength="2" style="text-transform:uppercase"' },
     { k:"domains", label:"Student email domains", v:s.domains, attrs:'maxlength="200" placeholder="student.isd.org"', help:"Comma-separated. Subdomains match too (isd.org also covers student.isd.org)." }],"Save",
     v=>api(`/api/admin/schools/${encodeURIComponent(s.id)}`,"PATCH",v));
 }
