@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS schools (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ALTER TABLE students ADD COLUMN IF NOT EXISTS school_id TEXT;
+-- student email domains of the school (comma list, e.g. "student.isd.org,isd.org"): students sign in with their school email
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS domains TEXT NOT NULL DEFAULT '';
 
 -- ---- castles: every saved Teacher Mode game adds bricks to the castle of the teacher who ran it.
 -- Bricks only ever go up (deleting a game or class doesn't knock bricks off).

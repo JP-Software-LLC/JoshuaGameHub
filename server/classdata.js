@@ -9,11 +9,26 @@ async function loadSchools(force){
   if (!force && Date.now()-schoolsAt<30e3) return SCHOOLS;
   const n=await db.one("select count(*)::int n from schools");
   if (!n.n) for (const s of SEED) await db.q("insert into schools(id,name,state) values($1,$2,$3) on conflict do nothing",[s.id,s.name,s.state||""]);
-  SCHOOLS=(await db.all("select id,name,state from schools order by state,name")).map(r=>({ id:r.id, name:r.name, state:r.state }));
+  SCHOOLS=(await db.all("select id,name,state,domains from schools order by state,name")).map(r=>({ id:r.id, name:r.name, state:r.state, domains:splitDomains(r.domains) }));
   schoolsAt=Date.now();
   return SCHOOLS;
 }
 async function schoolById(id){ if (!id) return null; await loadSchools(); return SCHOOLS.find(s=>s.id===id)||null; }
+const splitDomains=v=>[...new Set(String(v||"").toLowerCase().split(/[\s,;]+/).map(d=>d.replace(/^@/,"").trim()).filter(d=>/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)))].slice(0,10);
+// school email → { first, last, school } or { error }. The name comes from the part before @ ("maria.lopez27" → Maria L),
+// the school from the domain (exact match, or a subdomain of a listed domain). The email itself is never stored.
+const cap=w=>w?w[0].toUpperCase()+w.slice(1):"";
+async function fromEmail(email){
+  const m=String(email||"").trim().toLowerCase().match(/^([^@\s]+)@([a-z0-9.-]+\.[a-z]{2,})$/);
+  if (!m) return { error:"Type your whole school email, like name@school.org" };
+  const dom=m[2], list=await loadSchools();
+  const sc=list.find(s=>s.domains.some(d=>dom===d||dom.endsWith("."+d)));
+  if (!sc) return { error:"That isn't a school email we know yet. Ask your teacher." };
+  const parts=m[1].replace(/\+.*$/,"").split(/[._-]+/).map(w=>w.replace(/[^a-z]/g,"")).filter(Boolean);
+  if (!parts.length) return { error:"We couldn't read a name in that email. Ask your teacher." };
+  const first=cap(parts[0]).slice(0,20), last=parts.length>1?parts[parts.length-1][0].toUpperCase():"";
+  return { first, last, school:sc.id, schoolName:sc.name };
+}
 const schoolId=v=>{ const s=String(v||"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,48); return s||null; };
 
 // ---- castle bricks. Each game's raw score is made "higher is better", then divided by that game's running average
@@ -119,4 +134,4 @@ async function schoolPage(schoolId){
   }
   return { school, castles, tournament, past:past.map(x=>({ name:x.name, goal:x.goal, startedAt:x.started_at, endedAt:x.ended_at, winner:x.winner_name||null })) };
 }
-module.exports={ checkTournament, schoolPage, loadSchools, schoolById, schoolId, rawValues, bricksFor, BRICKS_AVG, roleIn, cleanStudent, knownStudent, resolveStudent, saveSession };
+module.exports={ fromEmail, splitDomains, checkTournament, schoolPage, loadSchools, schoolById, schoolId, rawValues, bricksFor, BRICKS_AVG, roleIn, cleanStudent, knownStudent, resolveStudent, saveSession };

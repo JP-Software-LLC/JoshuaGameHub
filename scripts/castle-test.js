@@ -70,6 +70,14 @@ async function e2e(){
   const sc=(await api("POST","/api/admin/schools",{ name:"Maple Grove Elementary", state:"or" },boss)).school;
   if (!sc||sc.state!=="OR") fail("school not added "+JSON.stringify(sc));
   if (!(await api("GET","/api/schools")).schools.some(s=>s.id===sc.id)) fail("new school not in the public list");
+  // student sign-in by school email: name + school come from the email
+  if ((await api("POST","/api/student/email",{ email:"maria.lopez27@student.maplegrove.org" })).status!==400) fail("unknown domain accepted");
+  await api("PATCH","/api/admin/schools/"+sc.id,{ name:sc.name, state:"OR", domains:"@maplegrove.org, junk" },boss);
+  const em=await api("POST","/api/student/email",{ email:" Maria.Lopez27@Student.MapleGrove.org " });
+  if (em.first!=="Maria"||em.last!=="L"||em.school!==sc.id) fail("email sign-in "+JSON.stringify(em));
+  const em1=await api("POST","/api/student/email",{ email:"jsmith@maplegrove.org" });
+  if (em1.first!=="Jsmith"||em1.last!==""||em1.school!==sc.id) fail("one-word email "+JSON.stringify(em1));
+  if ((await api("POST","/api/student/email",{ email:"kid@maplegrove.org.evil.com" })).status!==400) fail("look-alike domain accepted");
   if ((await api("PATCH","/api/admin/schools/"+sc.id,{ name:"Maple Grove Elem", state:"OR" },boss)).school.name!=="Maple Grove Elem") fail("rename failed");
   for (const [t,name] of [[A,"Ms A"],[B,"Mr B"]]) await api("PATCH","/api/me",{ displayName:name, schoolId:sc.id },t);
   if ((await api("DELETE","/api/admin/schools/"+sc.id,{},boss)).status!==409) fail("removed a school teachers use");
@@ -100,7 +108,7 @@ async function e2e(){
   page=await api("GET","/api/school/"+sc.id); if (page.tournament||page.past.length!==2) fail("ended tournament still live");
   const adm=(await api("GET","/api/admin/schools",null,boss)).schools.find(s=>s.id===sc.id);
   if (adm.teachers!==2||adm.students!==2||adm.bricks!==total.bricks) fail("admin school counts "+JSON.stringify(adm));
-  console.log(`OK: castles — admin school list, bricks saved to the teacher's castle, public school page (no emails), tournament won after ${games} games, manual end`);
+  console.log(`OK: castles — admin school list, bricks saved to the teacher's castle, public school page (no emails), student sign-in by school email, tournament won after ${games} games, manual end`);
   srv.kill(); setTimeout(()=>process.exit(0),200);
 }
 unit().then(e2e).catch(e=>fail(e.stack||e.message));

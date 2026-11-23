@@ -225,6 +225,19 @@
   .sf label.li input{text-transform:uppercase;text-align:center}
   .sf input:focus,.sf select:focus{border-color:var(--green)}
   .sf select{font:700 20px var(--sans);padding:14px 12px;border-radius:14px;border:3px solid var(--edge2);background:#fff;color:#10131b;outline:none;text-transform:none;letter-spacing:0;width:100%}
+  /* full-screen student sign-in: school email + nickname */
+  .sfull{position:fixed;inset:0;z-index:1000;background:radial-gradient(900px 500px at 50% -10%,rgba(88,194,125,.22),transparent 60%),#0b0d12;display:flex;align-items:center;justify-content:center;padding:24px 16px;overflow:auto}
+  .sfull[hidden]{display:none}
+  body.signin > header, body.signin .jgh-bar{display:none!important}
+  .sbox{width:min(680px,100%);display:flex;flex-direction:column}
+  .sbox h2{font:400 clamp(26px,5vw,44px)/1.3 var(--px);text-align:center;margin:0 0 4vh}
+  .sl{font:800 clamp(22px,3.6vw,32px) var(--sans);margin:0 0 10px}
+  .sbox input{font:700 clamp(24px,4.4vw,38px) var(--sans);padding:18px 20px;border-radius:20px;border:4px solid var(--edge2);background:#fff;color:#10131b;outline:none;margin-bottom:28px;width:100%;min-width:0}
+  .sbox input:focus{border-color:var(--green);box-shadow:0 0 0 8px rgba(88,194,125,.25)}
+  .sbox input::placeholder{color:#c3c9d3}
+  .sbox .sgo{font-size:clamp(28px,4.6vw,40px);padding:22px;margin-top:6px}
+  .sbox .perr{text-align:center;font-size:clamp(18px,2.6vw,24px);margin:0 0 12px!important}
+  .sback{align-self:center;margin-top:24px;color:var(--dim);font-size:20px;text-decoration:none;cursor:pointer}
   .scastle{display:flex;align-items:center;justify-content:center;gap:10px;max-width:720px;margin:16px auto 0;padding:16px 20px;border-radius:18px;background:linear-gradient(135deg,#f5c542,#ffdf7e);color:#2b1d00;font-weight:800;font-size:19px;text-decoration:none;box-shadow:0 6px 0 #c58f12}
   .scastle[hidden]{display:none}
   .scastle:hover{filter:brightness(1.05)} .scastle:active{transform:translateY(3px);box-shadow:0 3px 0 #c58f12}
@@ -377,14 +390,17 @@
 
   <!-- STUDENT -->
   <section class="wrap vw" id="vStudent" aria-label="Student">
-    <div class="scard" id="sProfile" hidden>
-      <h2>Hi! Who are you?</h2>
-      <p>Your teacher sees your first name. Classmates only see your nickname.</p>
-      <div class="sf"><label>First name<input id="pFirst" maxlength="20" autocomplete="off"></label><label class="li">Last initial<input id="pLast" maxlength="1" autocomplete="off"></label></div>
-      <div class="sf"><label>Nickname<input id="pNick" maxlength="14" autocomplete="off" placeholder="e.g. Rocket"></label></div>
-      <div class="sf"><label>School<select id="pSchool"><option value="">Pick your school…</option></select></label></div>
-      <p class="perr" id="pErr" role="status"></p>
-      <button type="button" class="sgo" id="pSave">Save my name ✓</button>
+    <div class="sfull" id="sProfile" hidden>
+      <div class="sbox">
+        <h2>Sign in</h2>
+        <label class="sl" for="pEmail">1. Your school email</label>
+        <input id="pEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@school.org">
+        <label class="sl" for="pNick">2. Pick a nickname</label>
+        <input id="pNick" maxlength="14" autocomplete="off" placeholder="Rocket">
+        <p class="perr" id="pErr" role="status"></p>
+        <button type="button" class="sgo" id="pSave">Let's go ➜</button>
+        <a class="sback" href="#home" data-go="home">← Back</a>
+      </div>
     </div>
     <form class="scode" id="sCodeForm" autocomplete="off" hidden>
       <label for="sCode">Type the code from the board</label>
@@ -885,18 +901,8 @@ $("joinForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("joi
 const VIEWS=["home","student","teacher","guest"];
 const ls={ get(k){ try{ return localStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} } };
 const ss={ get(k){ try{ return sessionStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ sessionStorage.setItem(k,v); }catch{} } };
-function profile(){ try{ const p=JSON.parse(ls.get("jgh_student")||"null"); return p&&p.first&&p.last&&p.nick&&p.school?p:null; }catch{ return null; } }
-// schools students pick from (edited by admins on /admin/schools/)
+function profile(){ try{ const p=JSON.parse(ls.get("jgh_student")||"null"); return p&&p.email&&p.first&&p.nick&&p.school?p:null; }catch{ return null; } }
 const apiBase=()=>{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; return s?s.replace(/^ws/,"http").replace(/\/$/,""):""; };
-let SCHOOLS=null;
-async function loadSchools(){
-  if (!SCHOOLS){ try{ SCHOOLS=(await (await fetch(apiBase()+"/api/schools")).json()).schools||[]; }catch{ SCHOOLS=[]; } }
-  const sel=$("pSchool"), cur=sel.value||(()=>{ try{ return JSON.parse(ls.get("jgh_student")||"{}").school||""; }catch{ return ""; } })();
-  const states=[...new Set(SCHOOLS.map(x=>x.state))];
-  sel.innerHTML=`<option value="">${SCHOOLS.length?"Pick your school…":"No schools yet: ask your teacher"}</option>`+states.map(st=>`<optgroup label="${esc(st||"Other")}">${SCHOOLS.filter(x=>x.state===st).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</optgroup>`).join("");
-  sel.value=SCHOOLS.some(x=>x.id===cur)?cur:"";
-  return SCHOOLS;
-}
 // anonymous count of which view was picked (no name, no id): server/stats.js
 function hit(mode,view){ try{ const s=(window.CG_CONFIG&&CG_CONFIG.server)||"", base=s?s.replace(/^ws/,"http").replace(/\/$/,""):"";
   fetch(base+"/api/hit",{ method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(view?{ view }:{ mode }), keepalive:true }).catch(()=>{}); }catch{} }
@@ -906,38 +912,44 @@ function setView(v,push){
   VIEWS.forEach(x=>document.body.classList.toggle("v-"+x,x===v));
   if (v!=="home"){ if (push) hit(v); ls.set("jgh_mode",v); ss.set("jgh_view",v); } else ss.set("jgh_view","home");
   if (push && location.hash!=="#"+v) history.pushState(null,"","#"+v);
-  if (v==="student") studentView();
+  if (v==="student") studentView(); else document.body.classList.remove("signin");
   scrollTo(0,0);
 }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if (b) setView(b.dataset.go,true); });
 addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if (VIEWS.includes(h)) setView(h); });
 { const h=location.hash.slice(1); setView(VIEWS.includes(h)?h:(ss.get("jgh_view")||"home")); }
 
-// Student: name first (saved on this device, with the game token), then one big code box
+// Student: full-screen sign-in (school email + nickname; the name and school come from the email), then one big code box
 function studentView(){
   const p=profile();
-  $("sProfile").hidden=!!p; $("sCodeForm").hidden=!p; $("sDown").hidden=!p;
+  $("sProfile").hidden=!!p; document.body.classList.toggle("signin",!p); $("sCodeForm").hidden=!p; $("sDown").hidden=!p; $("sCastle").hidden=!p;
   if (!p){ let prev={}; try{ prev=JSON.parse(ls.get("jgh_student")||"{}")||{}; }catch{}
-    $("pFirst").value=prev.first||""; $("pLast").value=prev.last||""; $("pNick").value=prev.nick||""; loadSchools();
-    $("sCastle").hidden=true; setTimeout(()=>$("pFirst").focus(),60); return; }
-  $("sCastle").hidden=false; $("sCastle").href="/school/?id="+encodeURIComponent(p.school);
-  $("sMe").innerHTML=`Playing as <b>${esc(p.nick)}</b> (${esc(p.first)} ${esc(p.last)}.) · <a id="sChange">change</a>`;
-  $("sChange").onclick=()=>{ $("sProfile").hidden=false; $("sCodeForm").hidden=true; $("sDown").hidden=true;
-    $("pFirst").value=p.first; $("pLast").value=p.last; $("pNick").value=p.nick; $("sCastle").hidden=true; loadSchools(); $("pFirst").focus(); };
+    $("pEmail").value=prev.email||""; $("pNick").value=prev.nick||""; $("pErr").textContent="";
+    setTimeout(()=>($("pEmail").value?$("pNick"):$("pEmail")).focus(),60); return; }
+  $("sCastle").href="/school/?id="+encodeURIComponent(p.school);
+  $("sMe").innerHTML=`Playing as <b>${esc(p.nick)}</b> (${esc(p.first)}${p.last?" "+esc(p.last)+".":""}) · <a id="sChange">change</a>`;
+  $("sChange").onclick=()=>{ ls.set("jgh_student",JSON.stringify({ ...p, first:"" })); studentView(); };
   setTimeout(()=>$("sCode").focus(),60);
 }
-function saveProfile(){
-  const s={ first:$("pFirst").value.trim().slice(0,20), last:$("pLast").value.trim().toUpperCase().slice(0,1), nick:$("pNick").value.trim().slice(0,14) };
-  if (!s.first) return $("pErr").textContent="Please type your first name.";
-  if (!/^\p{L}$/u.test(s.last)) return $("pErr").textContent="Please add the first letter of your last name.";
-  if (!s.nick) return $("pErr").textContent="Pick a nickname for your classmates to see.";
-  s.school=$("pSchool").value||(SCHOOLS&&!SCHOOLS.length?"-":"");
-  if (!s.school) return $("pErr").textContent="Pick your school from the list.";
-  $("pErr").textContent=""; ls.set("jgh_student",JSON.stringify(s)); ls.set("cg_name",s.nick); studentView();
+let saving=false;
+async function saveProfile(){
+  if (saving) return;
+  const email=$("pEmail").value.trim().toLowerCase(), nick=$("pNick").value.trim().slice(0,14);
+  if (!email.includes("@")) { $("pErr").textContent="Type your school email."; return $("pEmail").focus(); }
+  if (!nick) { $("pErr").textContent="Pick a nickname."; return $("pNick").focus(); }
+  saving=true; $("pSave").disabled=true; $("pErr").textContent="Checking…";
+  try{
+    const r=await fetch(apiBase()+"/api/student/email",{ method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify({ email }) });
+    const d=await r.json().catch(()=>({}));
+    if (!r.ok){ $("pErr").textContent=d.error||"Something went wrong. Try again."; $("pEmail").focus(); return; }
+    const s={ email, first:d.first, last:d.last||"", nick, school:d.school };
+    $("pErr").textContent=""; ls.set("jgh_student",JSON.stringify(s)); ls.set("cg_name",nick); studentView();
+  }catch{ $("pErr").textContent="Couldn't reach the server. Try again."; }
+  finally{ saving=false; $("pSave").disabled=false; }
 }
 $("pSave").onclick=saveProfile;
-["pFirst","pLast","pNick"].forEach(id=>$(id).addEventListener("keydown",e=>{ if (e.key==="Enter"){ e.preventDefault(); const n={pFirst:"pLast",pLast:"pNick",pNick:"pSchool"}[id]; n?$(n).focus():saveProfile(); } }));
-$("pLast").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase(); if (e.target.value) $("pNick").focus(); });
+$("pEmail").addEventListener("keydown",e=>{ if (e.key==="Enter"){ e.preventDefault(); $("pNick").focus(); } });
+$("pNick").addEventListener("keydown",e=>{ if (e.key==="Enter"){ e.preventDefault(); saveProfile(); } });
 $("sCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,""); $("sErr").textContent=""; if (e.target.value.length===4) $("sCodeForm").requestSubmit(); });
 $("sCodeForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("sCode").value.trim().toUpperCase(),$("sErr")); });
 

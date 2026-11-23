@@ -1,5 +1,5 @@
 // ClassKit — shared by every whole-class game page.
-//  • Students joining a teacher's room: "Who are you?" (first name, last initial, nickname). Classmates see the nickname only.
+//  • Students joining a teacher's room: full-screen sign-in (school email + nickname; name + school come from the email). Classmates see the nickname only.
 //  • Signed-in teachers: pick which class is playing before hosting, so results save automatically.
 //  • After a Teacher Mode game: a "See class results" button (saved session, or "create a free account to save").
 // Pages call: ClassKit.auth() in hello · ClassKit.teacherMsg() · ClassKit.beginTeacher(go) · ClassKit.onNet(m) first in onNet.
@@ -83,6 +83,18 @@ const css=`
 .ck-dig button{appearance:none;border:2px solid rgba(127,140,160,.45);background:rgba(127,140,160,.12);color:inherit;border-radius:10px;padding:8px 12px;font:700 15px inherit;font-family:inherit;cursor:pointer}
 .ck-dig button.on{background:#3b82f6;border-color:#3b82f6;color:#fff}
 .ck-dig button:disabled{cursor:default;opacity:.6}.ck-dig button.on:disabled{opacity:1}
+.ck-full{position:fixed;inset:0;z-index:9999;overflow:auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#0b0d12;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.ck-full .ck-in{width:min(680px,100%);display:flex;flex-direction:column}
+.ck-full h3{margin:0 0 4vh;text-align:center;font-size:clamp(30px,5.4vw,52px);line-height:1.15}
+.ck-full p{margin:0 0 4vh;text-align:center;font-size:clamp(22px,3.6vw,32px);color:#c9d3e3}
+.ck-full label{font-weight:800;font-size:clamp(22px,3.6vw,32px);margin:0 0 10px}
+.ck-full input{font:700 clamp(24px,4.4vw,38px) system-ui,sans-serif;padding:18px 20px;border-radius:20px;border:4px solid #2b3550;background:#fff;color:#10131b;outline:none;margin-bottom:28px;width:100%;min-width:0}
+.ck-full input:focus{border-color:#58c27d;box-shadow:0 0 0 8px rgba(88,194,125,.25)}
+.ck-full input::placeholder{color:#c3c9d3}
+.ck-full .ck-go{appearance:none;border:0;cursor:pointer;border-radius:20px;background:#58c27d;color:#08240f;font:800 clamp(28px,4.6vw,40px) system-ui,sans-serif;padding:22px;box-shadow:0 5px 0 #2f7d4a;width:100%}
+.ck-full .ck-go:disabled{opacity:.6}
+.ck-full .ck-alt{appearance:none;border:0;background:none;color:#aab6cf;font-size:22px;margin-top:22px;cursor:pointer;text-decoration:underline}
+.ck-full .ck-err{text-align:center;font-weight:700;color:#ffb3b3;font-size:clamp(18px,2.6vw,24px);min-height:1.4em;margin:0 0 12px}
 .ck-toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9998;background:#16202e;color:#fff;border-radius:999px;padding:8px 16px;font:600 14px system-ui,sans-serif;animation:ckpop .3s}`;
 const st=document.createElement("style"); st.textContent=css; document.head.appendChild(st);
 function overlay(html){ close(); const o=document.createElement("div"); o.className="ck-ov"; o.id="ckOv"; o.innerHTML=`<div class="ck-card">${html}</div>`; document.body.appendChild(o); return o; }
@@ -91,48 +103,38 @@ function toast(t){ const d=document.createElement("div"); d.className="ck-toast"
 
 // ---------- students: who are you?
 const MODE=(()=>{ try{ return localStorage.getItem("jgh_mode")||""; }catch{ return ""; } })();
-function profile(){ try{ const p=JSON.parse(store.get("jgh_student")||"null"); return p&&p.first&&p.last&&p.nick&&p.school?p:null; }catch{ return null; } }
-let SCHOOLS=null;
-async function schoolOptions(sel,pick){
-  if (!SCHOOLS){ try{ SCHOOLS=(await api("/api/schools")).schools||[]; }catch{ SCHOOLS=[]; } }
-  const states=[...new Set(SCHOOLS.map(x=>x.state))];
-  sel.innerHTML=`<option value="">${SCHOOLS.length?"Pick your school…":"No schools yet"}</option>`+states.map(st=>`<optgroup label="${esc(st||"Other")}">${SCHOOLS.filter(x=>x.state===st).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")}</optgroup>`).join("");
-  sel.value=SCHOOLS.some(x=>x.id===pick)?pick:"";
-}
+function profile(){ try{ const p=JSON.parse(store.get("jgh_student")||"null"); return p&&p.email&&p.first&&p.nick&&p.school?p:null; }catch{ return null; } }
+function full(html){ close(); const o=document.createElement("div"); o.className="ck-full"; o.id="ckOv"; o.innerHTML=`<div class="ck-in">${html}</div>`; document.body.appendChild(o); return o; }
 let teacherSchool=null;
 function askStudent(known,error){
-  const send=s=>{ store.set("jgh_student",JSON.stringify(s)); store.set("cg_name",s.nick); Net.send({ t:"iam", ...s }); close(); };
+  const send=s=>{ store.set("jgh_student",JSON.stringify(s)); store.set("cg_name",s.nick); Net.send({ t:"iam", first:s.first, last:s.last, nick:s.nick, school:s.school }); close(); };
   const mine=profile();
-  if (mine && !error && (MODE==="student" || (known && known.first===mine.first && known.last===mine.last))) return send(mine);   // set up on the student hub: no questions
-  if (!known && mine && !error) known=mine;
-  if (known && !known.school) known=null;            // older saved students: ask again so we get their school
-  if (known && !error){
-    const o=overlay(`<h3>Welcome back, ${esc(known.first)}${known.last?" "+esc(known.last)+".":""}! 👋</h3>
-      <p>You'll play as <b>${esc(known.nick)}</b>. Is that you?</p>
-      <div class="ck-row"><button class="ck-btn" id="ckYes" style="flex:1">Yes, that's me</button><button class="ck-btn alt" id="ckNo">Not me</button></div>`);
-    o.querySelector("#ckYes").onclick=()=>send({ first:known.first, last:known.last, nick:known.nick, school:known.school });
-    o.querySelector("#ckNo").onclick=()=>askStudent(null);
+  if (mine && !error && (MODE==="student" || (known && known.first===mine.first && known.last===mine.last))) return send(mine);   // signed in on the student hub: no questions
+  if (mine && !error){
+    const o=full(`<h3>Is this you? 👋</h3><p><b>${esc(mine.first)}${mine.last?" "+esc(mine.last)+".":""}</b><br>playing as <b>${esc(mine.nick)}</b></p>
+      <button class="ck-go" id="ckYes">Yes, that's me</button><button class="ck-alt" id="ckNo">No, sign in</button>`);
+    o.querySelector("#ckYes").onclick=()=>send(mine);
+    o.querySelector("#ckNo").onclick=()=>{ store.set("jgh_student",null); askStudent(null); };
     return;
   }
-  let prev={}; try{ prev=JSON.parse(store.get("jgh_student")||"{}"); }catch{}
-  const o=overlay(`<h3>Joining your teacher's game</h3>
-    <p>Only your teacher sees your first name. Everyone else sees your nickname.</p>
-    <div class="ck-row"><div class="ck-f"><label for="ckFirst">First name</label><input id="ckFirst" maxlength="20" autocomplete="off" value="${esc(prev.first)}"></div>
-      <div class="ck-f" style="flex:0 0 96px"><label for="ckLast">Last initial</label><input id="ckLast" maxlength="1" autocomplete="off" value="${esc(prev.last)}" style="text-transform:uppercase;text-align:center"></div></div>
-    <div class="ck-f"><label for="ckNick">Nickname (what classmates see)</label><input id="ckNick" maxlength="14" autocomplete="off" value="${esc(prev.nick)}" placeholder="e.g. Rocket"></div>
-    <div class="ck-f"><label for="ckSchool">School</label><select id="ckSchool"><option value="">Loading…</option></select></div>
+  let prev={}; try{ prev=JSON.parse(store.get("jgh_student")||"{}")||{}; }catch{}
+  const o=full(`<h3>Sign in</h3>
+    <label for="ckEmail">1. Your school email</label><input id="ckEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="name@school.org" value="${esc(prev.email)}">
+    <label for="ckNick">2. Pick a nickname</label><input id="ckNick" maxlength="14" autocomplete="off" placeholder="Rocket" value="${esc(prev.nick)}">
     <p class="ck-err" id="ckErr">${esc(error||"")}</p>
-    <button class="ck-btn" id="ckGo" style="width:100%">Let's play!</button>`);
-  schoolOptions(o.querySelector("#ckSchool"),prev.school||teacherSchool);
-  const go=()=>{ const s={ first:o.querySelector("#ckFirst").value.trim(), last:o.querySelector("#ckLast").value.trim().toUpperCase(), nick:o.querySelector("#ckNick").value.trim(),
-      school:o.querySelector("#ckSchool").value||(SCHOOLS&&!SCHOOLS.length?"-":"") };
-    if (!s.first) return o.querySelector("#ckErr").textContent="Please type your first name.";
-    if (!/^\p{L}$/u.test(s.last)) return o.querySelector("#ckErr").textContent="Please add the first letter of your last name.";
-    if (!s.school) return o.querySelector("#ckErr").textContent="Please pick your school.";
-    send(s); };
-  o.querySelector("#ckGo").onclick=go;
-  o.querySelectorAll("input,select").forEach(i=>i.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") go(); }));
-  setTimeout(()=>o.querySelector("#ckFirst").focus(),50);
+    <button class="ck-go" id="ckGo">Let's go ➜</button>`);
+  const em=o.querySelector("#ckEmail"), nk=o.querySelector("#ckNick"), er=o.querySelector("#ckErr"), btn=o.querySelector("#ckGo");
+  const go=async()=>{ const email=em.value.trim().toLowerCase(), nick=nk.value.trim().slice(0,14);
+    if (!email.includes("@")){ er.textContent="Type your school email."; return em.focus(); }
+    if (!nick){ er.textContent="Pick a nickname."; return nk.focus(); }
+    btn.disabled=true; er.textContent="Checking…";
+    try{ const d=await api("/api/student/email",{ method:"POST", body:JSON.stringify({ email }) }); send({ email, first:d.first, last:d.last||"", nick, school:d.school }); }
+    catch(e){ er.textContent=e.message||"Couldn't reach the server. Try again."; em.focus(); }
+    finally{ btn.disabled=false; } };
+  btn.onclick=go;
+  em.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") nk.focus(); });
+  nk.addEventListener("keydown",e=>{ e.stopPropagation(); if (e.key==="Enter") go(); });
+  setTimeout(()=>(em.value?nk:em).focus(),50);
 }
 
 // ---------- teachers: which class is playing?

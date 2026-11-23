@@ -49,18 +49,18 @@ function makeApi(bus){
       return { teachers:rows.map(r=>{ const sc=schools.find(x=>x.id===r.school_id); return { ...r, id:+r.id, bricks:+r.bricks, school:sc?`${sc.name}, ${sc.state}`:"" }; }) }; }],
     // ---- schools list (teachers and students pick from it); admins add / rename / remove
     ["GET","/api/admin/schools",async req=>{ await needAdmin(req); await C.loadSchools(true);
-      const rows=await db.all(`select s.id,s.name,s.state,s.created_at,(select count(*) from teachers t where t.school_id=s.id)::int as teachers,
+      const rows=await db.all(`select s.id,s.name,s.state,s.domains,s.created_at,(select count(*) from teachers t where t.school_id=s.id)::int as teachers,
         (select count(*) from students st where st.school_id=s.id)::int as students,(select coalesce(sum(t.bricks),0) from teachers t where t.school_id=s.id)::float8 as bricks,
         (select json_build_object('id',tn.id,'name',tn.name,'goal',tn.goal,'startedAt',tn.started_at) from tournaments tn where tn.school_id=s.id and tn.ended_at is null limit 1) as tournament,
         (select json_build_object('name',tn.name,'winner',tn.winner_name,'endedAt',tn.ended_at) from tournaments tn where tn.school_id=s.id and tn.ended_at is not null order by tn.ended_at desc limit 1) as last_tournament
         from schools s order by s.state,s.name`);
       return { schools:rows }; }],
-    ["POST","/api/admin/schools",async(req,b)=>{ await needAdmin(req); const { name,state }=cleanSchool(b);
+    ["POST","/api/admin/schools",async(req,b)=>{ await needAdmin(req); const { name,state,domains }=cleanSchool(b);
       const slug=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,30)||"school";
       const id=`${slug}-${(state||"xx").toLowerCase()}-${A.newToken().replace(/[^a-z0-9]/gi,"").slice(0,4).toLowerCase()}`;
-      await db.q("insert into schools(id,name,state) values($1,$2,$3)",[id,name,state]); await C.loadSchools(true); return { school:{ id, name, state } }; }],
-    ["PATCH","/api/admin/schools/:id",async(req,b,p)=>{ await needAdmin(req); const { name,state }=cleanSchool(b);
-      const r=await db.one("update schools set name=$2,state=$3 where id=$1 returning id,name,state",[p.id,name,state]); if (!r) throw A.httpErr(404,"School not found.");
+      await db.q("insert into schools(id,name,state,domains) values($1,$2,$3,$4)",[id,name,state,domains]); await C.loadSchools(true); return { school:{ id, name, state, domains } }; }],
+    ["PATCH","/api/admin/schools/:id",async(req,b,p)=>{ await needAdmin(req); const { name,state,domains }=cleanSchool(b);
+      const r=await db.one("update schools set name=$2,state=$3,domains=$4 where id=$1 returning id,name,state,domains",[p.id,name,state,domains]); if (!r) throw A.httpErr(404,"School not found.");
       await C.loadSchools(true); return { school:r }; }],
     ["DELETE","/api/admin/schools/:id",async(req,b,p)=>{ await needAdmin(req);
       const n=await db.one("select count(*)::int n from teachers where school_id=$1",[p.id]);
@@ -78,7 +78,9 @@ function makeApi(bus){
       if (!r) throw A.httpErr(404,"No running tournament with that id."); return { ok:true }; }],
     // open a read-only session as that teacher (the /teacher/ page uses it in its own tab)
     ["POST","/api/admin/teachers/:id/view",async(req,b,p)=>{ const a=await needAdmin(req); return A.viewAsSession(p.id,a.id); }],
-    ["GET","/api/schools",async()=>({ schools:await C.loadSchools() })],
+    ["GET","/api/schools",async()=>({ schools:(await C.loadSchools()).map(({ id,name,state })=>({ id,name,state })) })],
+    // student sign-in: school email → first name, last initial, school (nothing stored)
+    ["POST","/api/student/email",async(req,b)=>{ const r=await C.fromEmail(b.email); if (r.error) throw A.httpErr(400,r.error); return r; }],
     // ---- auth
     ["POST","/api/auth/email",async(req,b)=>A.startEmailLogin(b.email,ipOf(req))],
     ["POST","/api/auth/email/verify",async(req,b)=>A.verifyEmailLogin(b.token)],
@@ -176,7 +178,7 @@ function makeApi(bus){
 function cleanSchool(b){
   const name=String(b.name||"").replace(/[<>]/g,"").replace(/\s+/g," ").trim().slice(0,80), state=String(b.state||"").replace(/[^a-z]/gi,"").slice(0,2).toUpperCase();
   if (name.length<3) throw A.httpErr(400,"Type the school's name.");
-  return { name, state };
+  return { name, state, domains:C.splitDomains(b.domains).join(",") };
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 module.exports={ makeApi };
