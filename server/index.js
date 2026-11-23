@@ -55,10 +55,10 @@ const STATS=require("./stats");      // kid-safe room codes
 const cleanName=s=>String(s||"").replace(/[^\p{L}\p{N} _.\-!?']/gu,"").trim().slice(0,14)||"Player";
 const cleanCode=s=>String(s||"").toUpperCase().replace(/[^A-Z]/g,"").slice(0,4);
 
-async function createRoom(isPublic,kind){
+async function createRoom(isPublic,kind,fixed){
   const Cls=KINDS[kind]||Room;
-  let code;
-  for (let i=0;i<200;i++){ code=Array.from({length:4},()=>CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(""); if (codeOK(code) && !await bus.get(K.room(code))) break; }
+  let code=fixed;
+  if (!code) for (let i=0;i<200;i++){ code=Array.from({length:4},()=>CODE_CHARS[Math.random()*CODE_CHARS.length|0]).join(""); if (codeOK(code) && !await bus.get(K.room(code))) break; }
   const r=new Cls(code,isPublic,bus,INSTANCE,c=>rooms.delete(c));
   rooms.set(code,r); await r.open();
   return code;
@@ -90,8 +90,11 @@ async function detach(c){
   r.conns.delete(c);
   if (!r.conns.size){ relays.delete(code); await bus.unsubscribe(K.out(code),r.fn); }
 }
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function joinRoom(c,code){
   code=cleanCode(code);
+  // a teacher is moving this lobby to another game: wait (≤ 15 s) for the new room to open under the same code
+  if (code && !await bus.get(K.room(code)) && await bus.get(K.move(code))) for (let i=0;i<60 && !await bus.get(K.room(code));i++) await wait(250);
   if (!code || !await bus.get(K.room(code))) return c.send(JSON.stringify({ t:"error", code:"noroom", msg:"No room with that code." }));
   await attach(c,code);
   { const r=await bus.get(K.room(code)); if (r) STATS.add("join:"+(r.kind||"cg")); }
@@ -113,7 +116,17 @@ async function onMessage(c,m){
       return;
     }
     case "quick":  if (!c.name) return; await leave(c); return joinRoom(c,await findPublic(gameOf(m)));
-    case "create": if (!c.name) return; await leave(c); return joinRoom(c,await createRoom(false,gameOf(m)));
+    case "create": { if (!c.name) return; await leave(c);
+      // teacher arriving after "move lobby": reopen the same code for the new game (once the old room is gone)
+      const mv=c.token&&await bus.get(K.moveBy(c.token));
+      if (mv && mv.kind===gameOf(m)){
+        await bus.del(K.moveBy(c.token)); c.movedClass=mv.classId||null;
+        for (let i=0;i<20 && await bus.get(K.room(mv.code));i++) await wait(250);
+        if (!await bus.get(K.room(mv.code))){ const code=await createRoom(false,mv.kind,mv.code); setTimeout(()=>bus.del(K.move(code)),20000); return joinRoom(c,code); }
+      }
+      return joinRoom(c,await createRoom(false,gameOf(m))); }
+    case "close":  return toRoom(c,{ t:"close" });
+    case "move":   if (!KINDS[m.game] || m.game==="cg") return; return toRoom(c,{ t:"move", game:m.game });
     case "join":   if (!c.name) return; await leave(c); return joinRoom(c,m.code);
     case "ready":  return toRoom(c,{ t:"ready", v:!!m.v });
     case "input":  return toRoom(c,{ t:"input", d:String(m.d) });
@@ -124,7 +137,8 @@ async function onMessage(c,m){
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
       let acct=null;
       if (c.teacherId){ acct={ teacherId:c.teacherId, classId:null };
-        if (m.classId && await CD.roleIn(c.teacherId,m.classId)) acct.classId=+m.classId; }
+        const cls=m.classId||c.movedClass; c.movedClass=null;
+        if (cls && await CD.roleIn(c.teacherId,cls)) acct.classId=+cls; }
       return toRoom(c,{ t:"teacher", acct }); }
     case "iam":    return toRoom(c,{ t:"iam", first:String(m.first||"").slice(0,30), last:String(m.last||"").slice(0,5), nick:String(m.nick||"").slice(0,20), school:String(m.school||"").slice(0,48) });
     case "tile":   return toRoom(c,{ t:"tile", dx:m.dx|0, dy:m.dy|0 });

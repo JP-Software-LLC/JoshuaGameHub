@@ -15,6 +15,7 @@ const BOARD_MS=1000;            // Teacher Mode: live leaderboard rate
 const K={
   room:c=>`cg:room:${c}`, open:kind=>`cg:open:${kind}`,
   in:c=>`cg:room:${c}:in`, out:c=>`cg:room:${c}:out`, sess:t=>`cg:sess:${t}`,
+  move:c=>`cg:move:${c}`, moveBy:t=>`cg:movet:${t}`,      // Teacher Mode "move lobby to another game": same code, new game
 };
 
 class RoomBase {
@@ -35,12 +36,26 @@ class RoomBase {
   }
   // ---- Teacher Mode start: the first press starts a 10 s countdown (shown on every screen), a second press starts now.
   classStart(m){
+    if ((m.t==="close"||m.t==="move") && this.teacher){ this.classLobbyCmd(m); return true; }
     if (m.t!=="start" || m.force || !this.teacher || this.state!=="lobby") return false;
     const p=this.players.get(this.teacher); if (!p || p.cid!==m.cid) return true;
     const go=()=>{ clearTimeout(this.closeTimer); this.closeAt=0; const t=this.players.get(this.teacher); if (t) this.handle({ t:"start", cid:t.cid, force:true }); if (this.state==="lobby") this.lobby(); };
     if (this.closeAt) go();
     else { this.closeAt=Date.now()+CLOSE_MS; this.closeTimer=setTimeout(go,CLOSE_MS); this.lobby(); }
     return true;
+  }
+  // ---- Teacher Mode: close the lobby (everyone is sent away) or move it to another game (everyone follows, same code)
+  async classLobbyCmd(m){
+    const t=this.players.get(this.teacher); if (!t || t.cid!==m.cid || this.closed) return;
+    if (m.t==="move"){
+      if (this.state!=="lobby" || !m.game || m.game===this.kind) return;
+      const rec={ code:this.code, kind:m.game, classId:this.teacherAcct&&this.teacherAcct.classId||null };
+      await this.bus.set(K.move(this.code),rec,90);
+      if (t.token) await this.bus.set(K.moveBy(t.token),rec,90);
+      this.send({ t:"moved", game:m.game, code:this.code });
+    } else this.send({ t:"closed" });
+    for (const p of this.players.values()) if (p.token) this.bus.del(K.sess(p.token));
+    setTimeout(()=>this.close(),300);
   }
   // ---- Teacher Mode live leaderboard: rows in rank order { pid, name, v } (clients show only the top names + "you")
   liveRows(){
