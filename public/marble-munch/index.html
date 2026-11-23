@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Marble Munch · Joshua Game Hub</title>
+<meta name="theme-color" content="#3b1d6e">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#2a1650; --ink2:#6b5a8e; --bg:#3b1d6e; --bg2:#24104a; --pop:#ff5fa2; --pop2:#b8236a; --lime:#a3e635; --gold:#ffc83d; --bad:#ef4444;
+    --f:"Baloo 2",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg2);color:var(--ink);font-family:var(--f);-webkit-font-smoothing:antialiased;touch-action:none;user-select:none;-webkit-user-select:none}
+  button,input{font-family:inherit}
+  #cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;overflow:auto;z-index:5}
+  .screen.on{display:flex}
+  .card{width:100%;max-width:520px;background:linear-gradient(#ffffff,#f6efff);border-radius:26px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative;
+    box-shadow:0 8px 0 #c9b3f0,0 30px 60px -20px rgba(20,0,50,.7);animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.9);opacity:0}}
+  .logo{margin:0;text-align:center;font-weight:800;font-size:58px;line-height:.95;color:#fff;letter-spacing:1px;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 #1a0b38}
+  .logo span{color:var(--pop);-webkit-text-stroke-color:#5c0f37;text-shadow:0 6px 0 #5c0f37}
+  .tag{text-align:center;margin:-4px 0 0;color:var(--ink2);font-size:17px;font-weight:600}
+  .how{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .how div{background:#efe6ff;border-radius:16px;padding:10px;text-align:center;font-size:14px;color:var(--ink2);line-height:1.25;font-weight:600}
+  .how b{display:block;font-size:26px}
+  .lbl{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--ink2)}
+  input.f{width:100%;border:3px solid #e2d4fb;border-radius:16px;padding:11px 16px;font-size:19px;font-weight:600;color:var(--ink);outline:none;background:#fff}
+  input.f:focus{border-color:var(--pop)}
+  .btn{appearance:none;border:0;border-radius:18px;padding:13px 18px;font-size:19px;font-weight:800;cursor:pointer;color:#fff;background:var(--pop);box-shadow:0 5px 0 var(--pop2);transition:transform .08s,box-shadow .08s,filter .15s}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--pop2)}
+  .btn.grape{background:#7c3aed;box-shadow:0 5px 0 #4c1d95}
+  .btn.alt{background:#fff;color:var(--ink);box-shadow:0 5px 0 #d8c6f7;border:3px solid #e2d4fb}
+  .btn:disabled{opacity:.45;cursor:default}
+  .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+  .err{min-height:1.2em;margin:0;color:var(--bad);text-align:center;font-weight:700}
+  .code{font-size:54px;font-weight:800;letter-spacing:10px;text-align:center;color:var(--ink);line-height:1}
+  .count{text-align:center;color:var(--ink2);font-weight:700}
+  .grid{display:flex;flex-wrap:wrap;gap:7px;max-height:30vh;overflow:auto}
+  .chip{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 5px;border-radius:999px;background:#efe6ff;font-weight:700;font-size:15px}
+  .chip i{width:20px;height:20px;border-radius:50%;display:block;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+  .chip.me{box-shadow:inset 0 0 0 3px var(--pop)}
+  .chip.away{opacity:.45}
+  .note{text-align:center;color:var(--ink2);margin:0;font-weight:600}
+  .modes{display:flex;flex-direction:column;gap:6px}
+  .modes>div{display:flex;flex-wrap:wrap;gap:6px}
+  .modes button{flex:1;min-width:80px;border:2px solid #e2d4fb;background:#fff;border-radius:12px;padding:6px 8px;font-weight:800;font-size:15px;color:var(--ink);cursor:pointer}
+  .modes button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .modes button:disabled{cursor:default}
+  .modes button:disabled:not(.on){opacity:.55}
+  .modes .qt{align-items:center;justify-content:center}
+  .modes .qt button{flex:0 0 auto;min-width:52px}
+  .modes .qt b{font-size:30px;min-width:90px;text-align:center;color:var(--pop2)}
+
+  /* HUD */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:3;display:none}
+  #hud.on{display:block}
+  .pill{position:absolute;background:rgba(255,255,255,.94);border-radius:16px;padding:6px 14px;font-weight:800;box-shadow:0 4px 0 rgba(20,0,50,.35)}
+  #mine{top:12px;left:12px;font-size:30px;line-height:1.1;display:flex;align-items:center;gap:8px}
+  #mine small{font-size:13px;color:var(--ink2);line-height:1.05;display:block}
+  #left{top:72px;left:12px;font-size:16px}
+  #left b{color:var(--pop2);font-size:20px}
+  #top{top:12px;right:52px;font-size:14px;min-width:150px}
+  #top ol{margin:0;padding:0;list-style:none}
+  #top li{display:flex;justify-content:space-between;gap:10px}
+  #top li.me{color:var(--pop2)}
+  #top .h{font-size:11px;letter-spacing:1px;color:var(--ink2);text-transform:uppercase}
+  #big{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-weight:800;font-size:min(16vw,120px);color:#fff;-webkit-text-stroke:5px var(--ink);paint-order:stroke fill;opacity:0;white-space:nowrap;text-align:center;line-height:1}
+  #big small{display:block;font-size:.3em;-webkit-text-stroke:3px var(--ink)}
+  #big.show{animation:bigp 1.2s ease-out forwards}
+  #big.good{color:var(--lime)}
+  #big.bad{color:#ffb4b4}
+  @keyframes bigp{0%{opacity:0;transform:translate(-50%,-50%) scale(1.5)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0}}
+  #hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(36,16,74,.85);color:#fff;border-radius:999px;padding:8px 20px;font-weight:700;white-space:nowrap}
+  #chompBtn{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:min(70vw,300px);display:none;pointer-events:auto;font-size:26px}
+  body.touch #chompBtn{display:block}
+  body.touch #hint{display:none}
+
+  /* quiz (Math Race look) */
+  #quiz{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4;display:none;pointer-events:auto}
+  #quiz.on{display:block}
+  #qcard{width:min(92vw,440px);gap:10px;padding:16px 20px;background:#16181d;color:#cfe1ff;box-shadow:0 8px 0 #0b0c0f,0 30px 60px -20px rgba(0,0,0,.7);animation:pop .25s cubic-bezier(.2,1.4,.4,1)}
+  #qcard.shake{animation:shake .38s;box-shadow:0 0 0 4px var(--bad),0 8px 0 #0b0c0f}
+  @keyframes shake{20%{transform:translateX(-10px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(4px)}}
+  #qcard .top{display:flex;justify-content:space-between;align-items:center;font-weight:800;letter-spacing:1px;font-size:13px;color:#5b9bff;text-transform:uppercase}
+  #qbar{height:10px;border-radius:6px;background:#24324c;overflow:hidden}
+  #qbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--bad),#facc15 35%,#22c55e 70%);border-radius:6px;transform-origin:left}
+  .qbody{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}
+  .prob{justify-self:center;font-family:var(--mono);font-weight:800;font-size:clamp(40px,8vw,60px);line-height:1.08;display:grid;grid-template-columns:auto auto;column-gap:.35ch;font-variant-numeric:tabular-nums}
+  .prob .n{text-align:right}
+  .prob .op{color:#3a78e6;align-self:end}
+  .prob .rule{grid-column:1/-1;height:.07em;background:#3a78e6;border-radius:.05em;margin:.12em 0 .08em}
+  .prob .ans{grid-column:1/-1;text-align:right;min-height:1.08em;color:#5b9bff}
+  .prob .ans .caret{display:inline-block;width:.05em;height:.8em;background:#3a78e6;vertical-align:-.08em;margin-left:.04em;animation:caret 1s steps(2) infinite}
+  @keyframes caret{50%{opacity:0}}
+  #qcard.shake .ans{color:var(--bad)}
+  #qcard.good .ans{color:#22c55e}
+  .pad{display:none;grid-template-columns:repeat(3,46px);grid-auto-rows:46px;gap:7px}
+  body.touch .pad{display:grid}
+  .k{border-radius:11px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:20px;color:#8fb9ff;background:#1f2228;border:1px solid #15233d;box-shadow:0 3px 0 #0b0c0e;cursor:pointer}
+  .k:active{background:#ef4444;color:#fff}
+  .k.zero{grid-column:1/3}
+
+  /* results */
+  #results .card{max-width:600px;text-align:center}
+  .champ{display:flex;flex-direction:column;align-items:center}
+  .champ canvas{width:120px;height:110px}
+  .champ .t{font-weight:800;letter-spacing:3px;color:var(--pop2);text-transform:uppercase;font-size:15px}
+  .champ h2{margin:0;font-size:40px;line-height:1.05}
+  .board{display:flex;flex-direction:column;gap:7px;text-align:left}
+  .line{display:grid;grid-template-columns:36px 22px 1fr auto;align-items:center;gap:10px;padding:8px 14px;border-radius:14px;background:#efe6ff;font-weight:700;animation:pop .4s cubic-bezier(.2,1.4,.4,1) backwards}
+  .line .pos{font-weight:800;font-size:21px;color:var(--ink2)}
+  .line i{width:22px;height:22px;border-radius:50%;display:block;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+  .line .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .line .tm{font-weight:800;min-width:56px;text-align:right}
+  .line.p1{background:#fff4cf;box-shadow:inset 0 0 0 3px var(--gold)}
+  .line.me{box-shadow:inset 0 0 0 3px var(--pop)}
+  .you{display:flex;justify-content:space-between;font-weight:700;color:var(--ink2);padding:0 6px}
+  #exitBtn{position:fixed;top:12px;right:12px;z-index:9;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff;border:0;color:var(--ink2);box-shadow:0 3px 0 rgba(20,0,50,.4);cursor:pointer}
+  #exitBtn:hover,#exitBtn:focus-visible{color:var(--bad);outline:none}
+  @media (max-width:620px){ .logo{font-size:44px} .how{grid-template-columns:1fr} .card{padding:20px} #top{top:116px;left:12px;right:auto;min-width:0} .qbody{grid-template-columns:1fr} .pad{justify-self:center} }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script src="/assets/hub-frame.js" defer></script>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<button id="exitBtn" type="button" title="Back to game hub" aria-label="Back to game hub"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+<div id="hud">
+  <div class="pill" id="mine">🔮 <span id="mineN">0</span><small>marbles<br>kept</small></div>
+  <div class="pill" id="left"><b id="leftN">0</b> marbles left</div>
+  <div class="pill" id="top"></div>
+  <div id="big"></div>
+  <div id="hint">Mash <b>SPACE</b> to chomp! Catch a marble, answer the question to keep it.</div>
+  <button class="btn" id="chompBtn" type="button">CHOMP!</button>
+</div>
+<div id="quiz"><div class="card" id="qcard">
+  <div class="top"><span>Answer to keep it!</span><span id="qsec">4s</span></div>
+  <div id="qbar"><i></i></div>
+  <div class="qbody">
+    <div class="prob" id="prob"></div>
+    <div class="pad" id="pad"></div>
+  </div>
+</div></div>
+
+<!-- MENU -->
+<section class="screen on" id="menu"><div class="card">
+  <h1 class="logo">MARBLE <span>MUNCH</span></h1>
+  <p class="tag">Chomp the rolling marbles. Answer fast to keep them!</p>
+  <div class="how">
+    <div><b>🦛</b>Mash Space to chomp when a marble rolls by</div>
+    <div><b>➕</b>Caught one? Answer before the timer runs out</div>
+    <div><b>🔮</b>Right = keep it. Wrong = spit it back!</div>
+  </div>
+  <div><div class="lbl" style="margin-bottom:5px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
+  <div class="row"><button class="btn" id="bPublic">Play online</button><button class="btn grape" id="bPrivate">Private game</button></div>
+  <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
+  <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a game for your class</button>
+  <button class="btn alt" id="bSolo">Solo vs bots</button>
+  <p class="err" id="err"></p>
+</div></section>
+
+<!-- LOBBY -->
+<section class="screen" id="lobby"><div class="card">
+  <div class="lbl" id="lKind" style="text-align:center">Private game</div>
+  <div class="code" id="lCode">----</div>
+  <div class="count" id="lCount">1 / 40 players</div>
+  <div class="grid" id="lGrid"></div>
+  <div class="modes" id="lModes"></div>
+  <p class="note" id="lNote"></p>
+  <div class="row"><button class="btn" id="bStart">Start!</button><button class="btn alt" id="bLeave" style="flex:0 0 auto">Leave</button></div>
+</div></section>
+
+<!-- RESULTS -->
+<section class="screen" id="results"><div class="card">
+  <div class="champ" id="champ"></div>
+  <div class="board" id="rBoard"></div>
+  <div class="you" id="rYou"></div>
+  <div class="row"><button class="btn" id="bAgain">Back to lobby</button><a class="btn alt" href="../" style="text-align:center;text-decoration:none;flex:0 0 auto">Game hub</a></div>
+</div></section>
+
+<script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="../assets/classkit.js"></script>
+<script src="../munch.js"></script>
+<script>
+"use strict";
+const DEMO=/[?&]demo=1/.test(location.search);      // hub live preview: bots only, no input
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
+const { T }=MUNCH;
+const pcol=i=>`hsl(${(i*137.508+300)%360},70%,${i%2?66:60}%)`;
+const isTouch=matchMedia("(pointer:coarse)").matches; if (isTouch) document.body.classList.add("touch");
+const MODE_BTNS=[["add","+ Add"],["sub","− Subtract"],["mul","× Multiply"],["div","÷ Divide"],["money","$ Money"]];
+
+// ============================================================
+//  STATE
+// ============================================================
+const G={ mode:"", me:0, players:new Map(), snaps:[], view:null, startAt:0, local:null, bots:[], over:false, overAt:0, teacherView:false, q:null, typed:"", qEnd:0, qLock:false, fx:[], keepAt:new Map() };
+let screen="menu";
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); screen=id;
+  $("hud").classList.toggle("on",id==="game");
+  if (id!=="game") closeQuiz();
+  const t=id==="menu"?"Back to game hub":"Leave game"; $("exitBtn").title=t; $("exitBtn").setAttribute("aria-label",t);
+}
+const err=t=>$("err").textContent=t||"";
+$("nameIn").value=store.get("cg_name")||"";
+const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store.set("cg_name",n); return n; };
+function big(html,cls=""){ const b=$("big"); b.innerHTML=html; b.className=""; void b.offsetWidth; b.className="show "+cls; }
+const colorOf=id=>pcol(G.players.get(id)?.color??id);
+const nameOf=id=>G.players.get(id)?.name??"?";
+
+// ============================================================
+//  INPUT — Space (or CHOMP / tap) = one chomp per press; digits answer a question
+// ============================================================
+function chomp(){
+  if (screen!=="game" || G.teacherView || G.q || performance.now()<G.startAt || G.over) return;
+  if (G.mode==="solo") G.local.chomp(G.me); else Net.send({ t:"fire" });
+}
+addEventListener("keydown",e=>{
+  if (e.target.tagName==="INPUT") return;
+  if (e.key==="Escape" && screen!=="menu") return exitGame();
+  if (screen!=="game" || DEMO) return;
+  if (G.q){
+    if (/^[0-9]$/.test(e.key)){ e.preventDefault(); typeDigit(e.key); }
+    else if (e.key==="Backspace"){ e.preventDefault(); if (!G.qLock && G.typed){ G.typed=G.typed.slice(0,-1); drawQ(); } }
+    else if (e.code==="Space") e.preventDefault();
+    return;
+  }
+  if (e.code==="Space"||e.key==="Enter"){ e.preventDefault(); if (!e.repeat) chomp(); }   // holding Space doesn't count: mash it!
+});
+$("chompBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); chomp(); });
+$("cv").addEventListener("pointerdown",e=>{ if (e.pointerType!=="mouse"||!isTouch) chomp(); });
+
+// ---------- the question popup
+const moneyMask=(typed,len)=>{ const d=(typed+"_".repeat(len)).slice(0,len).padStart(Math.max(3,len),"0"); return "$"+d.slice(0,-2)+"."+d.slice(-2); };
+$("pad").innerHTML=[7,8,9,4,5,6,1,2,3].map(n=>`<div class="k" data-k="${n}">${n}</div>`).join("")+`<div class="k zero" data-k="0">0</div><div class="k" data-k="bs">⌫</div>`;
+$("pad").addEventListener("pointerdown",e=>{ const k=e.target.closest("[data-k]"); if (!k) return; e.preventDefault();
+  if (k.dataset.k==="bs"){ if (!G.qLock && G.typed){ G.typed=G.typed.slice(0,-1); drawQ(); } } else typeDigit(k.dataset.k); });
+function openQuiz(q,sec){
+  G.q=q; G.typed=""; G.qLock=false; G.qEnd=performance.now()+sec*1000; G.qDur=sec;
+  $("qcard").className="card"; void $("qcard").offsetWidth; $("quiz").classList.add("on"); drawQ();
+}
+function closeQuiz(){ G.q=null; G.typed=""; $("quiz").classList.remove("on"); }
+function drawQ(){
+  const q=G.q; if (!q) return;
+  const shown=q.money?moneyMask(G.typed,q.len):esc(G.typed);
+  $("prob").innerHTML=`<span></span><span class="n">${esc(q.top)}</span><span class="op">${esc(q.op)}</span><span class="n">${esc(q.bottom)}</span><span class="rule"></span>
+    <span class="ans">${shown}${q.money||G.qLock?"":'<span class="caret"></span>'}</span>`;
+}
+function typeDigit(d){
+  if (!G.q || G.qLock || G.typed.length>=G.q.len) return;
+  G.typed+=d; drawQ();
+  if (G.typed.length<G.q.len) return;
+  G.qLock=true;                                                              // checked the moment it has enough digits
+  if (G.mode==="solo"){ const r=G.local.answer(G.me,+G.typed); onAnswer(r==="right"); }
+  else Net.send({ t:"ans", v:+G.typed });
+}
+function onAnswer(ok){
+  if (!G.q) return;
+  if (ok){ $("qcard").classList.add("good"); setTimeout(closeQuiz,250); }
+  else { $("qcard").classList.remove("shake"); void $("qcard").offsetWidth; $("qcard").classList.add("shake"); setTimeout(closeQuiz,420); }
+}
+
+// ============================================================
+//  RENDER — a round bowl seen from above, hippos all around the rim
+// ============================================================
+const cv=$("cv"), ctx=cv.getContext("2d");
+let W=0, H=0, S=1, DPR=1;
+function resize(){ DPR=Math.min(2,devicePixelRatio||1); W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener("resize",resize); resize();
+const OUT=1.7+2.35*1.45+1.6;                       // room around the rim for the biggest hippos + their name tags
+const BOTTOM=()=>G.teacherView||screen!=="game"?0:(isTouch?96:58);        // keep the hint bar / CHOMP button clear of your hippo
+function layout(){ S=Math.min(W,H-BOTTOM())/(2*(T.R+OUT)); }
+const cx=()=>W/2, cy=()=>(H-BOTTOM())/2+(G.teacherView?14:0);
+function drawBackdrop(t){
+  const g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.75);
+  g.addColorStop(0,"#5a2d9c"); g.addColorStop(1,"#1d0b3d"); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(255,255,255,.05)";
+  for (let i=0;i<40;i++){ const x=(i*197.3+t*6)%(W+40)-20, y=(i*91.7)%H; ctx.beginPath(); ctx.arc(x,y,2+(i%4),0,7); ctx.fill(); }
+}
+function drawBowl(){
+  const R=T.R*S, X=cx(), Y=cy();
+  ctx.save(); ctx.translate(X,Y);
+  ctx.fillStyle="rgba(0,0,0,.35)"; ctx.beginPath(); ctx.arc(0,R*0.05,R*1.13,0,7); ctx.fill();          // shadow
+  const rim=ctx.createLinearGradient(0,-R*1.1,0,R*1.1); rim.addColorStop(0,"#ffe08a"); rim.addColorStop(1,"#d79a1e");
+  ctx.fillStyle=rim; ctx.beginPath(); ctx.arc(0,0,R*1.1,0,7); ctx.fill();
+  const g=ctx.createRadialGradient(-R*0.15,-R*0.2,R*0.05,0,0,R);                                         // a deep dish: light at the edge, dark in the middle
+  g.addColorStop(0,"#1e3a8a"); g.addColorStop(0.55,"#2f6fd6"); g.addColorStop(0.9,"#7cc4ff"); g.addColorStop(1,"#c6e6ff");
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(0,0,R,0,7); ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,.12)"; ctx.lineWidth=1.5;
+  for (const k of [0.3,0.55,0.8]){ ctx.beginPath(); ctx.arc(0,0,R*k,0,7); ctx.stroke(); }
+  ctx.fillStyle="#173173"; ctx.beginPath(); ctx.arc(0,0,R*0.09,0,7); ctx.fill();                       // the drop in the middle
+  ctx.strokeStyle="#ffd25e"; ctx.lineWidth=3; ctx.stroke();
+  ctx.restore();
+}
+function drawMarble(x,y,hue,r){
+  const g=ctx.createRadialGradient(x-r*0.35,y-r*0.4,r*0.1,x,y,r);
+  g.addColorStop(0,`hsl(${hue},100%,92%)`); g.addColorStop(0.45,`hsl(${hue},85%,60%)`); g.addColorStop(1,`hsl(${hue},80%,30%)`);
+  ctx.fillStyle="rgba(0,0,0,.25)"; ctx.beginPath(); ctx.arc(x+r*0.18,y+r*0.25,r,0,7); ctx.fill();
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
+}
+// one hippo, at angle a on the rim, facing the middle. ch = chomp left (0–1), quiz = holding a marble
+function drawHippo(a,col,ch,quiz,held,score,name,me,n,t,id){
+  const sc=MUNCH.hippoScale(n), lungeK=MUNCH.lungeOf(ch), lunge=lungeK*T.reach;           // same size + in-and-out as the rules (MUNCH.mouthAt)
+  ctx.save(); ctx.translate(cx()+Math.cos(a)*(T.R+1.7)*S, cy()+Math.sin(a)*(T.R+1.7)*S); ctx.rotate(a-Math.PI/2); ctx.scale(S,S);
+  // here: −y points into the bowl (toward the middle), +y away from it
+  const bob=Math.sin(t*3+id)*0.05;
+  ctx.fillStyle="rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(0.15,1.05*sc,1.7*sc,1.3*sc,0,0,7); ctx.fill();
+  ctx.fillStyle=col; ctx.strokeStyle="rgba(40,10,70,.55)"; ctx.lineWidth=0.08;
+  ctx.beginPath(); ctx.ellipse(0,0.95*sc+bob,1.6*sc,1.25*sc,0,0,7); ctx.fill(); ctx.stroke();                 // body
+  for (const s of [-1,1]){ ctx.beginPath(); ctx.ellipse(s*1.25*sc,0.25*sc,0.42*sc,0.3*sc,0,0,7); ctx.fill(); ctx.stroke(); }   // front feet
+  // neck stretches when the head lunges
+  const hy=-0.45*sc-lunge;
+  if (lunge>0.05){ ctx.fillRect(-0.75*sc,hy,1.5*sc,-hy+0.2); ctx.beginPath(); ctx.moveTo(-0.75*sc,hy); ctx.lineTo(-0.75*sc,0.2); ctx.moveTo(0.75*sc,hy); ctx.lineTo(0.75*sc,0.2); ctx.stroke(); }
+  // head: ears + eyes behind, snout in front; the jaws open wide while chomping
+  for (const s of [-1,1]){ ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(s*0.75*sc,hy+0.35*sc,0.24*sc,0.18*sc,0,0,7); ctx.fill(); ctx.stroke(); }
+  ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(0,hy-0.15*sc,1.0*sc,0.75*sc,0,0,7); ctx.fill(); ctx.stroke();
+  const open=ch>0?0.25+0.75*Math.sin(Math.min(1,lungeK*1.4)*Math.PI/2):0;
+  if (open>0){                                                                               // open mouth: pink inside + teeth
+    ctx.fillStyle="#7a1238"; ctx.beginPath(); ctx.ellipse(0,hy-0.75*sc,0.85*sc,0.55*sc*open+0.05,0,0,7); ctx.fill();
+    ctx.fillStyle="#ff8fb8"; ctx.beginPath(); ctx.ellipse(0,hy-0.65*sc,0.5*sc,0.28*sc*open,0,0,7); ctx.fill();
+    ctx.fillStyle="#fff"; for (const s of [-1,1]){ ctx.fillRect(s*0.45*sc-0.08*sc,hy-0.75*sc-0.5*sc*open,0.16*sc,0.18*sc); }
+  }
+  ctx.fillStyle=col; ctx.beginPath(); ctx.ellipse(0,hy-0.75*sc-0.55*sc*open,0.85*sc,0.42*sc,0,0,7); ctx.fill(); ctx.stroke();   // upper snout
+  ctx.fillStyle="rgba(40,10,70,.6)"; for (const s of [-1,1]){ ctx.beginPath(); ctx.ellipse(s*0.33*sc,hy-0.85*sc-0.55*sc*open,0.1*sc,0.07*sc,0,0,7); ctx.fill(); }   // nostrils
+  for (const s of [-1,1]){ ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(s*0.42*sc,hy+0.05*sc,0.2*sc,0,7); ctx.fill(); ctx.fillStyle="#2a1650"; ctx.beginPath(); ctx.arc(s*0.42*sc,hy-0.02*sc,0.1*sc,0,7); ctx.fill(); }
+  if (quiz){                                                                                  // a marble in its mouth while it thinks
+    ctx.save(); ctx.scale(1/S,1/S); drawMarble(0,(hy-0.75*sc)*S,held||200,T.mr*S*1.05); ctx.restore();
+  }
+  ctx.restore();
+  // label outside the bowl, kept upright
+  const lr=T.R+1.7+2.35*sc+0.35, lx=cx()+Math.cos(a)*lr*S, ly=cy()+Math.sin(a)*lr*S;     // name tag just behind the hippo
+  const showName=me||n<=14||G.teacherView;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  const fs=Math.max(10,Math.min(16,S*0.62*Math.max(0.65,sc)));
+  ctx.font=`800 ${fs}px "Baloo 2",system-ui`;
+  const label=showName?`${me?"YOU":name.slice(0,10)} · ${score}`:String(score);
+  const w=ctx.measureText(label).width+12;
+  ctx.fillStyle=me?"#ff5fa2":"rgba(255,255,255,.9)"; ctx.beginPath(); ctx.roundRect(lx-w/2,ly-fs*0.65,w,fs*1.3,fs*0.65); ctx.fill();
+  ctx.fillStyle=me?"#fff":"#2a1650"; ctx.fillText(label,lx,ly+1);
+  if (quiz){ ctx.font=`800 ${fs*1.2}px "Baloo 2"`; ctx.fillStyle="#ffd25e"; ctx.fillText("?",cx()+Math.cos(a)*(T.R+0.4)*S+Math.cos(a+Math.PI/2)*S*1.2, cy()+Math.sin(a)*(T.R+0.4)*S+Math.sin(a+Math.PI/2)*S*1.2); }
+}
+// a view = { m:[[id,x,y,hue]], p:[[id,score,chomp,quiz,held]], left, total }
+function render(v,now){
+  const t=now/1000; layout(); drawBackdrop(t); drawBowl();
+  const n=Math.max(1,v.p.length), mi=v.p.findIndex(p=>p[0]===G.me);
+  const rot=G.teacherView||mi<0?0:Math.PI/2-(Math.PI/2+2*Math.PI*mi/n);              // turn the bowl so YOUR hippo sits at the bottom
+  const toS=(x,y)=>{ const c=Math.cos(rot), s=Math.sin(rot); return [cx()+(x*c-y*s)*S, cy()+(x*s+y*c)*S]; };
+  for (const m of v.m){ const [x,y]=toS(m[1],m[2]); drawMarble(x,y,m[3],T.mr*S); }
+  v.p.forEach((p,i)=>{ const a=Math.PI/2+2*Math.PI*i/n+rot; drawHippo(a,colorOf(p[0]),p[2],p[3],p[4],p[1],nameOf(p[0]),p[0]===G.me&&!G.teacherView,n,t,p[0]); });
+  // effects: kept marbles float up as +1
+  G.fx=G.fx.filter(f=>t-f.t0<f.life);
+  for (const f of G.fx){ const k=(t-f.t0)/f.life, i=v.p.findIndex(p=>p[0]===f.id); if (i<0) continue;
+    const a=Math.PI/2+2*Math.PI*i/n+rot, x=cx()+Math.cos(a)*(T.R+2)*S, y=cy()+Math.sin(a)*(T.R+2)*S-k*40;
+    ctx.globalAlpha=1-k; ctx.font=`800 ${Math.max(16,S*1.1)}px "Baloo 2"`; ctx.textAlign="center"; ctx.fillStyle=f.good?"#a3e635":"#ffb4b4"; ctx.strokeStyle="#2a1650"; ctx.lineWidth=4;
+    ctx.strokeText(f.txt,x,y); ctx.fillText(f.txt,x,y); ctx.globalAlpha=1; }
+}
+let lastTop="";
+function hud(v,now){
+  const me=v.p.find(p=>p[0]===G.me);
+  $("mine").style.display=G.teacherView?"none":""; $("mineN").textContent=me?me[1]:0;
+  $("leftN").textContent=v.left; $("top").style.display=G.teacherView?"none":"";
+  const pre=performance.now()<G.startAt;
+  $("hint").style.display=G.teacherView||G.over||DEMO?"none":"";
+  if (pre){ $("hint").innerHTML=`Get ready… <b>${Math.ceil((G.startAt-performance.now())/1000)}</b>`; } else if (!G.q) $("hint").innerHTML="Mash <b>SPACE</b> to chomp! Catch a marble, answer the question to keep it.";
+  $("chompBtn").style.display=G.teacherView||DEMO?"none":"";
+  const rank=v.p.slice().sort((a,b)=>b[1]-a[1]), n=G.teacherView?Math.max(3,Math.ceil(rank.length*0.15)):3;
+  const html=`<div class="h">${G.teacherView?"Top munchers":"Most marbles"}</div><ol>${rank.slice(0,n).map(p=>`<li class="${p[0]===G.me?"me":""}"><span>${esc(nameOf(p[0]).slice(0,12))}</span><b>${p[1]}</b></li>`).join("")}</ol>`;
+  if (html!==lastTop){ lastTop=html; $("top").innerHTML=html; }
+  if (G.q){ const left=Math.max(0,(G.qEnd-now)/1000); $("qsec").textContent=left.toFixed(1)+"s"; $("qbar").firstElementChild.style.transform=`scaleX(${Math.min(1,left/G.qDur)})`; }
+}
+function onEvents(evs){
+  const t=performance.now()/1000;
+  for (const e of evs){
+    if (e.type==="keep"){ G.fx.push({ id:e.id, t0:t, life:1.1, txt:"+1 🔮", good:true }); if (e.id===G.me) big("YUM! +1","good"); }
+    if (e.type==="spit"){ G.fx.push({ id:e.id, t0:t, life:1, txt:"ptooey!", good:false });
+      if (e.id===G.me){ if (e.why==="time"){ onAnswer(false); big(`TOO SLOW!<small>${e.s!=null&&G.q&&!G.q.money?"It was "+e.s+" · ":""}spat it back out</small>`,"bad"); } else big("PTOOEY!<small>Wrong answer: spat it back out</small>","bad"); } }
+    if (e.type==="catch" && e.id===G.me && e.q){ openQuiz(e.q,e.t); }                     // solo: the question comes with the event
+    if (e.type==="catch" && e.id===G.me && navigator.vibrate) navigator.vibrate(60);
+    if (e.type==="over"){ G.over=true; closeQuiz(); big("ALL GONE!<small>Every marble has been eaten</small>","good"); }
+  }
+}
+
+// ============================================================
+//  NETWORK views: interpolate marbles ~100 ms behind the newest snapshot
+// ============================================================
+function viewOnline(now){
+  const S2=G.snaps; if (!S2.length) return null;
+  const rt=now-100; let a=S2[0], b=S2[S2.length-1];
+  for (let i=S2.length-1;i>0;i--) if (S2[i-1].t<=rt){ a=S2[i-1]; b=S2[i]; break; }
+  const k=b.t>a.t?Math.max(0,Math.min(1,(rt-a.t)/(b.t-a.t))):1;
+  const am=new Map(a.s.m.map(m=>[m[0],m]));
+  const m=b.s.m.map(q=>{ const p=am.get(q[0]); return p?[q[0],p[1]+(q[1]-p[1])*k,p[2]+(q[2]-p[2])*k,q[3]]:q; });
+  const last=S2[S2.length-1].s;
+  return { m, p:last.p, left:last.left, total:last.total };
+}
+const viewSolo=()=>{ const s=G.local.snapshot(); return { m:s.m, p:s.p, left:s.left, total:s.total }; };
+
+// ============================================================
+//  LOOP
+// ============================================================
+let last=performance.now(), acc=0;
+function frame(now){
+  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  if (screen==="game"){
+    let v=null;
+    if (G.mode==="solo"){
+      if (now>=G.startAt && G.local.phase!=="over"){
+        acc+=dt;
+        while (acc>=1/40){ acc-=1/40; G.local.players.forEach((p,i)=>{ if (G.bots[i]) MUNCH.botThink(G.local,p,G.bots[i],1/40); }); G.local.step(1/40); }
+        onEvents(G.local.drainEvents());
+        if (G.local.phase==="over" && !G.overAt) G.overAt=now;
+      } else if (G.local.phase==="over" && !G.overAt) G.overAt=now;
+      v=viewSolo();
+      if (G.overAt && now-G.overAt>2200 && screen==="game") soloResults();
+    } else v=viewOnline(now);
+    if (v){ G.view=v; render(v,now); hud(v,now); }
+  } else {
+    // menu backdrop: a few marbles rolling in an empty bowl
+    G.teacherView=false; layout(); drawBackdrop(now/1000); drawBowl();
+    if (!G.menuGame){ G.menuGame=new MUNCH.Game([],{ seed:5 }); G.menuGame.total=8; for (let i=0;i<6;i++) G.menuGame.release(); }
+    G.menuGame.step(dt); for (const m of G.menuGame.marbles) drawMarble(cx()+m.x*S,cy()+m.y*S,m.hue,T.mr*S);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function beginGame({ players, me, inMs, mode }){
+  if (mode==="solo") G.teacherView=false;
+  Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), snaps:[], fx:[], over:false, overAt:0, startAt:performance.now()+inMs });
+  closeQuiz(); lastTop="";
+  show("game");
+  if (inMs>500) setTimeout(()=>{ if (screen==="game") big("MUNCH!","good"); },inMs);
+}
+
+// ============================================================
+//  NETWORK
+// ============================================================
+const Net={
+  ws:null, want:false, retry:0, queue:[], pid:0, code:null, lobby:null, token:store.get("cg_token"),
+  url(){ const s=(window.CG_CONFIG&&CG_CONFIG.server)||""; if (s) return s; if (!location.host) return null; return (location.protocol==="https:"?"wss://":"ws://")+location.host; },
+  open(){
+    this.want=true; if (this.ws&&this.ws.readyState<=1) return;
+    const url=this.url(); if (!url) return err("Online play needs the game server.");
+    const ws=this.ws=new WebSocket(url);
+    ws.onopen=()=>{ this.retry=0; ws.send(JSON.stringify({ t:"hello", name:myName(), token:this.token, auth:window.ClassKit?ClassKit.auth():undefined })); for (const m of this.queue.splice(0)) ws.send(JSON.stringify(m)); };
+    ws.onmessage=e=>{ let m; try{ m=JSON.parse(e.data); }catch{ return; } onNet(m); };
+    ws.onclose=()=>{ if (!this.want) return; if (screen==="menu") err("Can't reach the game server. Retrying…"); setTimeout(()=>this.want&&this.open(),Math.min(5000,500*2**this.retry++)); };
+  },
+  send(m){ if (this.ws&&this.ws.readyState===1) this.ws.send(JSON.stringify(m)); else if (this.want){ this.queue.push(m); this.open(); } },
+  close(){ this.want=false; if (this.ws) this.ws.close(); this.ws=null; },
+};
+function onNet(m){
+  if (window.ClassKit&&ClassKit.onNet(m)) return;
+  if (m.t==="joined" && Net.wantTeacher && m.game==="munch"){ Net.wantTeacher=false; Net.send(window.ClassKit?ClassKit.teacherMsg():{ t:"teacher" }); }
+  switch (m.t){
+    case "welcome": Net.token=m.token; store.set("cg_token",m.token); break;
+    case "joined":
+      if (m.game!=="munch"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
+      Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
+    case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
+    case "addp": if (m.p) G.players.set(m.p.pid,m.p); break;                    // a classmate joined mid-game
+    case "start": G.teacherView=!!(m.teacher&&m.teacher===Net.pid); beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online" }); break;
+    case "s": if (G.mode==="online"){ G.snaps.push({ t:performance.now(), s:m.s }); if (G.snaps.length>30) G.snaps.shift(); if (m.e.length) onEvents(m.e); } break;
+    case "q": if (G.mode==="online" && !G.teacherView) openQuiz(m.q,m.sec); break;
+    case "res": onAnswer(m.ok); break;
+    case "results": if (G.mode==="online") setTimeout(()=>showResults(m.rank),1800); break;
+    case "error": Net.code=null; show("menu"); err(m.msg||"Something went wrong."); break;
+  }
+}
+let lobbyTimer=0;
+function renderModes(L){
+  const host=L.host===Net.pid&&L.state==="lobby", qt=L.qtime||T.qTime;
+  $("lModes").innerHTML=`<span class="lbl">${host?"Question type (you choose)":"Question type"}</span><div>`+MODE_BTNS.map(([k,t])=>`<button type="button" data-m="${k}" class="${L.mode===k?"on":""}"${host?"":" disabled"}>${t}</button>`).join("")+`</div>`
+    +`<span class="lbl">${host?"Seconds to answer (you choose, "+T.qMin+"–"+T.qMax+")":"Seconds to answer"}</span><div class="qt">`
+    +(host?`<button type="button" data-q="-1">−1</button>`:"")+`<b>${qt}s</b>`+(host?`<button type="button" data-q="1">+1</button>`:"")+`</div>`;
+}
+$("lModes").addEventListener("click",e=>{
+  const qb=e.target.closest("button[data-q]");
+  if (qb && Net.lobby){ const s=Math.max(T.qMin,Math.min(T.qMax,(Net.lobby.qtime||T.qTime)+(+qb.dataset.q))); store.set("mm_qtime",s); Net.send({ t:"qtime", s }); return; }
+  const b=e.target.closest("button[data-m]"); if (b && !b.disabled){ store.set("mm_mode",b.dataset.m); Net.send({ t:"mode", mode:b.dataset.m }); }
+});
+function renderLobby(){
+  const L=Net.lobby; if (!L) return;
+  $("lKind").textContent=L.pub?"Online game":"Private game";
+  $("lCode").textContent=L.code;
+  $("lCount").textContent=`${L.players.length} / ${L.max} players`;
+  $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}"></i>${esc(p.name)}${p.pid===L.host&&!L.teacher?" ★":""}</span>`).join("");
+  renderModes(L);
+  const host=L.host===Net.pid;
+  $("bStart").style.display=host?"":"none";
+  clearInterval(lobbyTimer);
+  const note=()=>{
+    let t=L.state==="playing"?"A game is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
+    if (L.autoIn&&L.state==="lobby"){ const s=Math.max(0,Math.ceil((L.autoIn-(performance.now()-L.at))/1000)); t=`Starting by itself in ${s}s`+(host?". Or start now!":""); }
+    $("lNote").textContent=(L.pub?"":"Share the code with friends. ")+t;
+    if (L.teacher){ const iTeach=L.teacher===Net.pid, kids=L.players.filter(p=>p.pid!==L.teacher), tt=L.players.find(p=>p.pid===L.teacher);
+      $("lCount").textContent=`${kids.length} / ${L.max-1} students`; $("lKind").textContent="🍎 Teacher mode · private game";
+      $("bStart").textContent="Start for the class"; $("bStart").style.display=iTeach?"":"none";
+      $("lNote").textContent=iTeach?`Share this code with your class. You won't play. ${Math.max(T.minMarbles,kids.length*T.perPlayer)} marbles: the game ends when they're all eaten.`:`🍎 ${tt?tt.name:"Your teacher"} will start the game.`; }
+  };
+  note(); lobbyTimer=setInterval(note,500);
+}
+// host's remembered settings are sent when a fresh room opens
+let sentPrefs=false;
+function sendPrefs(){ if (sentPrefs) return; sentPrefs=true; const m=store.get("mm_mode"), q=+store.get("mm_qtime");
+  if (m) Net.send({ t:"mode", mode:m }); if (q) Net.send({ t:"qtime", s:q }); }
+function goOnline(msg){ err(""); myName(); sentPrefs=false; Net.open(); Net.send(msg); if (msg.t==="create") sendPrefs(); }
+$("bPublic").onclick=()=>goOnline({ t:"quick", game:"munch" });
+$("bPrivate").onclick=()=>goOnline({ t:"create", game:"munch" });
+$("bJoin").onclick=()=>{ const c=$("codeIn").value.trim().toUpperCase(); if (c.length!==4) return err("Game codes are 4 letters."); goOnline({ t:"join", code:c }); };
+$("codeIn").addEventListener("keydown",e=>{ if (e.key==="Enter") $("bJoin").click(); });
+$("bStart").onclick=()=>Net.send({ t:"start" });
+$("bLeave").onclick=()=>{ Net.send({ t:"leave" }); Net.close(); Net.code=null; show("menu"); };
+$("bTeacher").onclick=()=>(window.ClassKit?ClassKit.beginTeacher:(go=>go()))(()=>{ Net.wantTeacher=true; goOnline({ t:"create", game:"munch" }); });
+
+// ============================================================
+//  SOLO vs 7 bots
+// ============================================================
+$("bSolo").onclick=()=>{
+  const name=myName(); Net.close();
+  const names=["Bubbles","Gulp","Mabel","Chomper","Pudding","Wobble","Snack"];
+  const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
+  G.local=new MUNCH.Game(players.map(p=>({ id:p.pid, name:p.name })),{ mode:store.get("mm_mode")||"add", digits:"1", qTime:+store.get("mm_qtime")||T.qTime });
+  G.bots=G.local.players.map((p,i)=>i||DEMO?MUNCH.makeBot(i*31+7,i?0.15+0.6*(i-1)/6:0.8):null);
+  beginGame({ players, me:1, inMs:3000, mode:"solo" });
+};
+function soloResults(){ const rank=G.local.ranking().map(r=>({ ...r, pid:r.id, color:G.players.get(r.id).color })); showResults(rank); }
+
+// ============================================================
+//  RESULTS — top 3 or top 15 % (whichever is more) + your place
+// ============================================================
+const topCount=n=>Math.min(n,Math.max(3,Math.ceil(n*0.15)));
+function showResults(rank){
+  if (!rank.length) return show("lobby");
+  const w=rank[0], n=topCount(rank.length);
+  const c=document.createElement("canvas"); c.width=240; c.height=220; const x=c.getContext("2d");
+  x.translate(120,130); x.fillStyle=pcol(w.color); x.strokeStyle="rgba(40,10,70,.6)"; x.lineWidth=4;
+  x.beginPath(); x.ellipse(0,10,70,58,0,0,7); x.fill(); x.stroke();
+  for (const s of [-1,1]){ x.beginPath(); x.ellipse(s*40,-48,13,10,0,0,7); x.fill(); x.stroke(); x.fillStyle="#fff"; x.beginPath(); x.arc(s*24,-22,12,0,7); x.fill(); x.fillStyle="#2a1650"; x.beginPath(); x.arc(s*24,-20,6,0,7); x.fill(); x.fillStyle=pcol(w.color); }
+  x.fillStyle="#7a1238"; x.beginPath(); x.ellipse(0,26,42,20,0,0,7); x.fill(); x.fillStyle="#fff"; x.fillRect(-24,8,10,10); x.fillRect(14,8,10,10);
+  x.fillStyle="#ffc83d"; x.strokeStyle="#c98a00"; x.beginPath(); x.moveTo(-36,-58); x.lineTo(-42,-96); x.lineTo(-18,-76); x.lineTo(0,-104); x.lineTo(18,-76); x.lineTo(42,-96); x.lineTo(36,-58); x.closePath(); x.fill(); x.stroke();
+  $("champ").innerHTML=""; $("champ").appendChild(c);
+  const head=document.createElement("div"); head.innerHTML=`<div class="t">${w.pid===G.me?"You munched the most!":"Top muncher!"}</div><h2>${esc(w.name)}</h2>`; $("champ").appendChild(head);
+  const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}"></i>
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="tm">🔮 ${e.score}</span></div>`;
+  $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
+  const mi=rank.findIndex(e=>e.pid===G.me);
+  $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>🔮 ${rank[mi].score} marbles kept</span>`:"";
+  $("bAgain").textContent=G.mode==="solo"?"Play again":"Back to lobby";
+  show("results");
+}
+$("bAgain").onclick=()=>{ if (G.mode==="solo") $("bSolo").click(); else { show("lobby"); renderLobby(); } };
+function exitGame(){
+  if (screen==="menu"){ location.href=(window.JGH&&JGH.home)||"../"; return; }
+  if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
+  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); G.mode=""; G.local=null;
+  show("menu");
+}
+$("exitBtn").onclick=exitGame;
+addEventListener("DOMContentLoaded",()=>{ const q=new URLSearchParams(location.search).get("play"); if (!q) return; history.replaceState(null,"",location.pathname);
+  if (q==="public") $("bPublic").click(); else if (q==="private") $("bPrivate").click(); else if (q==="teacher") $("bTeacher").click(); else if (q==="solo") $("bSolo").click(); });
+addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
+  $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
+if (DEMO) addEventListener("DOMContentLoaded",()=>{ $("bSolo").click(); let rs=0; setInterval(()=>{ if (screen==="results"){ if (++rs>5){ rs=0; $("bSolo").click(); } } else rs=0; },1000); });
+</script>
+</body>
+</html>

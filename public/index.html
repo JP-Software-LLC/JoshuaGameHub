@@ -269,6 +269,23 @@
   .tg .open:hover{filter:brightness(1.08)}
   @media (max-width:1100px){ .tcols{grid-template-columns:repeat(2,1fr)} }
   @media (max-width:620px){ .tcols{grid-template-columns:1fr} }
+  /* Educational / Just for fun switch (student + teacher views; Educational by default) */
+  .kswitch{display:none;gap:8px;margin:0 0 14px;padding:5px;border-radius:999px;background:var(--glass);border:1px solid var(--edge2);width:max-content;max-width:100%}
+  body.v-student .kswitch, body.v-teacher .kswitch{display:flex}
+  .kswitch button{appearance:none;border:0;border-radius:999px;padding:10px 20px;font:800 16px var(--sans);color:var(--dim);background:transparent;cursor:pointer;white-space:nowrap}
+  .kswitch button.on{background:#ff6b6b;color:#1a0b0b;box-shadow:0 3px 0 #a33a3a}
+  .kswitch button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  body.v-student[data-k="edu"] #lib .card:not([data-edu="1"]), body.v-student[data-k="fun"] #lib .card[data-edu="1"],
+  body.v-teacher[data-k="edu"] .tl:not([data-edu="1"]), body.v-teacher[data-k="fun"] .tl[data-edu="1"]{display:none}
+  @media (max-width:620px){ .kswitch button{padding:9px 14px;font-size:15px} }
+  /* Just for fun (students): jump into any open public lobby, or open one for a random game */
+  .anyplay{display:none;flex-direction:column;align-items:flex-start;gap:10px;margin:0 0 18px}
+  body.v-student[data-k="fun"] .anyplay{display:flex}
+  .anyplay button{appearance:none;border:0;cursor:pointer;border-radius:16px;font:800 20px var(--sans);padding:16px 26px;min-width:min(340px,100%);text-align:center}
+  .anyplay .any{background:#ff6b6b;color:#1a0b0b;box-shadow:0 5px 0 #a33a3a}
+  .anyplay .make{background:transparent;color:var(--ink,#fff);border:2px solid var(--edge2);font-size:17px;padding:12px 22px}
+  .anyplay button:hover{filter:brightness(1.08)} .anyplay button:disabled{opacity:.6;cursor:default}
+  .anyplay .msg{color:var(--dim);font-size:14px;min-height:1.2em;margin:0}
   .tlist{display:flex;flex-direction:column;border-radius:var(--r);background:var(--glass);border:1px solid var(--edge2);overflow:hidden}
   .tl{display:flex;align-items:center;gap:16px;padding:12px 16px;border-top:1px solid var(--edge2)}
   .tl:first-child{border-top:0}
@@ -438,6 +455,8 @@
   </section>
 
   <section class="wrap sec" id="games">
+    <div class="kswitch" role="tablist" aria-label="Kind of game"><button type="button" role="tab" data-k="edu">📚 Educational</button><button type="button" role="tab" data-k="fun">🎉 Just for fun</button></div>
+    <div class="anyplay"><button type="button" class="any" id="joinAny">🎲 Join any game</button><button type="button" class="make" id="makeAny">✨ Create any game</button><p class="msg" id="anyMsg" role="status"></p></div>
     <div class="sechead"><div style="display:flex;flex-direction:column;gap:12px"><h2>LIBRARY</h2><div class="filters" id="filters" role="group" aria-label="Filter games"></div></div><p id="libCount"></p></div>
     <div class="grid" id="lib"></div>
   </section>
@@ -482,14 +501,20 @@ $("yr").textContent=new Date().getFullYear();
 // ------------------------------------------------------------
 //  Game registry: add an entry here for each new game.
 // ------------------------------------------------------------
+// learning games (math, typing, spelling, memory) → "📚 Educational"; everything else → "🎉 Just for fun"
+const EDU=new Set(["math-race","mathsketball","marble-munch","softball-smarts","hurdle-dash","arrow-blitz","typing-cowboys","word-rush","memory-tiles","odds-evens","crossword"]);
 const GAMES=[
   { id:"clean-getaway", demo:true, kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
   { id:"math-race", demo:true, teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
   { id:"rush-hour", demo:true, teach:true, kind:"rush", cat:"Racing", title:"RUSH HOUR", path:"/rush-hour/", blurb:"Weave through traffic. Hit the boost strips!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"rush" },
   { id:"bear-attack", demo:true, teach:true, kind:"bear", cat:"Party", title:"BEAR ATTACK!", path:"/bear-attack/", blurb:"Slippery ice, one grumpy bear. Last one on the ice wins!", tags:["Up to 40","Online","Party"], badge:"NEW", thumb:"bear" },
+  { id:"mathsketball", demo:true, teach:true, kind:"hoops", cat:"Brainy", title:"MATHSKETBALL", path:"/mathsketball/", blurb:"Answer 3 sums, then shoot 3 hoops. First to 10 baskets!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"hoops" },
+  { id:"marble-munch", demo:true, teach:true, kind:"munch", cat:"Brainy", title:"MARBLE MUNCH", path:"/marble-munch/", blurb:"Mash Space to chomp marbles. Answer fast to keep them!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"munch" },
+  { id:"softball-smarts", demo:true, teach:true, kind:"softball", cat:"Brainy", title:"SOFTBALL SMARTS", path:"/softball-smarts/", blurb:"The pitch comes in slow motion. Answer before it reaches you!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"softball" },
   { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", demo:true, teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", demo:true, teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
+  { id:"crossword", teach:true, kind:"crossword", cat:"Brainy", title:"VOCAB CROSSWORD", path:"/crossword/", blurb:"Everyone solves the same crossword. Teachers bring their own vocab words!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"crossword" },
   { id:"odds-evens", teach:true, kind:"oddsevens", cat:"Brainy", title:"ODDS OR EVENS", path:"/odds-evens/", blurb:"Take turns at the smart board slicing the right numbers!", tags:["Up to 40","Smart board","Brainy"], badge:"NEW", thumb:"oddsevens" },
   { id:"typing-cowboys", demo:true, teach:true, kind:"typing", cat:"Brainy", title:"TYPING COWBOYS", path:"/typing-cowboys/", blurb:"Type words right to gallop your horse to the finish!", tags:["Up to 40","Online","Typing"], badge:"NEW", thumb:"typing" },
   { id:"star-cannons", demo:true, teach:true, kind:"cannons", cat:"Party", title:"STAR CANNONS", path:"/star-cannons/", blurb:"Team up and laser bouncing asteroids. Don't get squashed!", tags:["Up to 40","Online","Team"], badge:"NEW", thumb:"cannons" },
@@ -563,6 +588,109 @@ function rushThumb(){
     <g opacity=".35">${car(178,300,1.1,"#8b5cf6")}</g>
     ${car(272,336,1.55,"#ff7a1a","#e8590c")}
     <text x="270" y="62" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-style="italic" font-weight="900" font-size="50" fill="#ff7a1a" stroke="#fff" stroke-width="7" paint-order="stroke">RUSH HOUR</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Mathsketball thumbnail: gym, hoop, a ball in the air, the power meter and a sum card
+function hoopsThumb(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><linearGradient id="w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f1838"/><stop offset="1" stop-color="#26387a"/></linearGradient>
+    <linearGradient id="f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98b4f"/><stop offset="1" stop-color="#e0a868"/></linearGradient>
+    <radialGradient id="b" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="#fdba74"/><stop offset="1" stop-color="#ea580c"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#w)"/>
+    <g>${Array.from({length:44},(_,i)=>`<circle cx="${8+(i%22)*25+(i>21?12:0)}" cy="${150+(i>21?24:0)}" r="8" fill="${["#ef4444","#3b82f6","#f59e0b","#10b981","#8b5cf6","#ec4899","#facc15"][i%7]}"/>`).join("")}</g>
+    <rect y="190" width="540" height="190" fill="url(#f)"/><polygon points="300,200 540,200 540,380 250,380" fill="#2563eb" opacity=".55"/>
+    <rect x="470" y="40" width="10" height="160" fill="#475569"/><rect x="452" y="38" width="12" height="110" rx="3" fill="#fff"/><rect x="452" y="84" width="12" height="44" fill="none" stroke="#ef4444" stroke-width="3"/>
+    <g stroke="#fff" stroke-width="2" opacity=".9"><path d="M392 120 L402 160 M405 120 L410 160 M418 120 L418 160 M431 120 L426 160 M444 120 L434 160 M402 160 L434 160 M396 140 L440 140"/></g>
+    <ellipse cx="418" cy="120" rx="28" ry="6" fill="none" stroke="#f97316" stroke-width="6"/>
+    <path d="M150 150 Q 280 -10 405 95" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="4 10" opacity=".6"/>
+    <circle cx="360" cy="62" r="20" fill="url(#b)" stroke="#431407" stroke-width="2"/><path d="M340 62 H380 M360 42 V82" stroke="#431407" stroke-width="2"/>
+    <g transform="translate(110,250)"><rect x="-62" y="-50" width="124" height="88" rx="16" fill="#16181d"/>
+      <text x="26" y="-16" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">7</text>
+      <text x="26" y="12" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">8</text>
+      <text x="-38" y="12" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#3a78e6">×</text>
+      <rect x="-40" y="19" width="68" height="3" fill="#3a78e6"/></g>
+    <g transform="translate(250,300)"><rect x="0" y="0" width="270" height="34" rx="10" fill="#fff"/><rect x="4" y="4" width="162" height="26" rx="7" fill="#ef4444"/><rect x="166" y="4" width="62" height="26" fill="#facc15"/><rect x="228" y="4" width="38" height="26" rx="7" fill="#22c55e"/><rect x="240" y="-4" width="8" height="42" rx="4" fill="#fff" stroke="#1e2b5c" stroke-width="3"/></g>
+    <text x="270" y="372" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="40" fill="#f97316" stroke="#1e2b5c" stroke-width="7" paint-order="stroke">MATHSKETBALL</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Softball Smarts thumbnail: a pitch coming in slow motion past the mound, the batter, a sum card
+function softballThumb(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#bfe3ff"/></linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f8a3a"/><stop offset="1" stop-color="#4cb04f"/></linearGradient>
+    <radialGradient id="b" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="#fffbb0"/><stop offset=".6" stop-color="#e8e81c"/><stop offset="1" stop-color="#a3a300"/></radialGradient>
+    <radialGradient id="v" cx=".5" cy=".55" r=".7"><stop offset=".45" stop-color="#1e3c8c" stop-opacity="0"/><stop offset="1" stop-color="#0a143c" stop-opacity=".55"/></radialGradient></defs>
+    <rect width="540" height="150" fill="url(#s)"/><rect y="110" width="540" height="40" fill="#334155"/><rect y="132" width="540" height="18" fill="#14532d"/>
+    <rect y="150" width="540" height="230" fill="url(#g)"/>
+    <path d="M270 380 L470 240 Q270 150 70 240 Z" fill="#c9874d"/><path d="M270 330 L420 245 L270 190 L120 245 Z" fill="#3e9c45"/>
+    <ellipse cx="270" cy="222" rx="44" ry="12" fill="#b97a44"/>
+    <g transform="translate(270,222)"><rect x="-12" y="-62" width="24" height="36" rx="8" fill="#1e3a8a"/><circle cy="-72" r="9" fill="#c68c5f"/><path d="M8 -55 L26 -80" stroke="#c68c5f" stroke-width="6" stroke-linecap="round"/></g>
+    <rect width="540" height="380" fill="url(#v)"/>
+    ${[0,1,2,3,4].map(i=>`<circle cx="${290+i*7}" cy="${190+i*12}" r="${8+i*2}" fill="#ffef5a" opacity="${.08+i*.06}"/>`).join("")}
+    <circle cx="330" cy="255" r="22" fill="url(#b)"/><path d="M314 245 q10 10 0 22 M346 245 q-10 10 0 22" stroke="#dc2626" stroke-width="2.5" fill="none" stroke-dasharray="4 3"/>
+    <g transform="translate(190,380)"><rect x="-30" y="-150" width="60" height="80" rx="18" fill="#e11d48"/><text y="-100" text-anchor="middle" font-family="Arial Black" font-size="34" fill="#fff">7</text>
+      <circle cy="-168" r="22" fill="#e11d48"/><path d="M28 -150 L-40 -230" stroke="#9ca3af" stroke-width="12" stroke-linecap="round"/></g>
+    <g transform="translate(450,70)"><rect x="-62" y="-50" width="124" height="96" rx="16" fill="#16181d"/>
+      <text x="26" y="-16" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">8</text>
+      <text x="26" y="12" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#cfe1ff">6</text>
+      <text x="-38" y="12" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#3a78e6">+</text>
+      <rect x="-40" y="19" width="68" height="3" fill="#3a78e6"/><rect x="-50" y="30" width="100" height="8" rx="4" fill="#7c3aed"/></g>
+    <text x="270" y="372" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="38" fill="#facc15" stroke="#0f2a1f" stroke-width="7" paint-order="stroke">SOFTBALL SMARTS</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Vocab Crossword thumbnail: a small crossword grid on paper with a pencil and a clue list
+function crosswordThumb(){
+  const G=[[0,1,"HABITAT","a"],[0,1,"HERD","d"],[2,3,"BURROW","d"],[5,0,"NEST","a"],[3,6,"TREE","d"]];
+  const cells=new Map(); for (const [r,c,w,d] of G) for (let i=0;i<w.length;i++) cells.set((d==="d"?r+i:r)+","+(d==="a"?c+i:c),w[i]);
+  const shown=new Set(["0,1","0,2","0,3","1,1","2,1","2,3","3,3","5,0","5,1","3,6","4,6"]);
+  const sz=30, ox=40, oy=60;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><radialGradient id="bg" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#2d5a8c"/><stop offset="1" stop-color="#14273f"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#bg)"/>
+    <rect x="22" y="40" width="290" height="270" rx="14" fill="#fff" transform="rotate(-2 160 170)"/>
+    <g transform="rotate(-2 160 170)">${[...cells].map(([k,ch])=>{ const [r,c]=k.split(",").map(Number); return `<rect x="${ox+c*sz}" y="${oy+r*sz}" width="${sz}" height="${sz}" fill="${r===0?"#fff3b0":"#fff"}" stroke="#1e3a5f" stroke-width="2"/>`+(shown.has(k)?`<text x="${ox+c*sz+sz/2}" y="${oy+r*sz+22}" text-anchor="middle" font-family="Arial Black, Arial" font-size="17" fill="#1b2a3a">${ch}</text>`:""); }).join("")}
+    <text x="${ox+sz+3}" y="${oy+10}" font-family="Arial" font-weight="700" font-size="9" fill="#5a6b7e">1</text></g>
+    <g transform="translate(330,60)"><rect width="190" height="200" rx="14" fill="#fff"/>
+      <text x="16" y="32" font-family="Arial Black, Arial" font-size="18" fill="#1e3a5f">Across</text>
+      <text x="16" y="58" font-family="Arial" font-weight="700" font-size="13" fill="#2563eb">1</text><text x="34" y="58" font-family="Arial" font-size="13" fill="#1b2a3a">A place where an</text><text x="34" y="74" font-family="Arial" font-size="13" fill="#1b2a3a">animal lives</text>
+      <text x="16" y="110" font-family="Arial Black, Arial" font-size="18" fill="#1e3a5f">Down</text>
+      <text x="16" y="136" font-family="Arial" font-weight="700" font-size="13" fill="#2563eb">1</text><text x="34" y="136" font-family="Arial" font-size="13" fill="#1b2a3a">A group of animals</text>
+      <text x="16" y="162" font-family="Arial" font-weight="700" font-size="13" fill="#2563eb">2</text><text x="34" y="162" font-family="Arial" font-size="13" fill="#1b2a3a">A hole dug by a</text><text x="34" y="178" font-family="Arial" font-size="13" fill="#1b2a3a">rabbit</text></g>
+    <g transform="translate(280,250) rotate(35)"><rect width="120" height="16" rx="3" fill="#facc15"/><rect x="100" width="20" height="16" fill="#f472b6"/><polygon points="0,0 -18,8 0,16" fill="#f1c27d"/><polygon points="-12,5 -18,8 -12,11" fill="#1b2a3a"/></g>
+    <text x="270" y="362" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="38" fill="#ffcf33" stroke="#1e3a5f" stroke-width="7" paint-order="stroke">VOCAB CROSSWORD</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Marble Munch thumbnail: a round bowl with marbles rolling on ellipses, hippos around the rim, a sum card
+function munchThumb(){
+  const hip=(a,c)=>{ const x=270+Math.cos(a)*150, y=175+Math.sin(a)*150, d=a*180/Math.PI+90;
+    return `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${d.toFixed(1)})"><ellipse cx="0" cy="14" rx="26" ry="20" fill="${c}" stroke="#3b1d6e" stroke-width="2"/><ellipse cx="0" cy="-10" rx="18" ry="14" fill="${c}" stroke="#3b1d6e" stroke-width="2"/><ellipse cx="0" cy="-22" rx="14" ry="8" fill="#7a1238"/><circle cx="-8" cy="-6" r="4" fill="#fff"/><circle cx="8" cy="-6" r="4" fill="#fff"/></g>`; };
+  const cols=["#f9a8d4","#a5b4fc","#86efac","#fde68a","#fdba74","#c4b5fd","#67e8f9","#fca5a5"];
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><radialGradient id="bg" cx=".5" cy=".5" r=".75"><stop offset="0" stop-color="#5a2d9c"/><stop offset="1" stop-color="#1d0b3d"/></radialGradient>
+    <radialGradient id="bowl" cx=".45" cy=".42" r=".6"><stop offset="0" stop-color="#1e3a8a"/><stop offset=".6" stop-color="#2f6fd6"/><stop offset=".95" stop-color="#9fd4ff"/></radialGradient></defs>
+    <rect width="540" height="380" fill="url(#bg)"/>
+    <circle cx="270" cy="175" r="132" fill="#e0a52a"/><circle cx="270" cy="175" r="120" fill="url(#bowl)"/>
+    <g fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2" stroke-dasharray="5 8"><ellipse cx="270" cy="175" rx="112" ry="38" transform="rotate(25 270 175)"/><ellipse cx="270" cy="175" rx="108" ry="32" transform="rotate(-50 270 175)"/></g>
+    ${[[350,140,330],[200,200,50],[300,240,120],[230,120,200],[290,170,280]].map(([x,y,h])=>`<circle cx="${x}" cy="${y}" r="11" fill="hsl(${h},85%,60%)" stroke="rgba(0,0,0,.3)"/><circle cx="${x-3}" cy="${y-4}" r="3.5" fill="#fff" opacity=".8"/>`).join("")}
+    ${cols.map((c,i)=>hip(i*Math.PI/4+Math.PI/8,c)).join("")}
+    <g transform="translate(470,300)"><rect x="-58" y="-48" width="116" height="84" rx="14" fill="#16181d"/>
+      <text x="24" y="-16" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="25" fill="#cfe1ff">9</text>
+      <text x="24" y="11" text-anchor="end" font-family="Consolas, monospace" font-weight="700" font-size="25" fill="#cfe1ff">6</text>
+      <text x="-36" y="11" font-family="Consolas, monospace" font-weight="700" font-size="25" fill="#3a78e6">+</text>
+      <rect x="-38" y="18" width="64" height="3" fill="#3a78e6"/></g>
+    <text x="200" y="368" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="40" fill="#ff5fa2" stroke="#2a1650" stroke-width="7" paint-order="stroke">MARBLE MUNCH</text>
   </svg>`;
   const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
@@ -735,15 +863,19 @@ for (const g of GAMES){
   if (!g.soon) el.href=g.path;
   el.innerHTML=`<div class="thumb">${g.soon?'<span class="lock">?</span><span class="badge wip">SOON</span>':`${g.badge?`<span class="badge">${g.badge}</span>`:""}<span class="play-ic" aria-hidden="true">▶</span>`}</div>
     <div class="cbody"><h3>${g.title}</h3><p>${g.blurb}</p><div class="cmeta">${g.teach?'<span class="tbadge">🍎 Teacher mode</span>':""}${g.tags.map(t=>`<span>${t}</span>`).join("")}</div></div>`;
-  el.dataset.cat=g.cat||""; el.dataset.kind=g.kind||""; el.dataset.teach=g.teach?"1":"";
+  el.dataset.cat=g.cat||""; el.dataset.kind=g.kind||""; el.dataset.teach=g.teach?"1":""; el.dataset.edu=EDU.has(g.id)?"1":"";
   if (!g.soon) el.querySelector(".thumb").insertAdjacentHTML("beforeend",'<span class="liveb" hidden><i></i><b>0</b>&nbsp;playing</span>');
   if (g.thumb==="cg") el.querySelector(".thumb").prepend(thumbCanvas());
   if (g.thumb==="math") el.querySelector(".thumb").prepend(mathThumb());
   if (g.thumb==="rush") el.querySelector(".thumb").prepend(rushThumb());
   if (g.thumb==="bear") el.querySelector(".thumb").prepend(bearThumb());
   if (g.thumb==="hurdle") el.querySelector(".thumb").prepend(hurdleThumb());
+  if (g.thumb==="hoops") el.querySelector(".thumb").prepend(hoopsThumb());
+  if (g.thumb==="munch") el.querySelector(".thumb").prepend(munchThumb());
+  if (g.thumb==="softball") el.querySelector(".thumb").prepend(softballThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
+  if (g.thumb==="crossword") el.querySelector(".thumb").prepend(crosswordThumb());
   if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
   if (g.thumb==="typing") el.querySelector(".thumb").prepend(typingThumb());
   if (g.thumb==="cannons") el.querySelector(".thumb").prepend(cannonsThumb());
@@ -861,9 +993,13 @@ pollLive(); setInterval(pollLive,20000);
 // ------------------------------------------------------------
 const CLASS_GAMES=[
   { id:"math-race", ico:"🧮", skill:"Addition · subtraction · times tables · division · money", len:"3 × 1-min rounds", view:"You pick the question type", desc:"Answers are checked as they're typed, so quick, accurate answers win. Round-by-round leaderboards keep everyone going." },
+  { id:"marble-munch", ico:"🦛", skill:"Math facts: + − × ÷ and money (you pick)", len:"~1–2 minutes", view:"Watch the whole bowl", desc:"Students mash Space to chomp marbles rolling around the bowl, then answer a quick question to keep each one (you set 2–10 seconds). Ends when every marble is eaten." },
+  { id:"softball-smarts", ico:"🥎", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Each pitch floats in slow motion with a question. Answer before it reaches the plate: the faster the answer, the bigger the hit. You set the seconds per pitch (3–12) and the runs to win." },
+  { id:"mathsketball", ico:"🏀", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Three right answers earn three shots; stop the power meter in the green to score. Ends when 60% of the class has 10 baskets." },
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
   { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
+  { id:"crossword", ico:"✏️", skill:"Your own vocabulary words", len:"5–15 minutes", view:"Live standings on your screen", desc:"Paste your vocab list in the lobby: we build a crossword and fill in dictionary clues you can edit. Students join with the code and solve it on their own screens, with a word bank to keep it easy." },
   { id:"odds-evens", ico:"✂️", skill:"Odd and even numbers", len:"15 s per student", view:"Played on your smart board", desc:"Students take turns at the board slicing the right numbers." },
   { id:"typing-cowboys", ico:"🤠", skill:"Typing and spelling", len:"~1–2 min race", view:"Live standings on your screen", desc:"Students type words to gallop their cowboy to the finish. Wrong words don't count against them." },
   { id:"star-cannons", ico:"🚀", skill:"Teamwork and quick reactions", len:"~2–4 min", view:"Watch the whole game on your screen", desc:"The whole class shares one floor of laser cannons against bouncing asteroids. Last cannon standing ends it." },
@@ -909,6 +1045,12 @@ $("joinForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("joi
 //  Views: Who's playing? → Student · Teacher · Guest. Games remember the choice (jgh_mode) and "Back" returns here.
 // ------------------------------------------------------------
 const VIEWS=["home","student","teacher","guest"];
+// Educational / Just for fun (student + teacher views). Educational is the default every visit; the choice lasts this tab only.
+function setKind(k){
+  k=k==="fun"?"fun":"edu"; document.body.dataset.k=k; ss.set("jgh_kind",k);
+  document.querySelectorAll(".kswitch button").forEach(b=>{ const on=b.dataset.k===k; b.classList.toggle("on",on); b.setAttribute("aria-selected",on); });
+}
+document.addEventListener("click",e=>{ const b=e.target.closest(".kswitch button"); if (b) setKind(b.dataset.k); });
 const ls={ get(k){ try{ return localStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,v); }catch{} } };
 const ss={ get(k){ try{ return sessionStorage.getItem(k); }catch{ return null; } }, set(k,v){ try{ sessionStorage.setItem(k,v); }catch{} } };
 function profile(){ try{ const p=JSON.parse(ls.get("jgh_student")||"null"); return p&&p.email&&p.first&&p.nick&&p.school?p:null; }catch{ return null; } }
@@ -928,6 +1070,7 @@ function setView(v,push){
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-go]"); if (b) setView(b.dataset.go,true); });
 addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if (VIEWS.includes(h)) setView(h); });
 { const h=location.hash.slice(1); setView(VIEWS.includes(h)?h:(ss.get("jgh_view")||"home")); }
+setKind(ss.get("jgh_kind")||"edu");
 
 // Student: full-screen sign-in (school email + nickname; the name and school come from the email), then one big code box
 function studentView(){
@@ -960,12 +1103,31 @@ async function saveProfile(){
 $("pSave").onclick=saveProfile;
 $("pEmail").addEventListener("keydown",e=>{ if (e.key==="Enter"){ e.preventDefault(); $("pNick").focus(); } });
 $("pNick").addEventListener("keydown",e=>{ if (e.key==="Enter"){ e.preventDefault(); saveProfile(); } });
+// ---- Just for fun: "Join any game" (fullest open public lobby of any game) · "Create any game" (random fun game, public lobby)
+function needProfile(){ if (profile()) return false; scrollTo({ top:0, behavior:"smooth" }); setTimeout(()=>$("pEmail").focus(),300); $("pErr").textContent="Sign in first, then pick a game!"; return true; }
+$("joinAny").onclick=async()=>{
+  if (needProfile()) return;
+  const b=$("joinAny"); b.disabled=true; $("anyMsg").textContent="Looking for a game…";
+  try{
+    const { lobbies }=await (await fetch(apiBase()+"/lobbies",{ cache:"no-store" })).json();
+    const pick=(lobbies||[]).map(l=>({ l, g:GAMES.find(x=>x.kind===l.kind&&!x.soon) })).find(x=>x.g);
+    if (!pick){ $("anyMsg").textContent="No open games right now. Press “Create any game” to start one!"; b.disabled=false; return; }
+    location.href=pick.g.path+"?join="+encodeURIComponent(pick.l.code);
+  }catch{ $("anyMsg").textContent="Couldn't reach the game server. Try again in a moment."; b.disabled=false; }
+};
+$("makeAny").onclick=()=>{
+  if (needProfile()) return;
+  const fun=GAMES.filter(g=>!g.soon&&!EDU.has(g.id)&&g.kind&&g.path);
+  const g=fun[Math.random()*fun.length|0];
+  $("anyMsg").textContent=`Opening ${g.title}…`;
+  location.href=g.path+"?play=public";
+};
 $("sCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,""); $("sErr").textContent=""; if (e.target.value.length===4) $("sCodeForm").requestSubmit(); });
 $("sCodeForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("sCode").value.trim().toUpperCase(),$("sErr")); });
 
 // Teacher: compact list of the whole-class games, each with one big button
 // Teacher view: one column per category
-const TCATS=[["🧮 Math",["math-race","hurdle-dash","odds-evens"]],["🔤 Vocabulary",["word-rush"]],["⌨️ Typing",["typing-cowboys","arrow-blitz"]],
+const TCATS=[["🧮 Math",["math-race","marble-munch","softball-smarts","mathsketball","hurdle-dash","odds-evens"]],["🔤 Vocabulary",["word-rush","crossword"]],["⌨️ Typing",["typing-cowboys","arrow-blitz"]],
   ["🎉 Just for fun",["memory-tiles","star-cannons","dart-party","sky-climb","rush-hour","bear-attack"]]];
 $("tList").innerHTML=TCATS.map(([cat,ids])=>`<div class="tcol"><h3>${cat}</h3>${ids.map(id=>{ const c=CLASS_GAMES.find(x=>x.id===id), g=GAMES.find(x=>x.id===id); if (!c||!g) return "";
   return `<div class="tg"><div class="nm"><span>${c.ico}</span>${g.title}</div><p>${c.skill} · ⏱ ${c.len}</p><a class="open" href="${g.path}?play=teacher">Open a Lobby</a></div>`; }).join("")}</div>`).join("");

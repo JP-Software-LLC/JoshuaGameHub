@@ -12,6 +12,9 @@
 //   Typing Cowboys:  start{} pos{d=words,x=0} finish{time,extra=words missed}
 //   Star Cannons:    start{} in{x=-1|0|1} (move direction, on change)
 //   Dart Party:      start{} in{x,y} (move stick, on change) fire{}
+//   Marble Munch:    start{} fire{} (one chomp) ans{v} · host: mode{} digits{} qtime{s}
+//   Vocab Crossword: start{} pos{d=words solved} finish{time,extra=hints} · host: xw{xw:{title,w:[[word,clue]]}|clear} end{}
+//   Softball Smarts: same as Mathsketball (pos{} finish{}) · host: mode{} digits{} goal{goal} pitch{s}
 //   Sky Climb:       start{} in{x=-1|0|1} (steer, on change) fire{} (flap)
 //   Teacher Mode:    digits{d="1"|"12"|"2"} (Math Race, Hurdle Dash) · prog{round,n} (live score) · start{} twice = skip the 10 s countdown
 //                    server sends board{code,rows:[{pid,name,v}]} each second while playing; lobby carries closeIn + pending players
@@ -29,12 +32,16 @@ const { HurdleRoom }=require("./hurdleroom");
 const { ArrowRoom }=require("./arrowroom");
 const { MemoryRoom }=require("./memoryroom");
 const { TypingRoom }=require("./typingroom");
+const { HoopsRoom }=require("./hoopsroom");
+const { MunchRoom }=require("./munchroom");
+const { SoftballRoom }=require("./softballroom");
+const { CrosswordRoom }=require("./crosswordroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom, softball:SoftballRoom, crossword:CrosswordRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -44,6 +51,8 @@ const bus=createBus();
 const rooms=new Map();           // rooms OWNED by this instance
 const relays=new Map();          // code -> {conns:Set, fn}  (out-channel subscriptions on this instance)
 const conns=new Set();
+// "online" = sockets actually in a room (an open socket alone, e.g. a scanner or an idle page, is not a player)
+const online=()=>{ let n=0; for (const c of conns) if (c.code && !c.spectator) n++; return n; };   // admin spectators are not players
 
 const id=n=>crypto.randomBytes(n).toString("base64url");
 const { CODE_CHARS, codeOK }=require("./codes");
@@ -79,10 +88,45 @@ async function attach(c,code){
   c.code=code;
   let r=relays.get(code);
   if (!r){
-    r={ conns:new Set(), fn:({to,m})=>{ const s=JSON.stringify(m); for (const x of r.conns) if (!to||to===x.id) x.send(s); } };
+    r={ conns:new Set(), log:[], fn:({to,m})=>{ remember(r,to,m); const s=JSON.stringify(m); for (const x of r.conns) if (!to||to===x.id||(x.spy&&to===x.spy)) x.send(s); } };
     relays.set(code,r); await bus.subscribe(K.out(code),r.fn);
   }
   r.conns.add(c);
+  STATS.conns(online());
+}
+// ---- admin spectators. Each relay keeps the latest message of each kind (per recipient), so a watcher who
+// arrives mid-game can be brought up to date: the latest lobby / start / round / snapshot / board, plus every
+// event that adds up (words found, finishers, late joiners). Players never see any of this.
+const REPLAY_SKIP=new Set(["pong","welcome","whoareyou","iamok","classresults","error"]);
+const REPLAY_ALL=new Set(["f","fin","addp"]);
+function remember(r,to,m){
+  if (!m || REPLAY_SKIP.has(m.t)) return;
+  const key=(to||"*")+":"+m.t;
+  if (!REPLAY_ALL.has(m.t)){ const i=r.log.findIndex(e=>e.key===key); if (i>=0) r.log.splice(i,1); }
+  r.log.push({ key, to:to||null, m, at:Date.now() });
+  if (r.log.length>300) r.log.splice(0,r.log.length-300);
+}
+function replay(c,r){
+  for (const e of r.log){
+    if (e.to && e.to!==c.spy) continue;
+    let m=e.m;
+    if (typeof m.in==="number"){                       // countdowns/timers: take off the time since it was sent
+      const el=Date.now()-e.at; m={ ...m, in:m.t==="go"?m.in-el:Math.max(0,m.in-el) };
+      if (typeof e.m.dur==="number") m.dur=Math.max(0,e.m.dur-Math.max(0,el-e.m.in));
+    }
+    c.send(JSON.stringify(m));
+  }
+}
+async function spectate(c,m){
+  const fail=msg=>c.send(JSON.stringify({ t:"error", code:"spectate", msg }));
+  let t=null; try{ t=typeof m.auth==="string"&&m.auth?await AUTH.teacherFromToken(m.auth):null; }catch{ t=null; }
+  { const why=t?AUTH.adminProblem(t):"Watching games is only for site admins. Sign in on the teacher page first."; if (why) return fail(why); }
+  const code=cleanCode(m.code), room=rooms.get(code);
+  if (!room) return fail("That game has ended.");
+  c.spectator=true; c.name=c.name||"Spectator";
+  c.spy=room.cidOf(m.pid)||"-";                      // whose screen to mirror ("-" = only what everyone gets)
+  await attach(c,code);
+  replay(c,relays.get(code));
 }
 async function detach(c){
   const code=c.code; if (!code) return; c.code=null;
@@ -96,14 +140,25 @@ async function joinRoom(c,code){
   // a teacher is moving this lobby to another game: wait (≤ 15 s) for the new room to open under the same code
   if (code && !await bus.get(K.room(code)) && await bus.get(K.move(code))) for (let i=0;i<60 && !await bus.get(K.room(code));i++) await wait(250);
   if (!code || !await bus.get(K.room(code))) return c.send(JSON.stringify({ t:"error", code:"noroom", msg:"No room with that code." }));
+  if (c.closed) return;                                   // the browser left before we got here
   await attach(c,code);
   { const r=await bus.get(K.room(code)); if (r) STATS.add("join:"+(r.kind||"cg")); }
   await bus.publish(K.in(code),{ t:"join", cid:c.id, name:c.name, token:c.token });
+  // The socket may have closed WHILE this join was on its way (each await is a Redis round trip). Its "drop" then
+  // reached the room before the join and was ignored, which left a "connected" player with no socket: a ghost
+  // that kept the room open forever. Send the drop again, now that the room knows the player.
+  if (c.closed){ await bus.publish(K.in(code),{ t:"drop", cid:c.id }); if (c.code===code) await detach(c); }
 }
 const gameOf=m=>KINDS[m.game]?m.game:"cg";
 const toRoom=(c,m)=>c.code&&bus.publish(K.in(c.code),Object.assign(m,{cid:c.id}));
 
 async function onMessage(c,m){
+  if (m.t==="spectate") return spectate(c,m);
+  if (c.spectator){                                   // watchers are read only: they can never act in a game
+    if (m.t==="ping") return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
+    if (m.t==="leave"){ c.spectator=false; c.spy=null; return detach(c); }
+    return;
+  }
   switch (m.t){
     case "hello": {
       c.teacherId=null;
@@ -133,7 +188,11 @@ async function onMessage(c,m){
     case "start":  return toRoom(c,{ t:"start" });
     case "mode":   return toRoom(c,{ t:"mode", mode:String(m.mode||"").slice(0,12) });
     case "digits": return toRoom(c,{ t:"digits", d:String(m.d||"").slice(0,3) });
-    case "prog":   return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
+    case "goal":   return toRoom(c,{ t:"goal", goal:m.goal|0 });
+    case "qtime":  return toRoom(c,{ t:"qtime", s:m.s|0 });
+    case "pitch":  return toRoom(c,{ t:"pitch", s:m.s|0 });
+    case "ans":    return toRoom(c,{ t:"ans", v:Math.max(-1,Math.min(99999,m.v|0)) });
+    case "prog":  return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
       let acct=null;
       if (c.teacherId){ acct={ teacherId:c.teacherId, classId:null };
@@ -150,6 +209,8 @@ async function onMessage(c,m){
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "fire":   return toRoom(c,{ t:"fire" });
     case "words":  return toRoom(c,{ t:"words", text:String(m.text||"").slice(0,1200), title:String(m.title||"").slice(0,40) });
+    case "xw":     return toRoom(c,{ t:"xw", clear:!!m.clear, xw:m.xw&&typeof m.xw==="object"?{ title:String(m.xw.title||"").slice(0,40), w:Array.isArray(m.xw.w)?m.xw.w.slice(0,40).map(x=>Array.isArray(x)?[String(x[0]||"").slice(0,24),String(x[1]||"").slice(0,200)]:null):[] }:null });
+    case "end":    return toRoom(c,{ t:"end" });
     case "claim":  return toRoom(c,{ t:"claim", a:Array.isArray(m.a)?m.a.slice(0,4).map(v=>v|0):[] });
     case "leave":  return leave(c);
     case "ping":   return c.send(JSON.stringify({ t:"pong", ts:m.ts }));
@@ -163,7 +224,7 @@ async function leave(c){
 }
 
 // ---- HTTP + WebSocket
-const api=makeApi(bus);
+const api=makeApi(bus,{ live:()=>[...rooms.values()].filter(r=>!r.closed).map(r=>{ const i=r.adminInfo(); i.watchers=[...(relays.get(r.code)?.conns||[])].filter(x=>x.spectator).length; return i; }) });
 if (process.env.DATABASE_URL) DB.connect().catch(e=>console.error("[db] connect failed:",e.message));   // real Postgres: connect now. PGlite (dev) starts lazily on first use so it never stalls a game
 const server=http.createServer(async (req,res)=>{
   if (req.url.startsWith("/api/")) return api.handle(req,res);
@@ -172,9 +233,22 @@ const server=http.createServer(async (req,res)=>{
     res.writeHead(redis?200:503,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"}); // hub reads the online count
     const games={};                                   // players per game (rooms hosted on this instance)
     for (const r of rooms.values()) games[r.kind]=(games[r.kind]||0)+r.connectedCount();
-    return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:conns.size, games }));
+    return res.end(JSON.stringify({ ok:redis, bus:bus.kind, rooms:rooms.size, connections:online(), games }));
   }
   // hub "Have a code?" box: which game does this room code belong to?
+  // hub "Join any game": every public lobby that's open right now (fullest first), so the hub can drop a player into one
+  if (req.url==="/lobbies"){
+    const open=[];
+    for (const kind of Object.keys(KINDS)){
+      for (const code of await bus.smembers(K.open(kind))){
+        const r=await bus.get(K.room(code));
+        if (r && r.pub && r.state==="lobby" && r.humans>0 && r.humans<(r.max||4)) open.push({ code, kind, humans:r.humans, max:r.max });
+      }
+    }
+    open.sort((a,b)=>b.humans-a.humans);
+    res.writeHead(200,{"content-type":"application/json","access-control-allow-origin":"*","cache-control":"no-store"});
+    return res.end(JSON.stringify({ lobbies:open }));
+  }
   if (req.url.startsWith("/room?")){
     const code=cleanCode(new URL(req.url,"http://x").searchParams.get("code"));
     const r=code?await bus.get(K.room(code)):null;
@@ -184,20 +258,36 @@ const server=http.createServer(async (req,res)=>{
   serveStatic(req,res);
 });
 const wss=new WebSocketServer({ server, maxPayload:64*1024 });   // score/finish messages may carry a per-question log
-wss.on("connection",ws=>{
+wss.on("connection",(ws,req)=>{
+  if (STATS.isBot(req&&req.headers["user-agent"])){ ws.close(1008,"bots can't play"); return; }   // crawlers/scripts: no rooms, no stats
   if (conns.size>=MAX_CONN){ ws.close(1013,"server full"); return; }
   const c={ id:id(9), ws, name:null, token:null, code:null, alive:true,
     send:s=>{ if (ws.readyState===1) ws.send(s); } };
-  conns.add(c); STATS.conns(conns.size);
+  conns.add(c);
   ws.on("pong",()=>{ c.alive=true; });
   ws.on("message",raw=>{ let m; try{ m=JSON.parse(raw); }catch{ return; } onMessage(c,m).catch(e=>console.error("[msg]",e)); });
   ws.on("close",async ()=>{
-    conns.delete(c);
-    if (c.code){ await toRoom(c,{ t:"drop" }); await detach(c); }   // session kept → reconnect possible
+    conns.delete(c); c.closed=true; closedCids.set(c.id,Date.now());
+    if (c.code){ if (!c.spectator) await toRoom(c,{ t:"drop" }); await detach(c); }   // session kept → reconnect possible
   });
 });
 // drop dead sockets (mobile sleep, network loss) so bots take over quickly
 setInterval(()=>{ for (const c of conns){ if (!c.alive){ c.ws.terminate(); continue; } c.alive=false; c.ws.ping(); } },10000);
+// Safety net against ghost players: a room player marked "connected" whose socket was opened on THIS server and has
+// since closed is certainly gone, so the room gets the drop it missed. (Only sockets this server saw close are
+// touched, so it stays correct with several game servers.) Closed ids are forgotten after an hour.
+const closedCids=new Map();
+setInterval(()=>{
+  const now=Date.now();
+  for (const [id,t] of closedCids) if (now-t>3600e3) closedCids.delete(id);
+  for (const r of rooms.values()){
+    if (r.closed || typeof r.roster4admin!=="function") continue;
+    for (const p of r.roster4admin()) if (p.connected!==false && p.cid && closedCids.has(p.cid)){
+      console.log(`[ghost] ${r.kind}:${r.code} dropping a player whose socket closed`);
+      bus.publish(K.in(r.code),{ t:"drop", cid:p.cid }).catch(()=>{});
+    }
+  }
+},+process.env.GHOST_SWEEP_MS||30000);
 
 server.listen(PORT,()=>console.log(`[game] listening on :${PORT} · instance ${INSTANCE.slice(0,8)} · bus=${bus.kind}`));
 const shutdown=()=>{ console.log("[game] shutting down"); STATS.flush(); for (const r of rooms.values()) r.close(); server.close(); setTimeout(()=>process.exit(0),500); };

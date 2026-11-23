@@ -10,20 +10,21 @@
 <body>
 <main>
   <h1>Teachers</h1>
-  <p class="sub">Everyone who has signed up for a teacher account. “View as” opens their dashboard exactly as they see it, read-only, in a new tab.</p>
+  <p class="sub">Everyone who has signed up for a teacher account. “View as” opens their dashboard exactly as they see it, read-only, in a new tab. “Manage” edits the account: name, email, school, sign-in safety, or deleting it.</p>
+  <dialog id="dlg"></dialog>
   <div id="out"><div class="msg">Loading…</div></div>
 </main>
 <script src="../../config.js" onerror="window.CG_CONFIG={server:''}"></script>
 <script src="/admin/admin.js"></script>
 <script src="/assets/castle.js"></script>
 <script>
-let TEACHERS=[];
+let TEACHERS=[], SCHOOLS=[];
 async function load(){
   if (!token()) return gate();
-  try{ TEACHERS=(await api("/api/admin/teachers")).teachers; }catch(e){ return gate(e); }
+  try{ TEACHERS=(await api("/api/admin/teachers")).teachers; if (!SCHOOLS.length) SCHOOLS=(await api("/api/schools")).schools; }catch(e){ return gate(e); }
   $("out").innerHTML=`<div class="row" style="justify-content:space-between"><input type="search" id="q" placeholder="Search name, email or school" aria-label="Search teachers">
       <select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="castle">Biggest castle</option><option value="seen">Last sign-in</option></select></div>
-    <div class="card"><table><thead><tr><th>Teacher</th><th class="left">School</th><th>Castle</th><th>Classes</th><th>Students</th><th>Saved games</th><th>Last game</th><th>Signed up</th><th>Last sign-in</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>`;
+    <div class="card"><table><thead><tr><th>Teacher</th><th class="left">School</th><th>Castle</th><th>Classes</th><th>Students</th><th>Saved games</th><th>Last game</th><th>Signed up</th><th>Last sign-in</th><th class="left">Sign-in</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>`;
   $("q").addEventListener("input",draw); $("sort").addEventListener("change",draw);
   draw();
 }
@@ -38,9 +39,11 @@ function draw(){
     <td><span class="lv">Lv ${Castle.level(t.bricks).level}</span> <span class="zero">🧱 ${n(t.bricks)}</span></td>
     <td>${z(t.classes)}${t.shared?` <span class="zero">+${t.shared} shared</span>`:""}</td><td>${z(t.students)}</td><td>${z(t.games)}</td>
     <td>${t.last_game?ago(t.last_game):`<span class="zero">—</span>`}</td><td>${ago(t.created_at)}</td><td>${ago(t.last_login_at)}</td>
-    <td><button class="btn" data-id="${t.id}">View as</button></td></tr>`).join("")
-    :`<tr><td colspan="10">${TEACHERS.length?"No teacher matches that search.":"No teachers have signed up yet."}</td></tr>`;
+    <td class="left">${t.locked?`<span class="tag" style="background:rgba(255,107,107,.15);color:var(--acc2)">🔒 locked</span> `:""}${t.must_change?`<span class="zero">temp password</span>`:t.has_password?`✅ password${t.has_recovery?"":" <span class='zero'>(no question)</span>"}`:t.google?"Google":`<span class="zero">⚠️ no password yet</span>`}</td>
+    <td><div class="row" style="flex-wrap:nowrap"><button class="btn" data-id="${t.id}">View as</button><button class="btn ghost" data-m="${t.id}">Manage</button></div></td></tr>`).join("")
+    :`<tr><td colspan="11">${TEACHERS.length?"No teacher matches that search.":"No teachers have signed up yet."}</td></tr>`;
   $("tb").querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>viewAs(b.dataset.id,b));
+  $("tb").querySelectorAll("button[data-m]").forEach(b=>b.onclick=()=>manage(TEACHERS.find(t=>String(t.id)===b.dataset.m)));
 }
 async function viewAs(id,btn){
   const w=window.open("about:blank","_blank");          // open now so the popup isn't blocked
@@ -48,6 +51,38 @@ async function viewAs(id,btn){
   try{ const d=await api(`/api/admin/teachers/${id}/view`,"POST",{}); const url="/teacher/?viewas="+encodeURIComponent(d.token); if (w) w.location.href=url; else location.href=url; }
   catch(e){ if (w) w.close(); alert(e.message); }
   btn.disabled=false;
+}
+// ---- Manage one teacher: edit · unlock · temporary password · sign out everywhere · delete
+function manage(t){
+  const d=$("dlg"), sc=SCHOOLS.slice().sort((a,b)=>(a.state+a.name).localeCompare(b.state+b.name));
+  d.innerHTML=`<h3>${esc(t.display_name||t.email)}</h3>
+    <label for="mName">Name</label><input id="mName" maxlength="60" value="${esc(t.display_name||"")}">
+    <label for="mEmail">Email</label><input id="mEmail" type="email" value="${esc(t.email)}">
+    <label for="mSchool">School</label><select id="mSchool" style="width:100%"><option value="">— none —</option>${sc.map(s=>`<option value="${esc(s.id)}" ${s.id===t.school_id?"selected":""}>${esc(s.name)}, ${esc(s.state)}</option>`).join("")}</select>
+    <div class="row" style="justify-content:flex-end"><button class="btn" id="mSave">Save changes</button></div>
+    <label>Sign-in safety</label>
+    <p class="zero" style="margin:0 0 8px">${t.locked?"🔒 Locked after too many wrong passwords. ":""}${t.must_change?"Has a temporary password. ":t.has_password?"Has a password. ":"No password yet. "}${t.has_recovery?"Recovery question set.":"No recovery question."}</p>
+    <div class="row">${t.locked?`<button class="btn ghost" id="mUnlock">Unlock</button>`:""}<button class="btn ghost" id="mTemp">Make a temporary password</button><button class="btn ghost" id="mOut">Sign out everywhere</button></div>
+    <div id="mTempOut"></div>
+    <label style="color:var(--acc2)">Delete account</label>
+    <p class="zero" style="margin:0 0 6px">Deletes this teacher, every class they own, its students and all saved games. This can't be undone. Type their email to confirm.</p>
+    <div class="row"><input id="mDelConf" placeholder="${esc(t.email)}" style="flex:1"><button class="btn" id="mDel" style="background:#ef4444;color:#fff" disabled>Delete</button></div>
+    <p class="err" id="mErr"></p>
+    <div class="row"><button class="btn ghost" id="mClose">Close</button></div>`;
+  const err=m=>$("mErr").textContent=m||"";
+  const run=async(btn,fn)=>{ btn.disabled=true; err(""); try{ await fn(); }catch(e){ err(e.message); } btn.disabled=false; };
+  $("mClose").onclick=()=>{ d.close(); load(); };
+  $("mSave").onclick=()=>run($("mSave"),async()=>{ await api(`/api/admin/teachers/${t.id}`,"PATCH",{ displayName:$("mName").value, email:$("mEmail").value, schoolId:$("mSchool").value||null }); $("mSave").textContent="Saved ✓"; });
+  if ($("mUnlock")) $("mUnlock").onclick=()=>run($("mUnlock"),async()=>{ await api(`/api/admin/teachers/${t.id}/unlock`,"POST",{}); $("mUnlock").textContent="Unlocked ✓"; });
+  $("mOut").onclick=()=>run($("mOut"),async()=>{ await api(`/api/admin/teachers/${t.id}/signout`,"POST",{}); $("mOut").textContent="Signed out ✓"; });
+  $("mTemp").onclick=()=>run($("mTemp"),async()=>{
+    if ($("mTemp").dataset.sure!=="1"){ $("mTemp").dataset.sure="1"; $("mTemp").textContent="Sure? Their current password stops working"; return; }
+    const r=await api(`/api/admin/teachers/${t.id}/temp-password`,"POST",{});
+    $("mTempOut").innerHTML=`<p style="margin:10px 0 0">Temporary password (shown once, give it to the teacher privately): <b style="font-family:ui-monospace,monospace;font-size:18px;user-select:all">${esc(r.password)}</b><br><span class="zero">They'll have to choose a new one when they sign in.</span></p>`;
+    $("mTemp").textContent="Temporary password made ✓"; });
+  $("mDelConf").oninput=()=>{ $("mDel").disabled=$("mDelConf").value.trim().toLowerCase()!==t.email.toLowerCase(); };
+  $("mDel").onclick=()=>run($("mDel"),async()=>{ await api(`/api/admin/teachers/${t.id}`,"DELETE"); d.close(); load(); });
+  d.showModal();
 }
 load();
 </script>

@@ -94,6 +94,7 @@ class MathRoom extends RoomBase {
   // start automatically AUTO_START_MS after the 2nd player arrives (public and private)
   scheduleAuto(){
     if (this.state!=="lobby" || this.teacher) return;          // in Teacher Mode the teacher decides when to start
+    if (this.isPublic){ if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); } if (this.connectedCount()>=this.max) this.startGame(); return; }   // public quick play: the host starts it, or it starts by itself once the lobby is full
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startGame(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }

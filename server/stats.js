@@ -14,6 +14,9 @@ const fs=require("fs"), path=require("path"), PUB=path.join(__dirname,"..","publ
 const PAGES=new Set([""]);
 try{ for (const d of fs.readdirSync(PUB)) if (fs.existsSync(path.join(PUB,d,"index.html"))) PAGES.add(d); }catch{}
 const buf=new Map(); let peak=0;
+// crawlers, link previews, monitors, headless browsers and scripts: never counted, never allowed to play
+const BOT_UA=/bot|crawl|spider|slurp|archiver|headless|lighthouse|pagespeed|preview|facebookexternalhit|embedly|whatsapp|python|curl|wget|go-http|java\/|okhttp|node-fetch|axios|undici|scrapy|phantom|puppeteer|playwright|selenium|monitor|uptime|pingdom|scan/i;
+const isBot=ua=>BOT_UA.test(String(ua||""));
 const day=()=>new Date().toISOString().slice(0,10);
 
 function add(metric,n=1){ if (buf.size<500||buf.has(metric)) buf.set(metric,(buf.get(metric)||0)+n); }
@@ -44,4 +47,4 @@ async function report(days){
     (select coalesce(sum(bricks),0) from teachers)::float8 bricks, (select count(*) from tournaments where ended_at is null)::int live_tournaments`,[days]);
   return { days, rows, totals };
 }
-module.exports={ add, conns, mode, view, flush, report };
+module.exports={ isBot, add, conns, mode, view, flush, report };

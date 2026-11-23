@@ -142,3 +142,30 @@ CREATE TABLE IF NOT EXISTS tournaments (
 );
 CREATE INDEX IF NOT EXISTS tournaments_school ON tournaments(school_id, started_at DESC);
 ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS saved_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- passwords (scrypt) + one recovery question (answer hashed the same way); lockout after repeated failures
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS pw_hash TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS pw_set_at TIMESTAMPTZ;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS must_change BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS recovery_q TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS recovery_hash TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS failed_logins INT NOT NULL DEFAULT 0;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+-- how a session was opened: password · google · link (email link) · email (EMAIL_VERIFY=off) · recover · view
+ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS method TEXT;
+
+-- ---- student activity for the admin Students board: one row when a named student joins a teacher's room ('join')
+-- and one per student each time a game starts there ('play'). Same first name + last initial = one student.
+CREATE TABLE IF NOT EXISTS student_activity (
+  id            BIGSERIAL PRIMARY KEY,
+  kind          TEXT NOT NULL CHECK (kind IN ('join','play')),
+  first_name    TEXT NOT NULL,
+  last_initial  TEXT NOT NULL DEFAULT '',
+  nickname      TEXT NOT NULL DEFAULT '',
+  school_id     TEXT,
+  game          TEXT NOT NULL,
+  room_code     TEXT,
+  teacher_id    BIGINT REFERENCES teachers(id) ON DELETE SET NULL,
+  at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS student_activity_at ON student_activity(at DESC);

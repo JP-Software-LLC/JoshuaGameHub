@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Students · JGH Admin</title>
+<link rel="stylesheet" href="/admin/admin.css">
+<style>
+.top{margin-bottom:16px}
+tr.st{cursor:pointer} tr.st:hover td{background:rgba(255,255,255,.03)}
+tr.more td{background:var(--p2);white-space:normal}
+.games{display:flex;flex-wrap:wrap;gap:6px}
+.games span{background:var(--p1);border:1px solid var(--edge);border-radius:999px;padding:3px 10px;font-size:13px}
+.nick{color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><h1>Students</h1><p class="sub">Everyone who has played in a teacher's room. One student = the same first name and last initial (capital letters don't matter). Click a student to see their games.</p></div>
+    <select id="days" aria-label="Time range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option><option value="3650">All time</option></select>
+  </div>
+  <div id="out"><div class="msg">Loading…</div></div>
+  <p class="note">"Rooms joined" and "Games played" count every Teacher Mode room from when this board was added (students in public or solo games don't give a name, so they aren't here). "Saved results" (places, wins, bricks) come from games a signed-in teacher saved to a class. Two different children with the same first name and last initial are counted as one.</p>
+</main>
+<script src="../../config.js" onerror="window.CG_CONFIG={server:''}"></script>
+<script src="/admin/admin.js"></script>
+<script>
+const GAMES={ cg:"Clean Getaway", math:"Math Race", arrows:"Arrow Blitz", rush:"Rush Hour", hurdle:"Hurdle Dash", hoops:"Mathsketball", munch:"Marble Munch", bear:"Bear Attack!", memory:"Memory Tiles", typing:"Typing Cowboys", cannons:"Star Cannons", darts:"Dart Party", sky:"Sky Climb", words:"Word Rush" };
+const gname=k=>GAMES[k]||k;
+let D=null, open=null;
+async function load(){
+  if (!token()) return gate();
+  try{ D=await api("/api/admin/students?days="+$("days").value); }catch(e){ return gate(e); }
+  const T=D.totals;
+  $("out").innerHTML=`<div class="tiles">
+      <div class="tile"><b>${n(T.students)}</b><span>Unique students</span></div>
+      <div class="tile"><b>${n(T.today)}</b><span>Played in the last 24 h</span></div>
+      <div class="tile"><b>${n(T.week)}</b><span>Played in the last 7 days</span></div>
+      <div class="tile"><b>${n(T.joins)}</b><span>Rooms joined</span></div>
+      <div class="tile"><b>${n(T.plays)}</b><span>Games played</span></div>
+      <div class="tile"><b>${n(T.saved)}</b><span>Saved results</span></div>
+    </div>
+    <h2>All students</h2>
+    <div class="row" style="justify-content:space-between"><input type="search" id="q" placeholder="Search name, nickname, school or teacher" aria-label="Search students">
+      <select id="sort" aria-label="Sort"><option value="plays">Most games played</option><option value="recent">Last seen</option><option value="wins">Most wins</option><option value="bricks">Most bricks</option><option value="name">Name A–Z</option></select></div>
+    <div class="card"><table><thead><tr><th>Student</th><th class="left">Nickname(s)</th><th class="left">School</th><th>Rooms joined</th><th>Games played</th><th class="left">Favourite game</th><th>Saved results</th><th>Wins · top 3</th><th>Avg place</th><th>Bricks</th><th>Last seen</th></tr></thead><tbody id="tb"></tbody></table></div>`;
+  $("q").addEventListener("input",draw); $("sort").addEventListener("change",draw);
+  draw();
+}
+function draw(){
+  const q=$("q").value.trim().toLowerCase(), by=$("sort").value, z=v=>v?n(v):`<span class="zero">0</span>`;
+  const sorts={ plays:(a,b)=>b.plays-a.plays||b.joins-a.joins, recent:(a,b)=>new Date(b.lastSeen)-new Date(a.lastSeen), wins:(a,b)=>b.wins-a.wins||b.top3-a.top3,
+    bricks:(a,b)=>b.bricks-a.bricks, name:(a,b)=>(a.first+a.last).localeCompare(b.first+b.last) };
+  const list=D.students.filter(s=>!q||[s.first,s.last,...s.nicknames,...s.schools,...s.teachers].join(" ").toLowerCase().includes(q)).sort(sorts[by]);
+  $("tb").innerHTML=list.length?list.map(s=>`<tr class="st" data-k="${esc(s.key)}">
+      <td><b>${esc(s.first)} ${esc(s.last?s.last+".":"")}</b></td>
+      <td class="left"><span class="nick">${esc(s.nicknames.slice(0,3).join(", ")||"—")}${s.nicknames.length>3?` +${s.nicknames.length-3}`:""}</span></td>
+      <td class="left">${esc(s.schools[0]||"—")}${s.schools.length>1?` <span class="zero">+${s.schools.length-1}</span>`:""}</td>
+      <td>${z(s.joins)}</td><td>${z(s.plays)}</td><td class="left">${s.favorite?esc(gname(s.favorite)):`<span class="zero">—</span>`}</td>
+      <td>${z(s.saved)}</td><td>${s.wins||s.top3?`🥇 ${s.wins} · ${s.top3}`:`<span class="zero">—</span>`}</td>
+      <td>${s.avgPlace??`<span class="zero">—</span>`}</td><td>${z(s.bricks)}</td><td>${ago(s.lastSeen)}</td></tr>
+      ${open===s.key?`<tr class="more"><td colspan="11">
+        <div class="row" style="gap:18px;align-items:flex-start">
+          <div><b>Games played</b><div class="games" style="margin-top:6px">${Object.entries(s.games).sort((a,b)=>b[1]-a[1]).map(([g,c])=>`<span>${esc(gname(g))} × ${c}</span>`).join("")||`<span class="zero">none yet</span>`}</div></div>
+          <div><b>All nicknames</b><div class="nick">${esc(s.nicknames.join(", ")||"—")}</div></div>
+          <div><b>Teachers</b><div class="nick">${esc(s.teachers.join(", ")||"—")}</div></div>
+          <div><b>Schools</b><div class="nick">${esc(s.schools.join(" · ")||"—")}</div></div>
+          <div><b>First seen</b><div class="nick">${ago(s.firstSeen)}</div></div>
+        </div></td></tr>`:""}`).join("")
+    :`<tr><td colspan="11" class="left">${D.students.length?"No student matches that search.":"No students in this time range yet. They appear as soon as they join a teacher's room."}</td></tr>`;
+  $("tb").querySelectorAll("tr.st").forEach(r=>r.onclick=()=>{ open=open===r.dataset.k?null:r.dataset.k; draw(); });
+}
+$("days").addEventListener("change",load);
+load();
+</script>
+</body>
+</html>

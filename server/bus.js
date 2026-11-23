@@ -4,13 +4,15 @@
 // replicas later needs no code changes.
 "use strict";
 
+// BUS_TEST_DELAY_MS (tests only): make the in-memory bus as slow as a network Redis, to catch async races
+const lag=()=>{ const ms=+process.env.BUS_TEST_DELAY_MS; return ms?new Promise(r=>setTimeout(r,ms)):null; };
 class MemoryBus {
   constructor(){ this.subs=new Map(); this.kv=new Map(); this.sets=new Map(); this.kind="memory"; }
-  async publish(ch,msg){ const s=JSON.stringify(msg); queueMicrotask(()=>{ for (const fn of this.subs.get(ch)||[]) fn(JSON.parse(s)); }); }
-  async subscribe(ch,fn){ if(!this.subs.has(ch)) this.subs.set(ch,new Set()); this.subs.get(ch).add(fn); }
+  async publish(ch,msg){ await lag(); const s=JSON.stringify(msg); queueMicrotask(()=>{ for (const fn of this.subs.get(ch)||[]) fn(JSON.parse(s)); }); }
+  async subscribe(ch,fn){ await lag(); if(!this.subs.has(ch)) this.subs.set(ch,new Set()); this.subs.get(ch).add(fn); }
   async unsubscribe(ch,fn){ const s=this.subs.get(ch); if(!s) return; s.delete(fn); if(!s.size) this.subs.delete(ch); }
   async set(k,v,ttl){ this.kv.set(k,{v,exp:ttl?Date.now()+ttl*1000:0}); }
-  async get(k){ const e=this.kv.get(k); if(!e) return null; if(e.exp&&e.exp<Date.now()){ this.kv.delete(k); return null; } return e.v; }
+  async get(k){ await lag(); const e=this.kv.get(k); if(!e) return null; if(e.exp&&e.exp<Date.now()){ this.kv.delete(k); return null; } return e.v; }
   async del(k){ this.kv.delete(k); }
   async sadd(k,m){ if(!this.sets.has(k)) this.sets.set(k,new Set()); this.sets.get(k).add(m); }
   async srem(k,m){ this.sets.get(k)?.delete(m); }
@@ -28,7 +30,9 @@ class RedisBus {
     this.sub.on("message",(ch,raw)=>{ const s=this.subs.get(ch); if(!s) return; let m; try{ m=JSON.parse(raw);}catch{return;} for (const fn of s) fn(m); });
   }
   async publish(ch,msg){ await this.pub.publish(ch,JSON.stringify(msg)); }
-  async subscribe(ch,fn){ if(!this.subs.has(ch)){ this.subs.set(ch,new Set()); await this.sub.subscribe(ch); } this.subs.get(ch).add(fn); }
+  // add the handler BEFORE awaiting Redis: an unsubscribe of the same channel during the await used to delete the set
+  // ("Cannot read properties of undefined (reading 'add')"), the join failed and that room's relay went silent
+  async subscribe(ch,fn){ let s=this.subs.get(ch); const first=!s; if (first){ s=new Set(); this.subs.set(ch,s); } s.add(fn); if (first) await this.sub.subscribe(ch); }
   async unsubscribe(ch,fn){ const s=this.subs.get(ch); if(!s) return; s.delete(fn); if(!s.size){ this.subs.delete(ch); await this.sub.unsubscribe(ch); } }
   async set(k,v,ttl){ const s=JSON.stringify(v); if (ttl) await this.pub.set(k,s,"EX",ttl); else await this.pub.set(k,s); }
   async get(k){ const s=await this.pub.get(k); return s==null?null:JSON.parse(s); }

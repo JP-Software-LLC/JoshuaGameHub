@@ -454,6 +454,7 @@ function onNet(m){
       if (m.game!=="bear"){ Net.send({ t:"leave" }); Net.close(); show("menu"); return err("That code is for a different game."); }
       Net.pid=m.pid; Net.code=m.code; if (screen==="menu") show("lobby"); break;
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
+    case "addp": if (G.players && m.p) G.players.set(m.p.pid,m.p); break;   // a classmate joined mid-game
     case "start": beginGame({ players:m.players, me:Net.pid, inMs:m.in, mode:"online" }); break;
     case "s": if (G.mode==="online"){ G.snaps.push({ t:performance.now(), s:m.s }); if (G.snaps.length>30) G.snaps.shift(); if (m.e.length) onEvents(m.e,m.s); } break;
     case "results": if (G.mode==="online") setTimeout(()=>showResults(m.rank),1800); break;

@@ -21,6 +21,7 @@ class RushRoom extends RoomBase {
   constructor(code, isPublic, bus, instanceId, onClose){
     super(code, isPublic, bus, instanceId, onClose, new.target.KIND, MAX_PLAYERS);
     this.dist=new.target.DIST; this.digits=new.target.DIGITS?"1":null;     // Hurdle Dash: how many digits in each sum
+    this.mode=new.target.MODES?new.target.MODES[0]:null;                   // Mathsketball: Math Race question type
     this.players=new Map();   // pid -> {pid,cid,name,token,connected,color,d,x,fin}
     this.nextPid=1; this.host=0; this.autoAt=0; this.relay=null; this.endTimer=null;
   }
@@ -34,7 +35,7 @@ class RushRoom extends RoomBase {
 
   lobby(){
     return this.send({ t:"lobby", game:this.kind, code:this.code, pub:this.isPublic, state:this.state, max:MAX_PLAYERS,
-      digits:this.digits, host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
+      digits:this.digits, mode:this.mode, host:this.host, teacher:this.teacher, autoIn:this.autoAt?Math.max(0,this.autoAt-Date.now()):0, players:this.roster() });
   }
   handle(msg){
     const p=this.byCid(msg.cid);
@@ -45,6 +46,9 @@ class RushRoom extends RoomBase {
       case "digits":
         if (p && p.pid===this.host && this.state==="lobby" && this.digits && ["1","12","2"].includes(msg.d)){ this.digits=msg.d; this.lobby(); }
         return;
+      case "mode":
+        if (p && p.pid===this.host && this.state==="lobby" && this.mode && this.constructor.MODES.includes(msg.mode)){ this.mode=msg.mode; this.lobby(); }
+        return;
       case "iam": return this.handleIam(p,msg);
       case "pos":
         if (!p || this.state!=="playing" || p.fin!=null) return;
@@ -53,7 +57,7 @@ class RushRoom extends RoomBase {
         return;
       case "finish":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        p.fin=Math.max(20,Math.min(MAX_RACE_MS/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
+        p.fin=Math.max(20,Math.min((this.constructor.MAX_MS||MAX_RACE_MS)/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
         this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
         if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),this.constructor.AFTER_FIRST||AFTER_FIRST_MS);
         this.checkAllDone(); return;
@@ -91,6 +95,7 @@ class RushRoom extends RoomBase {
   racers(){ return [...this.players.values()].filter(p=>p.pid!==this.teacher); }
   scheduleAuto(){
     if (this.state!=="lobby" || this.teacher) return;
+    if (this.isPublic){ if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); } if (this.connectedCount()>=this.max) this.startRace(); return; }   // public quick play: the host starts it, or it starts by itself once the lobby is full
     if (this.connectedCount()>=2){
       if (!this.autoAt){ this.autoAt=Date.now()+AUTO_START_MS; this.autoTimer=setTimeout(()=>this.startRace(),AUTO_START_MS); this.lobby(); }
     } else if (this.autoAt){ clearTimeout(this.autoTimer); this.autoAt=0; this.lobby(); }
@@ -100,7 +105,7 @@ class RushRoom extends RoomBase {
       .sort((a,b)=>(a.fin==null)-(b.fin==null) || (a.fin!=null?a.fin-b.fin:b.d-a.d))
       .map(r=>({ pid:r.pid, name:r.name, v:r.fin!=null?`🏁 ${Math.round(r.fin)}s`:`${Math.round(100*r.d/this.dist)}%` }));
   }
-  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, digits:this.digits, teacher:this.teacher, players:this.roster().filter(p=>p.pid!==this.teacher) }; }
+  goMsg(){ return { t:"go", seed:this.seed, dist:this.dist, digits:this.digits, mode:this.mode, teacher:this.teacher, players:this.roster().filter(p=>p.pid!==this.teacher) }; }
   startRace(){
     if (this.state!=="lobby" || this.racers().filter(p=>p.connected).length<MIN_PLAYERS) return;
     clearTimeout(this.autoTimer); this.autoAt=0;
@@ -109,9 +114,11 @@ class RushRoom extends RoomBase {
     this.state="playing"; this.register(); this.lobby();
     this.send({ ...this.goMsg(), in:COUNTDOWN_MS });
     this.relay=setInterval(()=>this.send({ t:"ps", p:this.racers().map(q=>[q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]) }),RELAY_MS);
-    this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+MAX_RACE_MS);
+    this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+(this.constructor.MAX_MS||MAX_RACE_MS));
   }
   checkAllDone(){
+    const frac=this.constructor.END_FRAC;            // Mathsketball: the round ends once this share of the class has finished
+    if (frac){ const all=this.racers(), done=all.filter(p=>p.fin!=null).length; if (done && done>=Math.ceil(frac*all.length)) return this.finish(); }
     const racing=this.racers().filter(p=>p.connected&&p.fin==null);
     if (!racing.length && this.racers().some(p=>p.fin!=null)) this.finish();
     else if (!this.racers().length) this.finish();
@@ -122,7 +129,7 @@ class RushRoom extends RoomBase {
     const rank=this.racers().map(p=>({ pid:p.pid, name:p.name, color:p.color, time:p.fin, d:p.d, extra:p.extra??null }))
       .sort((a,b)=>(a.time==null)-(b.time==null) || (a.time!=null ? a.time-b.time : b.d-a.d));
     this.send({ t:"results", rank, dist:this.dist });
-    this.recordSession(null,rank.map((e,i)=>({ pid:e.pid, place:i+1, score:e.time, stats:{ finished:e.time!=null, time:e.time, percent:Math.round(100*(e.d||0)/this.dist), extra:e.extra },
+    this.recordSession(this.mode,rank.map((e,i)=>({ pid:e.pid, place:i+1, score:e.time, stats:{ finished:e.time!=null, time:e.time, percent:Math.round(100*(e.d||0)/this.dist), extra:e.extra },
       log:this.players.get(e.pid)?.log||[] })),{ dist:this.dist });
     this.state="lobby";
     for (const [pid,p] of this.players) if (!p.connected) this.players.delete(pid);

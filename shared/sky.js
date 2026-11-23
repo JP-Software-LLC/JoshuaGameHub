@@ -21,9 +21,9 @@
   function makeLevel(seed){
     const r=rngOf(seed*13+5), ledges=[], blocks=[], critters=[], gaps=[];
     const rows=Math.floor(T.goal/T.rowGap), rowGaps=[[]];
-    // pass 1: each row is a solid stone floor with 2–3 gaps to fly up through (gaps narrow as you climb)
+    // pass 1: each row is a solid stone floor with 2–3 wide gaps to fly up through (the bottom-row difficulty all the way up)
     for (let i=1;i<rows;i++){
-      const y=i*T.rowGap, hard=i/rows;
+      const y=i*T.rowGap, hard=1/rows;   // same (bottom-row) difficulty all the way up
       const ng=r()<0.45-hard*0.3?3:2, gw=()=>Math.max(5.5,9.5-hard*3.5)*(0.85+r()*0.3), seg=T.W/ng, row=[];
       for (let k=0;k<ng;k++){ const w=gw(); row.push({ x:seg*k+1+r()*(seg-w-2), w }); }
       let cur=0;
@@ -33,7 +33,7 @@
     }
     // pass 2: obstacles between rows
     for (let i=1;i<rows;i++){
-      const y=i*T.rowGap, hard=i/rows, clear=[...rowGaps[i],...(rowGaps[i+1]||[])];
+      const y=i*T.rowGap, hard=1/rows, clear=[...rowGaps[i],...(rowGaps[i+1]||[])];
       // extra stone chunks floating between rows, never under or over a gap, so every gap stays flyable
       const extra=(r()<0.4+hard*0.5?1:0)+(r()<hard*0.6?1:0);
       for (let k=0;k<extra;k++){ const w=5+r()*8; for (let tries=0;tries<12;tries++){ const x=r()*(T.W-w);

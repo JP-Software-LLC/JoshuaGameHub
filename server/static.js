@@ -30,6 +30,9 @@ function serve(req,res){
   if (p==="/sim.js") file=path.join(ROOT,"shared","sim.js");
   else if (p==="/rush.js") file=path.join(ROOT,"shared","rush.js");
   else if (p==="/bear.js") file=path.join(ROOT,"shared","bear.js");
+  else if (p==="/munch.js") file=path.join(ROOT,"shared","munch.js");
+  else if (p==="/softball.js") file=path.join(ROOT,"shared","softball.js");
+  else if (p==="/crossword.js") file=path.join(ROOT,"shared","crossword.js");
   else if (p==="/hurdle.js") file=path.join(ROOT,"shared","hurdle.js");
   else if (p==="/wordsearch.js") file=path.join(ROOT,"shared","wordsearch.js");
   else if (p==="/sky.js") file=path.join(ROOT,"shared","sky.js");
@@ -37,6 +40,7 @@ function serve(req,res){
   else if (p==="/cannons.js") file=path.join(ROOT,"shared","cannons.js");
   else if (p==="/typing.js") file=path.join(ROOT,"shared","typing.js");
   else if (p==="/memory.js") file=path.join(ROOT,"shared","memory.js");
+  else if (p==="/hoops.js") file=path.join(ROOT,"shared","hoops.js");
   else {
     if (p.endsWith("/")) p+="index.html";
     file=path.normalize(path.join(PUBLIC,p));

@@ -61,6 +61,21 @@ class Game {
       p.x=best.x; p.y=best.y; placed.push(best);
     }
   }
+  // late joiner: a fresh skater on the current ice, away from the bear, the bear's next path and everyone else
+  addPlayer(pl){
+    if (this.players.some(q=>q.id===pl.id) || this.phase==="over") return;
+    const b=this.bear; let best={ x:0, y:0 }, bestD=-1;
+    for (let k=0;k<40;k++){
+      const a=this.r()*Math.PI*2, d=Math.sqrt(0.15+this.r()*0.7)*(this.R-1.5), x=Math.cos(a)*d, y=Math.sin(a)*d;
+      let m=Math.hypot(b.x-x,b.y-y)-1.5;
+      if (this.phase==="warn"||this.phase==="dash"){ const ux=b.tx-b.x, uy=b.ty-b.y, L=Math.hypot(ux,uy)||1, t=Math.max(0,Math.min(L,((x-b.x)*ux+(y-b.y)*uy)/L));
+        m=Math.min(m,Math.hypot(b.x+ux/L*t-x,b.y+uy/L*t-y)-T.bearR-1); }
+      for (const q of this.alive()) m=Math.min(m,Math.hypot(q.x-x,q.y-y));
+      if (m>bestD){ bestD=m; best={ x, y }; }
+    }
+    this.players.push({ id:pl.id, name:pl.name, bot:!!pl.bot, x:best.x, y:best.y, vx:0, vy:0, ix:0, iy:0, alive:true, outT:null, outRound:null, hits:0, hitCD:0 });
+    this.solo=false;
+  }
   setInput(id,ix,iy){ const p=this.players.find(q=>q.id===id); if (!p) return;
     const m=Math.hypot(ix,iy); if (m>1){ ix/=m; iy/=m; } p.ix=ix||0; p.iy=iy||0; }
 
