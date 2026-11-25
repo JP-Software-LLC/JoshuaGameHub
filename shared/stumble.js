@@ -38,8 +38,8 @@
     slideFriction:11,  // deceleration while belly-sliding
     radius:0.45, halfH:0.4,   // capsule (total height 1.7)
     // ---- hazards: KNOCK-BACK (sweepers, pendulums, sliding gates). Tune feel here. ----
-    hitPush:6.8,       // sideways speed (m/s) a hit gives you, along the hazard's motion. ≈ how far you fly: 6.8 → ~3.5 m
-    hitUp:5,           // upward pop on a hit (m/s): 5 → ~0.5 m high, ~0.42 s in the air
+    hitPush:9.5,       // sideways speed (m/s) a hit gives you, along the hazard's motion. ≈ how far you fly: 6.8 → ~3.5 m, 9.5 → ~5.5 m
+    hitUp:6,           // upward pop on a hit (m/s): 5 → ~0.5 m high, ~0.42 s in the air; 6 → ~0.75 m, ~0.5 s
     hitStun:0.55,      // seconds of stumble after a hit: reduced control, momentum kept
     hitControl:0.25,   // how much of your steering works during the stumble (0..1)
     hitDrag:1.5,       // air deceleration during the stumble (m/s², low = the throw carries)
