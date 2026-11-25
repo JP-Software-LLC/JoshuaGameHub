@@ -23,6 +23,11 @@
 //                                                           a wall of n doors; open ones let you through, the rest are jelly
 //   mover  { x, xB?, dA, dB, len, w, top, h=0.8, period, hold=0, phase=0 }  moving platform: pure function of race time
 //   sign   { d, text }                                       room name board at the left edge
+//   deck   { d, x=0, r, top=0, h=3, c }                       ROUND floor (centre d,x; radius r)
+//   HAZARDS (hot pink + white = it moves / pushes; motion is a pure function of race time; shared/stumble.js hazardShape):
+//   sweeper  { d, x=0, top=0, len, y=0.55, thick=0.3, speed rad/s, phase rad, arms=1, hub=0.8, hubH=1.6 }  low spinning arm(s)
+//   pendulum { d, x=0, py, rope, amp rad, period s, phase 0..1, r }      wrecking ball swinging across the path
+//   gate     { d, top=0, w, h=1.9, thick=0.8, xA, xB, period, hold=0.2, phase=0, gap=0 }   sliding box (gap>0 = wall with an opening)
 // checkpoints: { d, veil?:k, xs?:[x…], sw? }  xs = respawn spots (nearest to where you fell), sw = sideways spread (±m)
 // rooms[i].bot = { safe:[[d,x,w]…], fast?:[[d,x,w]…], mirror? }  solo-bot lines (x to aim for, ±w freedom); fast = risky split
 //   route (better bots pick it more often); mirror = each bot flips the line to the other side half the time
@@ -174,7 +179,60 @@
     };
   })();
 
-  const MAPS={ "jellybean-skyway":jellybean };
+  // ---------------- Test room: Hazard Lab (open edges; feel + tune knock-back. Open with ?play=bots&map=hazard-lab) ----------------
+  const hazardLab=(()=>{
+    const P=[];
+    const floor=(d0,d1,x0,x1,o={})=>P.push({ type:"floor", d0, d1, x0, x1, top:o.top??0, h:o.h??3, c:o.c||"main" });
+    const rails=(d0,d1,x0,x1,top=0)=>{ P.push({ type:"rail", d0, d1, x0:x0-0.6, x1:x0, top:top+0.7, h:1.2 }, { type:"rail", d0, d1, x0:x1, x1:x1+0.6, top:top+0.7, h:1.2 }); };
+    // start pad (railed) → narrow bridge onto the first deck
+    floor(-8,10,-5,5); rails(-8,10,-5,5);
+    P.push({ type:"sign", d:4, text:"1 · SPIN START" });
+    floor(10,16,-2.2,2.2,{ c:"alt" });
+    // 1 · sweeper deck: one slow arm, open edges (a hit near the rim throws you off; in the middle it doesn't)
+    P.push({ type:"deck", d:25, r:9, c:"main" });
+    P.push({ type:"sweeper", d:25, len:8.2, speed:0.75, phase:Math.PI/2, arms:1 });
+    floor(33,39,-3,3,{ c:"alt" });
+    // 2 · pendulum bridge: 3 wrecking balls over a 7 m bridge, no rails, out of step so there's always a gap
+    P.push({ type:"sign", d:36.5, text:"2 · PENDULUM BRIDGE" });
+    floor(39,63,-3.5,3.5);                                              // 7 m wide: a centre hit is a scare, an edge hit is a fall (3rd-grade tuning)
+    P.push({ type:"pendulum", d:45, py:8.2, rope:7, amp:0.72, period:3.4, phase:0, r:1 });
+    P.push({ type:"pendulum", d:51.5, py:8.2, rope:7, amp:0.72, period:3.8, phase:0.33, r:1 });
+    P.push({ type:"pendulum", d:58, py:8.2, rope:7, amp:0.72, period:3.6, phase:0.66, r:1 });
+    // 3 · gate crash: three rows of sliding gates on a wide open slab
+    floor(63,71,-4.5,4.5,{ c:"alt" });
+    P.push({ type:"sign", d:66, text:"3 · GATE CRASH" });
+    floor(71,97,-5,5);
+    P.push({ type:"gate", d:76, w:3, xA:-3.5, xB:-0.6, period:4, phase:0 });        // two gates, out of step
+    P.push({ type:"gate", d:76, w:3, xA:0.6, xB:3.5, period:4, phase:0 });
+    P.push({ type:"gate", d:84, w:16, gap:3, xA:-3, xB:3, period:5, phase:0.25 });  // a wall with a sliding doorway
+    P.push({ type:"gate", d:92, w:5, xA:-2.5, xB:2.5, period:4.4, phase:0.6 });     // one big gate: go round it
+    floor(97,102,-2.5,2.5,{ c:"alt" });
+    // 4 · double sweeper: two opposite arms (a full bar), turning the other way
+    P.push({ type:"sign", d:95.5, text:"4 · DOUBLE SPIN" });
+    P.push({ type:"deck", d:111, r:10, c:"main" });
+    P.push({ type:"sweeper", d:111, len:9.2, speed:-0.7, phase:0, arms:2 });
+    floor(120.5,126,-2.5,2.5,{ c:"alt" });
+    // calm veil pad (railed, no hazard within 6 m) → finish
+    floor(126,152,-5,5); rails(126,152,-5,5);
+    const veils=[133];
+    const checkpoints=[ { d:0, sw:1.6 }, { d:36, sw:1 }, { d:67, sw:1.4 }, { d:99.5, sw:0.8 }, { d:134.5, veil:0, sw:1.6 } ];
+    const L=(...pts)=>pts;
+    const rooms=[
+      { name:"Spin Start", d0:0, d1:36, bot:{ mirror:true, safe:L([0,0,1.5],[10,0,1],[17,-2.5,0.6],[33,-2.5,0.6],[36,0,1]) } },
+      { name:"Pendulum Bridge", d0:36, d1:66, bot:{ safe:L([36,0,1],[66,0,0.8]) } },
+      { name:"Gate Crash", d0:66, d1:99, bot:{ safe:L([66,0,2],[99,0,1]) } },
+      { name:"Double Spin", d0:99, d1:126, bot:{ mirror:true, safe:L([99,0,1],[104,-3,0.6],[118,-3,0.6],[122,0,1]) } },
+      { name:"Finish", d0:126, d1:140, bot:{ safe:L([126,0,2],[140,0,2]) } },
+    ];
+    return {
+      id:"hazard-lab", name:"Hazard Lab", length:140, test:true,
+      veils, rooms, checkpoints, pieces:P,
+      spawn:{ d:1.5, cols:6, gap:1.5, rows:5 },
+      theme:jellybean.theme,
+    };
+  })();
+
+  const MAPS={ "jellybean-skyway":jellybean, "hazard-lab":hazardLab };
   const DEFAULT="jellybean-skyway";
   const get=id=>MAPS[id]||MAPS[DEFAULT];
   return { MAPS, DEFAULT, get };

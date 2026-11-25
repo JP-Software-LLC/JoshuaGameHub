@@ -8,6 +8,8 @@ const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} },
 const { T, COURSE }=STUMBLE;
 // map registry (shared/stumble-maps.js): veil depths, checkpoints, length. Falls back to the old slice course.
 const MAPS=window.STUMBLE_MAPS||{ DEFAULT:"", get:()=>({ id:"", name:"", length:T.dist, veils:[], checkpoints:[] }) };
+// ?map=<id> picks a map for SOLO play (testing, e.g. ?play=bots&map=hazard-lab). Read now: the ?play deep link clears the URL.
+const URL_MAP=(()=>{ const m=new URLSearchParams(location.search).get("map"); return m&&MAPS.MAPS&&MAPS.MAPS[m]?m:null; })();
 const QMODES=[["add","+ Add"],["sub","− Subtract"],["mul","× Multiply"],["div","÷ Divide"],["money","$ Money"]];
 const pcol=i=>`hsl(${(i*137.508+275)%360},78%,58%)`;           // same as world.js
 const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}`;
@@ -60,7 +62,7 @@ show("menu");
 const err=t=>$("err").textContent=t||"";
 $("nameIn").value=store.get("cg_name")||"";
 const myName=()=>{ const n=$("nameIn").value.trim().slice(0,14)||"Player"; store.set("cg_name",n); return n; };
-function flash(t){ const m=$("msg"); m.textContent=t; m.classList.remove("show"); void m.offsetWidth; m.classList.add("show"); }
+function flash(t,cls){ const m=$("msg"); m.textContent=t; m.classList.remove("show","hit"); void m.offsetWidth; m.classList.add("show"); if (cls) m.classList.add(cls); }
 function toast(t){ const f=$("feed"); const d=document.createElement("div"); d.textContent=t; f.prepend(d); while (f.children.length>3) f.lastChild.remove(); setTimeout(()=>d.remove(),3500); }
 
 // ============================================================
@@ -92,6 +94,7 @@ function readInput(){
 // ============================================================
 //  WORLD EVENTS (my bean + solo bots)
 // ============================================================
+const HIT_WORDS=["BONK!","WHOA!","OOF!","BOING!"];
 function raceSecs(){ return Math.max(0,(performance.now()-G.startAt)/1000); }
 function onWorldEvent(e,pid,st){
   if (pid===G.me){
@@ -99,6 +102,7 @@ function onWorldEvent(e,pid,st){
     else if (e==="flag"){ toast("🚩 Checkpoint"); }
     else if (e==="checkpoint"){ flash("CHECKPOINT!"); }
     else if (e==="fall"){ flash("WHOOPS!"); if (navigator.vibrate) navigator.vibrate(60); }
+    else if (e==="hit"){ flash(HIT_WORDS[(G.hitN=(G.hitN||0)+1)%HIT_WORDS.length],"hit"); if (navigator.vibrate) navigator.vibrate(40); }
     else if (e==="finish") onFinish();
     return;
   }
@@ -261,7 +265,7 @@ $("bSolo").onclick=async ()=>{
   const names=["Wobbles","Jellybean","Bonk","Noodle","Sprinkles","Dizzy","Gumdrop"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
   const sp=soloPrefs();
-  await beginRace({ players, me:1, inMs:3500, mode:"solo", seed, qmode:sp.mode, digits:sp.digits, qpv:sp.qpv });
+  await beginRace({ players, me:1, inMs:3500, mode:"solo", seed, qmode:sp.mode, digits:sp.digits, qpv:sp.qpv, map:URL_MAP||undefined });
   names.forEach((n,i)=>WORLD.addBot({ pid:i+2, color:i+1, name:n, skill:0.25+0.7*i/(names.length-1), seed:seed+i*101 }));
 };
 function soloResults(){
