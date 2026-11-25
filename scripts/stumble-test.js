@@ -51,7 +51,7 @@ srv.stdout.on("data",async d=>{
     if (!ps || ps.p.length!==5 || ps.p.some(r=>r.length!==6)) fail("ps rows should have 6 fields for all 5: "+JSON.stringify(ps));
     const row=pid=>ps.p.find(r=>r[0]===pid);
     const H=STUMBLE.T.halfWidth;
-    if (JSON.stringify(row(all[0].pid))!==JSON.stringify([all[0].pid,10,H,0,50,3])) fail("clamp high: "+JSON.stringify(row(all[0].pid)));
+    if (JSON.stringify(row(all[0].pid))!==JSON.stringify([all[0].pid,10,H,0,50,4])) fail("clamp high: "+JSON.stringify(row(all[0].pid)));
     if (JSON.stringify(row(all[1].pid))!==JSON.stringify([all[1].pid,42.3,-3.46,0,2.5,2])) fail("relay: "+JSON.stringify(row(all[1].pid)));
     if (JSON.stringify(row(all[2].pid))!==JSON.stringify([all[2].pid,0,-H,0,-50,0])) fail("clamp low: "+JSON.stringify(row(all[2].pid)));
     if (row(all[3].pid)[5]!==1) fail("anim should round to an int");

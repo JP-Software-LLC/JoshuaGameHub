@@ -1,7 +1,7 @@
 // Bumbling Stumbling Math room: same flow as Rush Hour / Hurdle Dash. Every browser runs its own 3D physics on a
 // course built from the shared seed; the server NEVER simulates — it relays positions ~10×/s and ranks finish times.
 // pos{d,x,y,a}: d = metres along the course, x = sideways (±T.halfWidth), y = height (±50), a = anim 0 idle · 1 run ·
-// 2 air · 3 fallen. Relayed as ps{p:[[pid,d,x,fin,y,a],…]} (first 4 fields = RushRoom's). finish{time, extra=falls}.
+// 2 air · 3 fallen · 4 diving. Relayed as ps{p:[[pid,d,x,fin,y,a],…]} (first 4 fields = RushRoom's). finish{time, extra=falls}.
 // Ends when ceil(60 %) of the class has finished (END_FRAC), when the host/teacher sends end{}, or at the optional
 // teacher time limit (limit{min}, min ∈ T.limits, 0 = off, the default). Hidden safety close at T.safetyMin minutes.
 "use strict";
@@ -21,7 +21,7 @@ class StumbleRoom extends RushRoom {
     super.takePos(p,msg);
     if (Number.isFinite(msg.x)) p.x=clamp(msg.x,-T.halfWidth,T.halfWidth);
     if (Number.isFinite(msg.y)) p.y=clamp(msg.y,-50,50);
-    if (Number.isFinite(msg.a)) p.a=clamp(Math.round(msg.a),0,3);
+    if (Number.isFinite(msg.a)) p.a=clamp(Math.round(msg.a),0,4);
   }
   psRow(q){ return [...super.psRow(q),Math.round((q.y||0)*100)/100,q.a|0]; }
   startRace(){

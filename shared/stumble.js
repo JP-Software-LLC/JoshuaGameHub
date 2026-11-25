@@ -1,7 +1,7 @@
 // Bumbling Stumbling Math: shared tuning + course data (UMD: window.STUMBLE in the browser, require on the server).
 // CONTRACT (vertical slice) — the server only needs T.*; everything else is client-side.
 //   Course runs straight along +d (metres forward). x = sideways (metres, 0 = centre), y = height.
-//   Client -> server: pos{d,x,y,a}  (a = anim state 0 idle · 1 run · 2 air · 3 fallen/respawning)
+//   Client -> server: pos{d,x,y,a}  (a = anim state 0 idle · 1 run · 2 air · 3 fallen/respawning · 4 diving)
 //                     finish{time, extra = falls}
 //   Server -> client: ps{p:[[pid,d,x,fin,y,a],...]} ~10/s · go{seed,dist,limit,...} · lobby{...,limit}
 //   Host/teacher -> server: limit{min: 0|2|3|5} (lobby only, 0 = off) · end{} (playing only)
@@ -28,6 +28,10 @@
     jumpBuffer:0.14,   // a jump pressed this long before landing still fires
     killY:-7,          // fall below this → respawn at the last checkpoint
     respawnT:1.1,      // seconds spent "fallen" (a=3) before reappearing
+    diveV:10.5,        // second Space in the air = dive: forward speed m/s
+    diveUp:3.2,        // small upward pop when the dive starts
+    diveGetUp:0.5,     // belly slide + getting back up after a dive lands (no control)
+    slideFriction:11,  // deceleration while belly-sliding
     radius:0.45, halfH:0.4,   // capsule (total height 1.7)
   };
 

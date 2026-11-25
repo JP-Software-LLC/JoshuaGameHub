@@ -648,29 +648,9 @@ function softballThumb(){
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
   return img;
 }
-// Bumbling Stumbling Math thumbnail: a bright purple/blue obstacle course floating in the sky, a bean leaping a gap
+// Bumbling Stumbling Math thumbnail: a real screenshot of a race (public/assets/thumbs/stumble.jpg)
 function stumbleThumb(){
-  const bean=(x,y,s,c,r)=>`<g transform="translate(${x},${y}) rotate(${r}) scale(${s})"><ellipse cx="0" cy="44" rx="20" ry="5" fill="#000" opacity="${s>1?0:.18}"/>
-    <rect x="-20" y="-34" width="40" height="70" rx="20" fill="${c}" stroke="#2a1650" stroke-width="3"/><rect x="-13" y="-24" width="26" height="15" rx="7" fill="#fff"/>
-    <circle cx="-5" cy="-17" r="3.4" fill="#1b1b2e"/><circle cx="6" cy="-17" r="3.4" fill="#1b1b2e"/><path d="M-6 -2 q6 6 12 0" stroke="#2a1650" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>`;
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
-    <defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset=".6" stop-color="#818cf8"/><stop offset="1" stop-color="#c4b5fd"/></linearGradient>
-    <linearGradient id="pl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#7e22ce"/></linearGradient>
-    <linearGradient id="pb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
-    <rect width="540" height="380" fill="url(#sk)"/>
-    <g fill="#fff" opacity=".75"><ellipse cx="90" cy="70" rx="46" ry="16"/><ellipse cx="120" cy="60" rx="30" ry="18"/><ellipse cx="430" cy="48" rx="50" ry="15"/><ellipse cx="400" cy="40" rx="26" ry="15"/></g>
-    <polygon points="230,150 310,150 330,170 210,170" fill="url(#pb)"/><rect x="246" y="118" width="12" height="32" fill="#f472b6"/><rect x="282" y="118" width="12" height="32" fill="#f472b6"/><rect x="240" y="110" width="60" height="12" rx="6" fill="#facc15"/>
-    <g transform="translate(270,135) rotate(-18)"><rect x="-56" y="-5" width="112" height="10" rx="5" fill="#fb923c" stroke="#7c2d12" stroke-width="2"/></g>
-    <polygon points="20,250 210,250 230,280 0,280" fill="url(#pl)"/><polygon points="0,280 230,280 230,300 0,300" fill="#581c87"/>
-    <polygon points="320,232 540,232 540,300 340,300" fill="url(#pb)"/><polygon points="340,300 540,300 540,320 340,320" fill="#1e3a8a"/>
-    <g fill="#fde047">${[0,1,2,3,4].map(i=>`<polygon points="${352+i*38},240 ${372+i*38},240 ${366+i*38},292 ${346+i*38},292" opacity=".55"/>`).join("")}</g>
-    <g fill="#fff" opacity=".9">${[0,1,2,3,4,5].map(i=>`<rect x="${30+i*30}" y="257" width="16" height="16" rx="3" fill="${i%2?"#f0abfc":"#fff"}"/>`).join("")}</g>
-    <path d="M150 230 Q 260 90 380 210" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="4 10" opacity=".75"/>
-    <g transform="translate(500,232)"><rect x="-3" y="-80" width="6" height="80" fill="#f8fafc"/><path d="M3 -80 h34 v22 h-34 z" fill="#22c55e"/></g>
-    ${bean(110,212,.8,"#22d3ee",-6)}${bean(440,196,.8,"#fb7185",8)}${bean(272,104,1.15,"#facc15",22)}
-    <text x="270" y="352" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" fill="#facc15" stroke="#2a1650" stroke-width="7" paint-order="stroke">BUMBLING STUMBLING MATH</text>
-  </svg>`;
-  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  const img=new Image(); img.alt=""; img.src="/assets/thumbs/stumble.jpg"; img.decoding="async";
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
   return img;
 }

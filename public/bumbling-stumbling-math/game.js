@@ -70,14 +70,14 @@ addEventListener("keydown",e=>{
   if (e.key==="Escape"&&screen!=="menu") return exitGame();
   if (screen!=="race") return;
   const k=KEYMAP[e.code]; if (!k) return; e.preventDefault();
-  held.add(k); if (k==="j" && !e.repeat && WORLD) WORLD.input.jump=true;
+  held.add(k); if (k==="j" && !e.repeat && WORLD){ WORLD.input.jump=true; WORLD.input.press=true; }
   if (!G.keysHidden && performance.now()>G.startAt+4000){ G.keysHidden=true; $("keys").classList.add("hide"); }
 });
 addEventListener("keyup",e=>{ const k=KEYMAP[e.code]; if (k) held.delete(k); });
 addEventListener("blur",()=>held.clear());
 function readInput(){
   const I=WORLD.input; I.mx=(held.has("r")?1:0)-(held.has("l")?1:0); I.mz=(held.has("u")?1:0)-(held.has("d")?1:0);
-  if (held.has("j")) I.jump=true;              // hold Space = hop again as soon as you land
+  I.jump=held.has("j")||I.press;              // hold Space = hop again as soon as you land; a fresh press in the air dives
 }
 
 // ============================================================

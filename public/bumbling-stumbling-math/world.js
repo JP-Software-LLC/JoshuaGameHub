@@ -65,23 +65,31 @@ export function makeBean(color,{ ghost=false, name="", me=false }={}){
   if (name) b.setLabel(name);
   return b;
 }
-// a: 0 idle · 1 run · 2 air · 3 fallen. full=false → cheap animation (far beans).
+// a: 0 idle · 1 run · 2 air · 3 fallen · 4 diving. full=false → cheap animation (far beans).
+// Every pose value is a TARGET that the bean eases toward (b.cur), so switching state (run → air → dive → get up)
+// never snaps the body: no flicker when the grounded flag blips, and the dive tips over / stands up smoothly.
+const ease=(cur,tgt,rate,dt)=>cur+(tgt-cur)*(1-Math.exp(-rate*dt));
 function animBean(b,{ a, speed, vy, dt, t, full }){
-  const p=b.pivot;
+  const p=b.pivot, c=b.cur||(b.cur={ pitch:0, roll:0, y:0, sy:1 });
   if (a===3){ b.spin+=dt*11; p.rotation.set(b.spin,0,b.spin*0.6); const s=Math.max(0.05,p.scale.x-dt*0.9); p.scale.set(s,s,s); p.position.y=0; return; }
-  if (b.spin){ b.spin=0; p.rotation.set(0,0,0); p.scale.set(0.2,0.2,0.2); b.squash=-0.4; }        // pop back in after a respawn
-  const run=Math.min(1,speed/T.run);
-  b.phase+=dt*(4+speed*1.9);
-  if (!full){ p.position.y=a===1?Math.abs(Math.sin(b.phase))*0.15:0; p.rotation.set(-0.2*run,0,0); p.scale.set(1,1,1); return; }
-  b.squash*=Math.exp(-dt*9);
-  let sy=1, lean=0, roll=0, y=0;
-  if (a===1){ y=Math.abs(Math.sin(b.phase))*0.2; sy=1+0.07*Math.cos(b.phase*2); lean=-0.28*run; roll=Math.sin(b.phase)*0.16; }
-  else if (a===2){ sy=1+Math.max(-0.12,Math.min(0.16,(vy||0)*0.02)); lean=-0.15*run; roll=Math.sin(t*9+b.color)*0.08; }
-  else { sy=1+0.035*Math.sin(t*3.2+b.color); roll=Math.sin(t*1.7+b.color)*0.05; }
-  sy-=b.squash*0.5;
-  const sx=1/Math.sqrt(Math.max(0.4,sy));
+  if (b.spin){ b.spin=0; Object.assign(c,{ pitch:0, roll:0, y:0, sy:1 }); p.rotation.set(0,0,0); p.scale.set(0.2,0.2,0.2); b.squash=-0.4; }        // pop back in after a respawn
+  b.spd=ease(b.spd||0,speed,10,dt);                       // smoothed speed: drives the stride, never jumps
+  const run=Math.min(1,b.spd/T.run);
+  b.phase+=dt*(4+b.spd*1.9);
+  b.squash=(b.squash||0)*Math.exp(-dt*9);
+  let pitch=0, roll=0, y=0, sy=1, rate=9;
+  if (a===4){ pitch=-1.42; sy=0.92; rate=11; }                                          // dive: belly-flop, face first
+  else if (a===1){ y=Math.abs(Math.sin(b.phase))*0.18*run; sy=1+0.06*Math.cos(b.phase*2)*run; pitch=-0.22*run; roll=Math.sin(b.phase)*0.12*run; }
+  else if (a===2){ sy=1+Math.max(-0.1,Math.min(0.14,(vy||0)*0.018)); pitch=-0.12*run; }
+  else { sy=1+0.03*Math.sin(t*3.2+b.color); roll=Math.sin(t*1.7+b.color)*0.04; }
+  if (!full){ roll=0; sy=1; }
+  c.pitch=ease(c.pitch,pitch,a===4||c.pitch<-0.6?rate:12,dt); c.roll=ease(c.roll,roll,12,dt);
+  c.y=ease(c.y,y,18,dt); c.sy=ease(c.sy,sy,14,dt);
+  const sq=c.sy-b.squash*0.5, sx=1/Math.sqrt(Math.max(0.4,sq));
   const grow=Math.min(1,p.scale.x<0.99&&!b.spin?p.scale.x+dt*5:1);
-  p.position.y=y; p.rotation.set(lean,0,roll); p.scale.set(sx*grow,sy*grow,sx*grow);
+  // lying down: lift by the body radius so the belly rests ON the floor instead of sinking into it
+  p.position.y=c.y+T.radius*Math.sin(-Math.min(0,c.pitch))*0.95;
+  p.rotation.set(c.pitch,0,c.roll); p.scale.set(sx*grow,sq*grow,sx*grow);
 }
 
 // ============================================================
@@ -191,7 +199,7 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
     x.lineWidth=10; x.strokeStyle="rgba(40,10,90,.85)"; x.strokeText(text,256,52); x.fillStyle=fg; x.fillText(text,256,52);
     const t=new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; return t;
   }
-  function arch(d,text,{ bg="#7c3aed", fg="#ffcf33", checker=false, w=C.W+0.6, h=8.6, pillar="#ff5fb7" }={}){
+  function arch(d,text,{ bg="#7c3aed", fg="#ffcf33", checker=false, w=C.W+0.6, h=12.5, pillar="#ff5fb7" }={}){
     const g=new THREE.Group(); g.position.z=-d;
     const pm=new THREE.MeshLambertMaterial({ map:stripes(pillar,"#ffffff",4,"v") });
     for (const s of [-1,1]){ const p=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.55,h,10),pm); p.position.set(s*w,h/2,0); g.add(p);
@@ -206,7 +214,7 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
     const strip=new THREE.Mesh(new THREE.PlaneGeometry(C.W*2,0.7).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({ color:"#fff3a8", transparent:true, opacity:0.85 }));
     strip.position.set(0,S.groundAt(cp,0,0)+0.03,-cp); scene.add(strip);
   }
-  const finishArch=arch(T.dist,"FINISH",{ bg:"#ff3d9a", fg:"#ffffff", checker:true, h:9 });
+  const finishArch=arch(T.dist,"FINISH",{ bg:"#ff3d9a", fg:"#ffffff", checker:true, h:13 });
   { const fl=new THREE.Mesh(new THREE.PlaneGeometry(C.W*2,1.2).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({ map:(()=>{ const t=stripes("#ffffff","#1b1440",8,"h").clone(); t.needsUpdate=true; t.repeat.set(3,1); return t; })() }));
     fl.position.set(0,0.03,-T.dist); scene.add(fl); }
 
@@ -248,25 +256,32 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
     return c;
   }
   // st: { d,x,y, vd,vx,vy, grounded, air, coyote, jbuf, cp, falls, fallen, fin, bonk, landed }
-  function newState(i){ const sp=S.spawn(i); return { d:sp.d, x:sp.x, y:0, vd:0, vx:0, vy:0, grounded:true, coyote:0, jbuf:0, cp:0, falls:0, fallen:0, fin:false, bonk:0, landed:0, a:0, spIdx:i }; }
+  function newState(i){ const sp=S.spawn(i); return { d:sp.d, x:sp.x, y:0, vd:0, vx:0, vy:0, grounded:true, coyote:0, jbuf:0, cp:0, falls:0, fallen:0, fin:false, bonk:0, landed:0, a:0, spIdx:i, dive:0, diveT:0, airT:0 }; }
   const moverUnder=(st,t)=>{ for (const v of movers){ const p=S.moverPos(v.m,t); if (Math.abs(st.d-p.d)<=v.m.len/2+0.3 && Math.abs(st.x-p.x)<=v.m.w/2+0.3 && Math.abs(st.y-p.top)<0.25) return v; } return null; };
   // one fixed physics step for one bean. inp = { mx, mz, jump(bool, edge) }. Returns an event string or "".
   function stepBean(st,col,inp,mt,ev){
     if (st.fallen>0){ st.fallen-=DT; st.a=3;
       if (st.fallen<=0){ const cp=C.CHECKPOINTS[st.cp], g=Math.max(0,S.groundAt(cp+1,0,mt));
-        Object.assign(st,{ d:cp+1.2, x:((st.spIdx%5)-2)*1.3, y:g+1.6, vd:0, vx:0, vy:0, grounded:false });
+        Object.assign(st,{ d:cp+1.2, x:((st.spIdx%5)-2)*1.3, y:g+1.6, vd:0, vx:0, vy:0, grounded:false, dive:0, diveT:0 });
         col.setTranslation({ x:st.x, y:st.y+T.halfH+T.radius, z:-st.d }); ev.push("respawn"); }
       return; }
     let mx=inp.mx, mz=inp.mz; const l=Math.hypot(mx,mz); if (l>1){ mx/=l; mz/=l; }
     if (st.bonk>0){ st.bonk-=DT; mx*=0.2; mz*=0.2; }
-    const tvx=mx*T.run, tvd=mz*T.run, acc=st.grounded?(l>0.05?T.accel:T.friction):T.airAccel;
+    if (st.dive){ mx=0; mz=0; }                                                  // no steering mid-dive or while getting up
+    if (st.dive===2){ st.diveT-=DT; if (st.diveT<=0) st.dive=0; }
+    const tvx=mx*T.run, tvd=mz*T.run, acc=st.dive===1?0:st.dive===2?T.slideFriction:st.grounded?(l>0.05?T.accel:T.friction):T.airAccel;
     const ap=(v,tv)=>{ const dv=tv-v, m=acc*DT; return v+Math.max(-m,Math.min(m,dv)); };
     st.vx=ap(st.vx,tvx); st.vd=ap(st.vd,tvd);
     // jump (coyote time + input buffer)
     st.coyote=st.grounded?T.coyote:Math.max(0,st.coyote-DT);
-    st.jbuf=inp.jump?T.jumpBuffer:Math.max(0,st.jbuf-DT);
+    st.jbuf=inp.jump&&!st.dive?T.jumpBuffer:Math.max(0,st.jbuf-DT);
     let jumped=false;
-    if (st.jbuf>0 && st.coyote>0){ st.vy=T.jumpV; st.jbuf=0; st.coyote=0; st.grounded=false; jumped=true; ev.push("jump"); }
+    if (st.jbuf>0 && st.coyote>0 && !st.dive){ st.vy=T.jumpV; st.jbuf=0; st.coyote=0; st.grounded=false; jumped=true; ev.push("jump"); }
+    else if (inp.press && !st.grounded && st.coyote<=0 && !st.dive){       // second Space in the air = DIVE
+      let hx=st.vx, hd=st.vd, hl=Math.hypot(hx,hd);
+      if (hl<1){ hx=inp.mx; hd=inp.mz; hl=Math.hypot(hx,hd); }
+      if (hl<0.1){ hx=0; hd=1; hl=1; }
+      st.vx=hx/hl*T.diveV; st.vd=hd/hl*T.diveV; st.vy=Math.max(st.vy,T.diveUp); st.dive=1; st.jbuf=0; ev.push("dive"); }
     st.vy-=T.gravity*DT; if (st.vy<-30) st.vy=-30;
     // ride the moving platform
     let cx=0, cd=0; const mv=st.grounded&&!jumped?moverUnder(st,mt-DT):null;
@@ -277,7 +292,7 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
     st.grounded=kcc.computedGrounded() && st.vy<=0.01;
     st.x+=got.x; st.y+=got.y; st.d-=got.z;
     col.setTranslation({ x:st.x, y:st.y+T.halfH+T.radius, z:-st.d });
-    if (st.grounded){ if (!wasG && st.airT>0.15){ st.landed=Math.min(1,-st.vy/14); ev.push("land"); } st.vy=0; st.airT=0; }
+    if (st.grounded){ if (!wasG && st.airT>0.15){ st.landed=Math.min(1,-st.vy/14); ev.push("land"); } if (st.dive===1){ st.dive=2; st.diveT=T.diveGetUp; } st.vy=0; st.airT=0; }
     else { st.airT=(st.airT||0)+DT; if (st.vy>0 && got.y<want.y*0.5) st.vy=0; }                         // bumped the head
     // run into a wall at speed → bonk back (the "stumbling")
     const wh=Math.hypot(want.x-cx,want.z+cd), gh=((got.x-cx)*(want.x-cx)+(got.z+cd)*(want.z+cd))/(wh*wh||1);
@@ -289,9 +304,9 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
     // checkpoints, finish, falling
     if (st.grounded) for (let i=st.cp+1;i<C.CHECKPOINTS.length;i++) if (st.d>=C.CHECKPOINTS[i]){ st.cp=i; ev.push("checkpoint"); }
     if (!st.fin && st.d>=T.dist){ st.fin=true; ev.push("finish"); }
-    if (st.y<T.killY){ st.fallen=T.respawnT; st.falls++; st.vx=st.vd=st.vy=0; ev.push("fall"); }
+    if (st.y<T.killY){ st.fallen=T.respawnT; st.falls++; st.vx=st.vd=st.vy=0; st.dive=0; ev.push("fall"); }
     const sp=Math.hypot(st.vx,st.vd);
-    st.a=st.fallen>0?3:!st.grounded?2:sp>0.6?1:0;
+    st.a=st.fallen>0?3:st.dive?4:(!st.grounded&&(st.airT>0.1||st.vy>1))?2:sp>0.6?1:0;
   }
 
   // ============================================================
@@ -310,7 +325,7 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
     clearBeans(); W.mode="race"; W.teacher=teacher; W.moverT0=moverT0; W.startAt=startAt; W.acc=0;
     W.players=new Map(players.map(p=>[p.pid,p]));
     if (me){ const st=newState(me.color); const bean=makeBean(me.color,{ name:"YOU", me:true }); addBean(bean);
-      W.me={ pid:me.pid, st, col:makeBody(st), bean, prev:{ x:st.x, d:st.d } }; W.camPos.set(st.x*0.6,6,-st.d+10); }
+      W.me={ pid:me.pid, st, col:makeBody(st), bean, prev:{ x:st.x, d:st.d } }; W.camPos.set(st.x,8.4,-st.d+9); }
     else W.camPos.set(0,22,18);
   };
   W.addBot=({ pid, color, name, skill, seed })=>{
@@ -337,19 +352,29 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
   }
 
   // ---- input (keyboard only; the page fills this) ----
-  W.input={ mx:0, mz:0, jump:false };
+  W.input={ mx:0, mz:0, jump:false, press:false };   // jump = Space held · press = Space just pressed (edge → dive)
 
   function resize(){ const w=innerWidth, h=innerHeight; R.setSize(w,h,false); cam.aspect=w/h; cam.fov=w<h?72:58; cam.updateProjectionMatrix(); }
   addEventListener("resize",resize); resize();
 
   const tmpV=new THREE.Vector3();
+  // physics runs at a fixed DT; draw my bean and the bots BETWEEN the last two steps (alpha) so they glide
+  // instead of stuttering when a frame gets 0 or 2 physics steps.
+  function lerpSt(st,alpha){
+    const p=st.prevPos; if (!p) return st;
+    const far=Math.abs(st.d-p.d)>3||Math.abs(st.x-p.x)>3||Math.abs(st.y-p.y)>3;   // respawn teleport: no smear
+    const k=far?1:alpha;
+    return { d:p.d+(st.d-p.d)*k, x:p.x+(st.x-p.x)*k, y:p.y+(st.y-p.y)*k, a:st.a, vy:st.vy, vx:st.vx, vd:st.vd, bonk:st.bonk, dive:st.dive };
+  }
   function placeBean(b,s, dt, t, full, prev){
     const { d,x,y,a,vy }=s;
     b.root.position.set(x,y,-d);
-    const dx=x-prev.x, dd=d-prev.d, sp=Math.hypot(dx,dd)/Math.max(dt,1e-3);
+    const own=s.vx!=null;                                 // my bean / a bot: real velocity, not frame deltas
+    const dx=own?s.vx:x-prev.x, dd=own?s.vd:d-prev.d;
+    const sp=own?Math.hypot(dx,dd):Math.hypot(dx,dd)/Math.max(dt,1e-3);
     // face where you're going (bonked beans keep facing forward while they bounce back; ghosts need a clear move)
-    const own=s.bonk!=null, bonked=own&&s.bonk>0;
-    if (sp>(own?0.8:2.2) && a!==3 && !bonked){ const yaw=Math.atan2(-dx,dd); let dy=yaw-b.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); b.yaw+=dy*Math.min(1,dt*(own?12:6)); }
+    const bonked=own&&s.bonk>0;
+    if (sp>(own?0.8:2.2) && a!==3 && !bonked){ const yaw=Math.atan2(-dx,dd); let dy=yaw-b.yaw; dy=Math.atan2(Math.sin(dy),Math.cos(dy)); b.yaw+=dy*Math.min(1,dt*(a===4?16:own?12:6)); }
     b.root.rotation.y=b.yaw;
     animBean(b,{ a, speed:a===1?Math.min(T.run,sp):0, vy, dt, t, full });
     prev.x=x; prev.d=d;
@@ -374,16 +399,18 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
       while (W.acc>=DT && n<6){ W.acc-=DT; n++;
         const mt=Math.max(0,(now-W.moverT0)/1000-W.acc);
         placeMovers(mt); world.step();
+        for (const s of [W.me&&W.me.st,...W.bots.map(b=>b.st)]) if (s) s.prevPos={ d:s.d, x:s.x, y:s.y };
         if (W.me){ const ev=[]; const inp=racing&&!W.me.st.fin?W.input:{ mx:0, mz:0, jump:false };
-          stepBean(W.me.st,W.me.col,inp,mt,ev); W.input.jump=false; for (const e of ev) W.onEvent(e,W.me.pid,W.me.st); }
+          stepBean(W.me.st,W.me.col,inp,mt,ev); W.input.press=false; for (const e of ev) W.onEvent(e,W.me.pid,W.me.st); }
         for (const b of W.bots){ const ev=[]; const inp=racing&&!b.st.fin?S.botInput(b.brain,b.st,mt,DT):{ mx:0, mz:0, jump:false };
           stepBean(b.st,b.col,inp,mt,ev); for (const e of ev) W.onEvent(e,b.pid,b.st); }
       }
       if (n===6) W.acc=0;
       // draw: me, bots (full anim), ghosts (full for the nearest 12)
       const focus=W.me?W.me.st:W.lead||{ d:0, x:0, y:0 };
-      if (W.me) placeBean(W.me.bean,W.me.st,dt,t,true,W.me.prev);
-      for (const b of W.bots){ b.prev=b.prev||{ x:b.st.x, d:b.st.d }; placeBean(b.bean,b.st,dt,t,true,b.prev); }
+      const alpha=Math.min(1,W.acc/DT);
+      if (W.me) placeBean(W.me.bean,lerpSt(W.me.st,alpha),dt,t,true,W.me.prev);
+      for (const b of W.bots){ b.prev=b.prev||{ x:b.st.x, d:b.st.d }; placeBean(b.bean,lerpSt(b.st,alpha),dt,t,true,b.prev); }
       const rows=ghostRows(now), seen=new Set();
       rows.sort((p,q)=>Math.abs(p.d-focus.d)-Math.abs(q.d-focus.d));
       rows.forEach((r,i)=>{ seen.add(r.pid); let g=W.ghosts.get(r.pid);
@@ -394,10 +421,12 @@ export async function createWorld({ canvas, onProgress=()=>{} }){
       W.rows=rows;
       // camera: fixed orientation, follows forward/sideways smoothly, never rotates
       if (W.me){
-        const st=W.me.st, fy=st.fallen>0?Math.max(-1,st.y):Math.max(-1.5,st.y);
-        tmpV.set(st.x*0.55,fy+5.6,-st.d+9.2);
-        const k=1-Math.exp(-dt*(st.fallen>0?2:6)); W.camPos.lerp(tmpV,k);
-        cam.rotation.set(-0.42,0,0);
+        const st=lerpSt(W.me.st,alpha), fy=W.me.st.fallen>0?Math.max(-1,st.y):Math.max(-1.5,st.y);
+        // centred on the bean left/right (tight), higher and steeper than a plain chase cam; height eases slower
+        // so jumps don't bob the whole view
+        const kx=1-Math.exp(-dt*14), kz=1-Math.exp(-dt*(W.me.st.fallen>0?2:8)), ky=1-Math.exp(-dt*(W.me.st.fallen>0?2:4));
+        W.camPos.x+=(st.x-W.camPos.x)*kx; W.camPos.y+=(fy+8.4-W.camPos.y)*ky; W.camPos.z+=(-st.d+9-W.camPos.z)*kz;
+        cam.rotation.set(-0.66,0,0);
       } else {
         // teacher drone: high, slowly following the leading pack (median of the front half)
         const ds=rows.map(r=>r.d).sort((a,b)=>b-a), half=ds.slice(0,Math.max(1,Math.ceil(ds.length/2)));
