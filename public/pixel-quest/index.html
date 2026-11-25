@@ -18,7 +18,7 @@ body {
 	touch-action: none;
 }
 
-/* windowed, not browser-fullscreen: the game's own 1152x648 window, centred, scaled down to fit small screens */
+/* windowed, not browser-fullscreen: a 1152x720 window (the project's 1152x648 plus a bit more height), centred, scaled down to fit small screens */
 body {
 	display: grid;
 	place-items: center;
@@ -29,9 +29,9 @@ body {
 
 #canvas {
 	display: block;
-	width: min(1152px, calc(100vw - 32px), calc((100dvh - 96px) * 16 / 9)) !important;
+	width: min(1152px, calc(100vw - 32px), calc((100dvh - 96px) * 1152 / 720)) !important;
 	height: auto !important;
-	aspect-ratio: 16 / 9;
+	aspect-ratio: 1152 / 720;
 	border-radius: 12px;
 	box-shadow: 0 0 0 2px #1f2433, 0 24px 60px -12px rgba(0,0,0,.7);
 	image-rendering: pixelated;
@@ -98,7 +98,7 @@ body {
 	<body>
 		<button id="exitBtn" type="button" title="Leave game" aria-label="Leave game" onclick="location.href=(window.JGH&&JGH.home)||'/'">✕</button>
 		<script src="/assets/hub-frame.js"></script>
-		<canvas id="canvas">
+		<canvas id="canvas" width="1152" height="720">
 			Your browser does not support the canvas tag.
 		</canvas>
 
@@ -114,7 +114,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":1,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2701696,"index.wasm":43016933},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2701696,"index.wasm":43016933},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
