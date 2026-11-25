@@ -1,13 +1,13 @@
 // Serves the browser client: public/*, shared/sim.js at /sim.js, and /config.js
 // which tells the client where the game server lives (GAME_SERVER_URL).
 "use strict";
-const fs=require("fs"), path=require("path");
+const fs=require("fs"), path=require("path"), zlib=require("zlib");
 const ROOT=path.join(__dirname,"..");
 const PUBLIC=path.join(ROOT,"public");
 const TYPES={ ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8", ".css":"text/css",
   ".png":"image/png", ".svg":"image/svg+xml", ".ico":"image/x-icon", ".json":"application/json", ".webp":"image/webp", ".mp3":"audio/mpeg", ".ogg":"audio/ogg",
   ".mjs":"text/javascript; charset=utf-8", ".wasm":"application/wasm", ".glb":"model/gltf-binary", ".gltf":"model/gltf+json", ".bin":"application/octet-stream",
-  ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".gif":"image/gif", ".wav":"audio/wav", ".ktx2":"image/ktx2" };
+  ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".gif":"image/gif", ".wav":"audio/wav", ".ktx2":"image/ktx2", ".pck":"application/octet-stream" };
 
 function configJs(){
   // Empty server URL = same origin as the page (single-service / local dev).
@@ -52,6 +52,17 @@ function serve(req,res){
   }
   // /clean-getaway → /clean-getaway/ so the page's relative paths resolve
   if (!path.extname(file) && fs.existsSync(path.join(file,"index.html"))){ res.writeHead(301,{ location:p+"/"+u.search }); return res.end(); }
+  // Big binaries (e.g. Pixel Quest's 43 MB Godot index.wasm) are committed only as "<file>.gz": streamed
+  // gzip-encoded (every browser accepts it), or gunzipped on the fly for a client that doesn't.
+  if (!fs.existsSync(file) && fs.existsSync(file+".gz")){
+    const ext=path.extname(file), gz=/\bgzip\b/.test(req.headers["accept-encoding"]||"");
+    const h={ "content-type":TYPES[ext]||"application/octet-stream", "cache-control":"public, max-age=86400", vary:"accept-encoding" };
+    if (gz){ h["content-encoding"]="gzip"; h["content-length"]=fs.statSync(file+".gz").size; }
+    res.writeHead(200,h);
+    if (req.method==="HEAD") return res.end();
+    const src=fs.createReadStream(file+".gz"), out=gz?src:src.pipe(zlib.createGunzip());
+    out.on("error",()=>res.destroy()); return out.pipe(res);
+  }
   fs.readFile(file,(err,buf)=>{
     if (err){ res.writeHead(404,{"content-type":"text/plain"}); return res.end("not found"); }
     const ext=path.extname(file);
