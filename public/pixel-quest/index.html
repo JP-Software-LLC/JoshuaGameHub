@@ -18,8 +18,23 @@ body {
 	touch-action: none;
 }
 
+/* windowed, not browser-fullscreen: the game's own 1152x648 window, centred, scaled down to fit small screens */
+body {
+	display: grid;
+	place-items: center;
+	height: 100vh;
+	height: 100dvh;
+	background: #07080c;
+}
+
 #canvas {
 	display: block;
+	width: min(1152px, calc(100vw - 32px), calc((100dvh - 96px) * 16 / 9)) !important;
+	height: auto !important;
+	aspect-ratio: 16 / 9;
+	border-radius: 12px;
+	box-shadow: 0 0 0 2px #1f2433, 0 24px 60px -12px rgba(0,0,0,.7);
+	image-rendering: pixelated;
 }
 
 #canvas:focus {
@@ -99,7 +114,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2701696,"index.wasm":43016933},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":1,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":2701696,"index.wasm":43016933},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
