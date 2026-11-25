@@ -48,7 +48,7 @@ Stumble Guys race maps use the same set: hammers, spinning logs, rotating platfo
 ## Constraints from your brief
 - **Veils:**
   - 15 track-wide veils. They are unavoidable, and every route crosses the same number of them.
-  - Therefore routes may split only *between* veils and must merge back before the next one.
+  - A veil is a full-width, full-height curtain at one depth, so every route crosses it at that depth. Routes may split and pass through veils freely.
 - **Questions:** the same as Hurdle Dash. You can't pass until the answer is right; a wrong answer shows the right one and gives a new question. The bean is frozen in place while the question is up.
 - **Pacing:** 16 obstacle "rooms" between 15 veils. Each room is about 7–8 s of play, a nice short teach, test or twist beat.
 - **Physics caveat:** Rapier's character controller isn't pushed by moving bodies automatically.
