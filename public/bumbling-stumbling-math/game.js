@@ -10,6 +10,9 @@ const { T, COURSE }=STUMBLE;
 const MAPS=window.STUMBLE_MAPS||{ DEFAULT:"", get:()=>({ id:"", name:"", length:T.dist, veils:[], checkpoints:[] }) };
 // ?map=<id> picks a map for SOLO play (testing, e.g. ?play=bots&map=hazard-lab). Read now: the ?play deep link clears the URL.
 const URL_MAP=(()=>{ const m=new URLSearchParams(location.search).get("map"); return m&&MAPS.MAPS&&MAPS.MAPS[m]?m:null; })();
+// map picker: only the registry's PICKABLE maps (never test rooms like hazard-lab), "Name — blurb"
+const PICK_IDS=(MAPS.PICKABLE&&MAPS.PICKABLE.length?MAPS.PICKABLE:[MAPS.DEFAULT]).filter(id=>id&&MAPS.MAPS&&MAPS.MAPS[id]);
+const MAP_OPTS=PICK_IDS.map(id=>[id,MAPS.get(id).name+(MAPS.BLURB&&MAPS.BLURB[id]?" — "+MAPS.BLURB[id]:"")]);
 const QMODES=[["add","+ Add"],["sub","− Subtract"],["mul","× Multiply"],["div","÷ Divide"],["money","$ Money"]];
 const pcol=i=>`hsl(${(i*137.508+275)%360},78%,58%)`;           // same as world.js
 const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}`;
@@ -103,6 +106,8 @@ function onWorldEvent(e,pid,st){
     else if (e==="checkpoint"){ flash("CHECKPOINT!"); }
     else if (e==="fall"){ flash("WHOOPS!"); if (navigator.vibrate) navigator.vibrate(60); }
     else if (e==="hit"){ flash(HIT_WORDS[(G.hitN=(G.hitN||0)+1)%HIT_WORDS.length],"hit"); if (navigator.vibrate) navigator.vibrate(40); }
+    else if (e==="bump"){ flash("BOING!","hit"); if (navigator.vibrate) navigator.vibrate(30); }
+    else if (e==="chute"){ flash("SHORTCUT!"); }
     else if (e==="finish") onFinish();
     return;
   }
@@ -235,7 +240,7 @@ async function beginRace({ players, me, inMs, mode, teacher=false, endsIn=0, rac
     sentAt:0, teacher, finishT:null, limitEnd:endsIn>0?now+endsIn-lag:0, keysHidden:false });
   const moverT0=raceMs!=null?now-raceMs-lag:G.startAt;
   const mine=teacher?null:G.players.get(me)||{ pid:me, color:0, name:myName() };
-  WORLD.startRace({ me:mine&&{ pid:me, color:mine.color, name:mine.name }, players, teacher, moverT0, startAt:G.startAt });
+  WORLD.startRace({ me:mine&&{ pid:me, color:mine.color, name:mine.name }, players, teacher, moverT0, startAt:G.startAt, seed });   // seed: fake tiles, gumballs, lucky doors
   WORLD.selfPid=me;
   countShown=-1; $("done").classList.remove("on"); $("keys").classList.toggle("hide",teacher); $("feed").innerHTML="";
   $("tBoard").classList.toggle("on",teacher); for (const id of ["place","falls","track"]) $(id).style.display=teacher?"none":"";
@@ -265,7 +270,7 @@ $("bSolo").onclick=async ()=>{
   const names=["Wobbles","Jellybean","Bonk","Noodle","Sprinkles","Dizzy","Gumdrop"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
   const sp=soloPrefs();
-  await beginRace({ players, me:1, inMs:3500, mode:"solo", seed, qmode:sp.mode, digits:sp.digits, qpv:sp.qpv, map:URL_MAP||undefined });
+  await beginRace({ players, me:1, inMs:3500, mode:"solo", seed, qmode:sp.mode, digits:sp.digits, qpv:sp.qpv, map:URL_MAP||sp.map });      // ?map= (e.g. hazard-lab) still overrides the picker
   names.forEach((n,i)=>WORLD.addBot({ pid:i+2, color:i+1, name:n, skill:0.25+0.7*i/(names.length-1), seed:seed+i*101 }));
 };
 function soloResults(){
@@ -285,7 +290,7 @@ function showResults(rank){
   G.resultShown=true; endTeacher(); closeQuiz();
   if (!rank.length){ show(G.mode==="solo"?"menu":"lobby"); return; }
   const w=rank[0], n=topCount(rank.length), best=w.time;
-  $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🏆</div><div class="t">${w.pid===G.me?"You won the race!":"Race champion!"}</div><h2>${esc(w.name)}</h2>`;
+  $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🏆</div><div class="t">${w.pid===G.me?"You won the race!":"Race champion!"}</div><h2>${esc(w.name)}</h2>`+(G.map&&G.map.name?`<div class="mp">🗺️ ${esc(G.map.name)}</div>`:"");
   const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
     <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">${e.extra!=null?`💥 ${e.extra} fall${e.extra===1?"":"s"}`:""}</span><span class="tm">${e.time!=null?fmt(e.time):Math.round(100*Math.max(0,e.d||0)/G.dist)+"%"}</span></div>`;
   $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
@@ -355,7 +360,7 @@ function renderLobby(){
   $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
   const host=L.host===Net.pid;
   $("bStart").style.display=host?"":"none";
-  limitUI(L); mathUI(L);
+  limitUI(L); mathUI(L); mapUI(L);
   clearInterval(lobbyTimer);
   const note=()=>{
     let t=L.state==="playing"?"A race is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
@@ -375,7 +380,7 @@ $("lLimit").addEventListener("change",e=>Net.send({ t:"limit", min:+e.target.val
 // and moves #lMode / #lQpv / #lLimit into the teacher's lobby card
 const fillSel=(id,opts)=>{ $(id).innerHTML=opts.map(([v,t])=>`<option value="${v}">${t}</option>`).join(""); };
 const QPV_OPTS=[]; for (let n=T.qpvMin;n<=T.qpvMax;n++) QPV_OPTS.push([n,`${n} question${n===1?"":"s"}`]);
-fillSel("lMode",QMODES); fillSel("sMode",QMODES); fillSel("lQpv",QPV_OPTS); fillSel("sQpv",QPV_OPTS.map(([n])=>[n,`${n} per veil`]));
+fillSel("lMap",MAP_OPTS); fillSel("sMap",MAP_OPTS); fillSel("lMode",QMODES); fillSel("sMode",QMODES); fillSel("lQpv",QPV_OPTS); fillSel("sQpv",QPV_OPTS.map(([n])=>[n,`${n} per veil`]));
 function mathUI(L){
   const host=L.host===Net.pid&&L.state==="lobby";
   for (const [id,v,lbl,txt] of [["lMode",L.mode||"add","lModeLbl","Math"],["lQpv",L.qpv||T.qpv,"lQpvLbl","Questions per veil"]]){
@@ -384,9 +389,20 @@ function mathUI(L){
   if (dig && mb.parentNode===dig.parentNode && mb.nextElementSibling!==dig) mb.after(dig);
 }
 $("lMode").addEventListener("change",e=>Net.send({ t:"mode", mode:e.target.value }));
+// map picker (host/teacher, lobby only; everyone else sees the chosen map read-only). ClassKit moves #lMap's box to the top
+// of the teacher's lobby options. A map not in this page's list (older/newer client) is still shown by name.
+function mapUI(L){
+  const host=L.host===Net.pid&&L.state==="lobby", sel=$("lMap"), id=L.map||MAPS.DEFAULT;
+  if (![...sel.options].some(o=>o.value===id)){ const o=document.createElement("option"); o.value=id; o.textContent=MAPS.get(id).name||id; sel.appendChild(o); }
+  if (document.activeElement!==sel) sel.value=id;
+  sel.disabled=!host; $("lMapLbl").textContent="Map"+(host?" (you choose)":"");
+}
+$("lMap").addEventListener("change",e=>Net.send({ t:"map", id:e.target.value }));
 $("lQpv").addEventListener("change",e=>Net.send({ t:"qpv", n:+e.target.value }));
 // solo pickers on the menu (remembered on this device)
-function soloPrefs(){ return { mode:$("sMode").value, digits:$("sDig").value, qpv:+$("sQpv").value }; }
+function soloPrefs(){ return { map:$("sMap").value||MAPS.DEFAULT, mode:$("sMode").value, digits:$("sDig").value, qpv:+$("sQpv").value }; }
+$("sMap").value=PICK_IDS.includes(store.get("sbm_map"))?store.get("sbm_map"):(PICK_IDS.includes(MAPS.DEFAULT)?MAPS.DEFAULT:PICK_IDS[0]||"");
+$("sMap").addEventListener("change",e=>store.set("sbm_map",e.target.value));
 $("sMode").value=QMODES.some(m=>m[0]===store.get("sbm_mode"))?store.get("sbm_mode"):"add";
 $("sDig").value=["1","12","2"].includes(store.get("sbm_dig"))?store.get("sbm_dig"):"1";
 $("sQpv").value=String(Math.max(T.qpvMin,Math.min(T.qpvMax,+store.get("sbm_qpv")||T.qpv)));

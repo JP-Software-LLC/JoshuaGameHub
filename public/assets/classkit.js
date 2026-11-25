@@ -198,7 +198,7 @@ function resultsButton(m){
 const KIND_PATH={ math:"math-race", arrows:"arrow-blitz", hurdle:"hurdle-dash", rush:"rush-hour", bear:"bear-attack", memory:"memory-tiles", typing:"typing-cowboys", cannons:"star-cannons", darts:"dart-party", sky:"sky-climb", words:"word-rush", hoops:"mathsketball", munch:"marble-munch", softball:"softball-smarts", crossword:"crossword", stumble:"bumbling-stumbling-math" };
 const CATS=[["🧮 Math",[["math","Math Race"],["munch","Marble Munch"],["softball","Softball Smarts"],["hoops","Mathsketball"],["hurdle","Hurdle Dash"],["stumble","Bumbling Stumbling Math"]]],["🔤 Vocabulary",[["words","Word Rush"],["crossword","Vocab Crossword"]]],["⌨️ Typing",[["typing","Typing Cowboys"],["arrows","Arrow Blitz"]]],
   ["🎉 Just for fun",[["memory","Memory Tiles"],["cannons","Star Cannons"],["darts","Dart Party"],["sky","Sky Climb"],["rush","Rush Hour"],["bear","Bear Attack!"]]]];
-const OPT_SEL=["#lMode","#ckDigits","#custom","#lWords","#lQpv","#lLimit"];   // game option blocks moved onto this screen, in this order (Math Race / Bumbling Stumbling Math question type, digits, Word Rush word list, Stumble questions per veil + time limit)
+const OPT_SEL=["#lMap","#lMode","#ckDigits","#custom","#lWords","#lQpv","#lLimit"];   // game option blocks moved onto this screen, in this order (Bumbling Stumbling Math map, Math Race / Bumbling Stumbling Math question type, digits, Word Rush word list, Stumble questions per veil + time limit)
 let tlOn=false;
 // the game's menu card becomes the teacher lobby: its title + tips stay, its buttons/name box hide, our block is added
 function setTeach(on){

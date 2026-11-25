@@ -28,9 +28,17 @@
 //   sweeper  { d, x=0, top=0, len, y=0.55, thick=0.3, speed rad/s, phase rad, arms=1, hub=0.8, hubH=1.6 }  low spinning arm(s)
 //   pendulum { d, x=0, py, rope, amp rad, period s, phase 0..1, r }      wrecking ball swinging across the path
 //   gate     { d, top=0, w, h=1.9, thick=0.8, xA, xB, period, hold=0.2, phase=0, gap=0 }   sliding box (gap>0 = wall with an opening)
+//   MAP 2 pieces (full field docs in shared/stumble.js, "MOVING FOOTING"; the race SEED picks fake tiles, gumball times and
+//   the lucky doors, so every screen agrees with no server):
+//   disc { d,x,r,top,speed } turning platform that carries you · seesaw { d0,d1,x,w,top,amp,period,hold,phase } rocking plank
+//   tiles { d0,x0,rows,cols,tw,td,gap,fake } Tip-Toe · traps { d0,x0,rows,cols,tw,td,period,up,blink,gone,rise,wave,checker }
+//   bumper { d,x,r,top,h,kick } pinball post · luckydoors { d,x0,x1,n,lane,… } "?" doors: chute / jelly / normal
+//   piston { d,side,edge,reach,period,phase } (hazard) · gumball { d0,d1,top0,top1,lanes,r,speed,every } (hazard)
 // checkpoints: { d, veil?:k, xs?:[x…], sw? }  xs = respawn spots (nearest to where you fell), sw = sideways spread (±m)
 // rooms[i].bot = { safe:[[d,x,w]…], fast?:[[d,x,w]…], mirror? }  solo-bot lines (x to aim for, ±w freedom); fast = risky split
 //   route (better bots pick it more often); mirror = each bot flips the line to the other side half the time
+//   tiles/traps rooms: the fast route = across the field (bots plan tiles/trapdoors themselves), safe = the slow belt lane.
+//   low?:[[d,x,w]…] + lowY: the line to follow while below lowY (the lucky chute) · nojump?:[[d0,d1]] never jump holes here
 (function(root,f){ if (typeof module==="object"&&module.exports) module.exports=f(); else root.STUMBLE_MAPS=f(); })(this,function(){
   "use strict";
 
@@ -232,8 +240,178 @@
     };
   })();
 
-  const MAPS={ "jellybean-skyway":jellybean, "hazard-lab":hazardLab };
+  // ---------------- Map 2: Gumdrop Gauntlet (docs/stumble-map2-plan.md) ----------------
+  // 9 rooms, a moving hazard in every room, open edges (rails only on the veil landings), two gambles (Tip-Toe Tiles,
+  // Lucky Doors) each with a slower safe lane beside it. Every veil sits on a calm railed pad with nothing moving within
+  // 6 m; every room has a quiet mid-room flag, so a fall costs ~5 s. Floors change colour room by room (theme keys).
+  const gumdrop=(()=>{
+    const P=[];
+    const floor=(d0,d1,x0,x1,o={})=>P.push({ type:"floor", d0, d1, x0, x1, top:o.top??0, h:o.h??3, c:o.c||"main" });
+    const rails=(d0,d1,x0,x1,top=0)=>{ P.push({ type:"rail", d0, d1, x0:x0-0.6, x1:x0, top:top+0.7, h:1.2 }, { type:"rail", d0, d1, x0:x1, x1:x1+0.6, top:top+0.7, h:1.2 }); };
+    const ramp=(d0,d1,x0,x1,top0,top1,c="main",h=1.2)=>P.push({ type:"ramp", d0, d1, x0, x1, top0, top1, h, c });
+    const hop=(d,x0,x1,base=0)=>P.push({ type:"wall", d0:d, d1:d+0.7, x0, x1, top:base+0.45, h:0.75 });
+    const block=(d0,d1,x0,x1,top,h)=>P.push({ type:"block", d0, d1, x0, x1, top, h:h??top+0.3 });
+    const sign=(d,text)=>P.push({ type:"sign", d, text });
+    const landing=(d0,d1,c="lilac",w=6)=>{ floor(d0,d1,-w,w,{ c }); rails(d0+2,d1-2,-w,w); };   // calm, railed veil pad
+
+    // ===== 1 · Spin Start (0–64): a slow sweeper arm on a wide round deck, open edges; then up and over an island =====
+    sign(5,"1 · SPIN START");
+    floor(-12,10,-7,7,{ c:"main" }); rails(-12,8,-7,7);
+    floor(9.5,15.8,-2.5,2.5,{ c:"lilac" });
+    P.push({ type:"deck", d:25, r:9.5, c:"azure" });
+    P.push({ type:"sweeper", d:25, len:8.8, speed:0.75, phase:Math.PI/2, arms:1 });
+    floor(34.2,40,-2.5,2.5,{ c:"lilac" });
+    floor(40,44,-6,6,{ c:"main" }); ramp(44,48,-6,6,0,1.6,"main"); floor(48,52,-6,6,{ top:1.6, h:4.6, c:"berry" }); hop(49.6,-6,6,1.6);
+    ramp(52,56,-6,6,1.6,0,"main");
+    landing(56,72);
+
+    // ===== 2 · Tip-Toe Tiles (64–128): two fields of tiles, ~45 % fake (from the seed). Safe lane: a slow belt on the left =====
+    sign(66.5,"2 · TIP-TOE TILES");
+    floor(70,73,-9.2,6,{ c:"lilac" });
+    P.push({ type:"tiles", d0:73, x0:-5.6, rows:6, cols:4, tw:2.6, td:2.4, gap:0.3, fake:0.45 });
+    P.push({ type:"belt", d0:73, d1:88.9, x0:-9.2, x1:-7.4, top:0, h:3, vd:-1.6 });
+    floor(88.9,94,-9.2,6,{ c:"berry" });
+    P.push({ type:"tiles", d0:94, x0:-5.6, rows:6, cols:4, tw:2.6, td:2.4, gap:0.3, fake:0.45 });
+    P.push({ type:"belt", d0:94, d1:109.9, x0:-9.2, x1:-7.4, top:0, h:3, vd:-1.6 });
+    floor(109.9,113,-9.2,6,{ c:"berry" }); ramp(113,117,-6,6,0,1.2,"main"); floor(117,119,-6,6,{ top:1.2, h:4.2, c:"main" }); ramp(119,122,-6,6,1.2,0,"main");
+    landing(122,138,"azure");
+
+    // ===== 3 · Pendulum Alley (128–194): four wrecking balls over a 5 m bridge, no rails, out of step =====
+    sign(131,"3 · PENDULUM ALLEY");
+    floor(136,170,-3.25,3.25,{ c:"ocean" });                               // 6.5 m: a centre hit is a scare, an edge hit is a fall
+    for (const [d,per,ph] of [[142,3.4,0],[148.5,3.8,0.33],[159,3.6,0.66],[165.5,3.3,0.15]])
+      P.push({ type:"pendulum", d, py:8.2, rope:7, amp:0.72, period:per, phase:ph, r:1 });
+    floor(170,178,-5,5,{ top:-1, h:2, c:"main" }); hop(173.5,-5,5,-1);
+    ramp(178,184,-5,5,-1,0,"main");
+    landing(184,202);
+
+    // ===== 4 · Gate Crash (194–260): sliding pink gates on three islands, stepping up, with gaps to jump =====
+    sign(197,"4 · GATE CRASH");
+    floor(202,212,-5,5,{ c:"azure" });
+    P.push({ type:"gate", d:207, w:3, xA:-3.5, xB:-0.6, period:4, phase:0 }, { type:"gate", d:207, w:3, xA:0.6, xB:3.5, period:4, phase:0 });
+    floor(214.5,224,-5,5,{ top:0.6, h:3.6, c:"berry" });
+    P.push({ type:"gate", d:220, top:0.6, w:12, gap:3, xA:-2.5, xB:2.5, period:5, phase:0.25 });
+    floor(226.5,236,-5,5,{ top:1.2, h:4.2, c:"azure" });
+    P.push({ type:"gate", d:231.5, top:1.2, w:5, xA:-2.5, xB:2.5, period:4.4, phase:0.6 });
+    ramp(238,244,-5,5,1.2,0,"main"); floor(244,252,-6,6,{ c:"main" }); hop(247.5,-6,6);
+    landing(252,268);
+
+    // ===== 5 · Spin Cycle (260–326): three turning discs that carry you; a sweeper on the big one =====
+    sign(263,"5 · SPIN CYCLE");
+    floor(267,271.2,-2.5,2.5,{ c:"lilac" });
+    P.push({ type:"disc", d:276, r:5, speed:0.55, c:"ocean" });
+    floor(282.6,286.4,-3,3,{ c:"lilac" });
+    P.push({ type:"disc", d:295, r:7, top:0.6, h:1.8, speed:-0.4, c:"ocean" });
+    P.push({ type:"sweeper", d:295, top:0.6, len:6.3, speed:0.9, phase:0, arms:1, hub:0.8 });
+    P.push({ type:"disc", d:308.6, r:5, speed:0.6, c:"ocean" });
+    floor(315.2,320,-4,4,{ c:"main" });
+    landing(318,334);
+
+    // ===== 6 · Seesaw Sea (326–392): four planks rocking side to side on timers, each its own rhythm =====
+    sign(329,"6 · SEESAW SEA");
+    floor(333,337.4,-3,3,{ c:"main" });
+    P.push({ type:"seesaw", d0:338, d1:345, w:4.4, amp:0.25, period:5, hold:0.2, phase:0 });
+    P.push({ type:"seesaw", d0:346.2, d1:353.2, w:4.4, amp:0.27, period:4.4, hold:0.2, phase:0.35 });
+    floor(354.4,358,-3,3,{ c:"lilac" });
+    P.push({ type:"seesaw", d0:359.2, d1:366.2, w:4.4, amp:0.29, period:5.6, hold:0.2, phase:0.6 });
+    P.push({ type:"seesaw", d0:367.4, d1:374.4, w:4.4, amp:0.29, period:4.6, hold:0.2, phase:0.15 });
+    floor(375.6,384,-5,5,{ c:"ocean" }); hop(379.5,-5,5);
+    landing(384,400);
+
+    // ===== 7 · Gumball Hill (392–458): uphill, gumballs roll down three lanes (times from the seed), pinball bumpers =====
+    sign(395,"7 · GUMBALL HILL");
+    floor(400,403,-6.5,6.5,{ c:"grape" });
+    ramp(403,433,-6.5,6.5,0,4.5,"grape");
+    P.push({ type:"gumball", d0:403, d1:433, top0:0, top1:4.5, lanes:[-4.2,0,4.2], r:0.9, speed:4, every:[1.7,2.9] });
+    const hill=d=>(d-403)/30*4.5;
+    for (const [d,x] of [[409,-5.8],[414,5.8],[419,-5.8],[424,5.8],[429,-5.8],[416.5,-2.1],[426.5,2.1]]) P.push({ type:"bumper", d, x, r:0.7, top:hill(d), h:1.4, kick:8 });
+    floor(433,439,-6.5,6.5,{ top:4.5, h:6, c:"grape" });
+    ramp(439,449,-5,5,4.5,0.8,"main"); floor(449,452,-5,5,{ top:0.8, h:3.8, c:"main" });
+    landing(452,466.5); floor(464,466.5,-7.4,7.4,{ c:"lilac" });
+
+    // ===== 8 · Lucky Doors & Trapdoors (458–524): blinking trapdoors, then 4 "?" doors =====
+    //  doors (seed): 1 = shortcut chute (drop to the low belt → pad back up), 2 = normal (walk round the sides), 1 = jelly
+    sign(461,"8 · LUCKY DOORS");
+    P.push({ type:"traps", d0:466.5, x0:-5.1, rows:5, cols:3, tw:3.3, td:3.4, gap:0.2, period:6, up:4, blink:0.7, gone:0.9, rise:0.4, wave:-0.1, checker:true });
+    // wave −0.1: each row runs 0.6 s AHEAD of the one behind it, so if you set off as a panel comes back and keep running
+    // you surf the wave; checker = the next column is half a cycle out, so there's always a panel up beside you
+    for (const s of [-1,1]) P.push({ type:"belt", d0:466.5, d1:484.3, x0:s<0?-7.4:5.7, x1:s<0?-5.7:7.4, top:0, h:3, vd:-2.6 });   // safe (slow) lanes
+    floor(484.3,490,-7.4,7.4,{ c:"berry" });
+    floor(490,497.8,-8,8,{ c:"main" });
+    P.push({ type:"luckydoors", d:498, x0:-8, x1:8, n:4, h:2.8, wallTop:4.2, post:0.5, thick:0.6, lane:6, laneH:0.5, roof:false, bounce:5 });   // no roof: the 4.2 m wall already hides the corridors from the chase camera
+    floor(504.3,507.5,-11,11,{ h:0.5, c:"main" });
+    block(507.5,508.1,-8,8,1.6,2.1);                                              // fence: the low lane is only for the chute
+    for (const s of [-1,1]){ floor(507.5,516,s<0?-11:8,s<0?-8:11,{ h:0.5, c:"lilac" }); block(508.1,516,s<0?-8.5:8,s<0?-8:8.5,1.6,2.1); hop(511,s<0?-11:8.5,s<0?-8.5:11); }
+    P.push({ type:"belt", d0:498, d1:510, x0:-8, x1:8, top:-3, h:1, vd:4.5 });  // the chute's low belt …
+    P.push({ type:"pad", d0:510, d1:512.5, x0:-8, x1:8, top:-2.85, h:0.3, vy:14, vd:7 });   // … and the pad back up
+    floor(516,520,-11,11,{ c:"main" });
+    landing(518,532,"azure",7);
+
+    // ===== 9 · Hammer Finale (524–600): pistons punch from both edges, then a big double sweeper before the arch =====
+    sign(527,"9 · HAMMER FINALE");
+    floor(531,535,-3,3,{ c:"lilac" });
+    floor(535,560,-6,6,{ c:"ocean" });
+    for (const [d,side,per,ph] of [[539.5,-1,3.4,0],[544.5,1,3.4,0.5],[549.5,-1,3,0.25],[554.5,1,3,0.75]]){
+      P.push({ type:"piston", d, side, edge:6, reach:5.5, thick:2, h:1.8, period:per, phase:ph });
+      block(d-1.35,d+1.35,side<0?-13.1:7.4,side<0?-7.4:13.1,2.2,4.2); }               // the housing it punches out of (pulls back into it)
+    floor(560,566.6,-3,3,{ c:"lilac" });
+    P.push({ type:"deck", d:576, r:9.5, c:"berry" });
+    P.push({ type:"sweeper", d:576, len:8.8, speed:-0.7, phase:0, arms:2 });
+    floor(585.4,590,-4,4,{ c:"main" });
+    P.push({ type:"pad", d0:588,d1:590, x0:-4, x1:4, top:0.15, h:0.3, vy:10, vd:10 });   // one big bounce to the finish
+    floor(594,616,-7,7,{ c:"main" }); rails(598,616,-7,7);
+
+    const veils=[64,128,194,260,326,392,458,524];
+    const checkpoints=[
+      { d:0, sw:1.6 },
+      { d:37, sw:0.8 },  { d:65.5, veil:0 },
+      { d:91.5, xs:[0,-8.3], sw:0.7 },  { d:129.5, veil:1 },
+      { d:153.75, sw:1.2 }, { d:195.5, veil:2 },
+      { d:216.5, sw:1.4 }, { d:261.5, veil:3 },
+      { d:284.5, sw:0.8 }, { d:327.5, veil:4 },
+      { d:356.2, sw:0.8 }, { d:393.5, veil:5 },
+      { d:435.5, sw:1.6 }, { d:459.5, veil:6 },
+      { d:487, sw:1.6 },  { d:525.5, veil:7 },
+      { d:562.5, sw:0.8 },
+    ];
+    const L=(...pts)=>pts;
+    const rooms=[
+      { name:"Spin Start", d0:0, d1:64, bot:{ mirror:true, safe:L([0,0,1.5],[9,0,1],[16.5,-2.6,0.6],[33.5,-2.6,0.6],[36,0,1],[64,0,2]) } },
+      { name:"Tip-Toe Tiles", d0:64, d1:128, bot:{ tiles:true,
+          safe:L([64,0,2],[70.6,-6,0.3],[72.5,-8.3,0.3],[110,-8.3,0.3],[113,0,2],[128,0,2]), fast:L([64,0,2],[72,0,1],[110,0,1],[128,0,2]) } },
+      { name:"Pendulum Alley", d0:128, d1:194, bot:{ safe:L([128,0,1.5],[136,0,0.8],[170,0,0.8],[194,0,2]) } },
+      { name:"Gate Crash", d0:194, d1:260, bot:{ safe:L([194,0,2],[260,0,1.5]) } },
+      { name:"Spin Cycle", d0:260, d1:326, bot:{ mirror:true, safe:L([260,0,1.5],[268,0,0.8],[286,0,1],[289,-2.6,0.7],[301,-2.6,0.7],[303.6,0,1],[326,0,2]) } },
+      { name:"Seesaw Sea", d0:326, d1:392, bot:{ safe:L([326,0,1.5],[334,0,0.3],[375,0,0.3],[392,0,2]) } },
+      { name:"Gumball Hill", d0:392, d1:458, bot:{ safe:L([392,0,2],[458,0,2]) } },
+      { name:"Lucky Doors", d0:458, d1:524, bot:{ mirror:true, nojump:[[496,505]], lowY:-1.5, low:L([498,0,1],[524,0,2]),
+          safe:L([458,0,2],[464.5,-5,0.3],[466.5,-6.55,0.2],[484,-6.55,0.2],[489,0,3],[504.3,9.75,0.2],[515,9.75,0.2],[518,0,3],[524,0,2]),
+          fast:L([458,0,2],[466,0,1],[485,0,1],[489,0,3],[504.3,9.75,0.2],[515,9.75,0.2],[518,0,3],[524,0,2]) } },
+      { name:"Hammer Finale", d0:524, d1:600, bot:{ mirror:true, safe:L([524,0,2],[532,0,1],[535,0,2],[560,0,1],[566,0,1],[568,-2.8,0.6],[584,-2.8,0.6],[588,0,2],[600,0,2]) } },
+    ];
+    return {
+      id:"gumdrop-gauntlet", name:"Gumdrop Gauntlet", length:600,
+      veils, rooms, checkpoints, pieces:P,
+      spawn:{ d:1.5, cols:8, gap:1.6, rows:5 },
+      theme:{ ...jellybean.theme,
+        sky:["#2a2fc9","#7b83ff","#f6a6dd"], fog:"#c4c2ff",
+        berry:["#c084fc","#e9d5ff","#9333ea"],     // orchid
+        ocean:["#4f7cf7","#818cf8","#1e3a8a"],     // deep blue
+        grape:["#7c3aed","#9f67ff","#4c1d95"],     // dark grape (Gumball Hill)
+        azure:["#60a5fa","#93c5fd","#2563eb"],     // sky blue
+        tile:["#a5f3fc","#c4b5fd","#4338ca"],      // tip-toe tiles: [colour A, colour B (checker), side]
+        trap:["#93c5fd","#ffffff","#1d4ed8"],      // trapdoors: [panel, blink, side]
+      },
+    };
+  })();
+
+  const MAPS={ "jellybean-skyway":jellybean, "hazard-lab":hazardLab, "gumdrop-gauntlet":gumdrop };
   const DEFAULT="jellybean-skyway";
   const get=id=>MAPS[id]||MAPS[DEFAULT];
-  return { MAPS, DEFAULT, get };
+  // MAP PICKER: the maps players may choose (lobby map{id} + solo menu), in menu order, with a short blurb each.
+  // Test rooms (hazard-lab) are never offered; ids not in MAPS yet are skipped.
+  const BLURB={ "jellybean-skyway":"classic, gentle", "gumdrop-gauntlet":"wild, more spills" };
+  const PICKABLE=Object.keys(BLURB).filter(id=>MAPS[id] && !MAPS[id].test);
+  const pickable=id=>PICKABLE.includes(id);
+  return { MAPS, DEFAULT, get, PICKABLE, BLURB, pickable };
 });

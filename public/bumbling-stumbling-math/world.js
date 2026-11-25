@@ -14,6 +14,13 @@
 //   Knock-back: stepBean tests my bean / each bot against S.hazardContacts every step; a hit throws you along the
 //   hazard's motion (T.hitPush/hitUp), a T.hitStun stumble, then T.hitImmune. Gates are solid kinematic bodies AND
 //   push you out of their way (the character controller can't be pushed). A bean frozen at a veil is never hit.
+// MAP 2 (Gumdrop Gauntlet) pieces: disc (static round collider, carries you by its rotation), seesaw (kinematic plank:
+//   carries you up/down + slide toward the low side; the edge about to go down blinks), tiles + traps (one kinematic body
+//   per cell, one instanced mesh per field), bumper (pinball post: bounce + "bump"), luckydoors ("?" doors; the chute
+//   corridor's floor collider is moved away; falling in fires "chute"), piston + gumball hazards (stumble.js hazardShape).
+//   W.startRace({ …, seed }) → W.seed: S.applySeed picks fake tiles, gumball times and the lucky doors (same on every
+//   screen). Fake tiles drop when MY bean, a solo bot or a ghost stands on one (only fakes can drop: same for everyone).
+//   Extra events: bump · chute.
 import * as THREE from "three";
 import { mergeGeometries } from "../assets/vendor/three/addons/utils/BufferGeometryUtils.js";
 import RAPIER from "../assets/vendor/rapier/rapier.es.js";
@@ -162,7 +169,10 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     const t=stripes("#ff4fa8","#ffffff",2,"h");
     HZM={ mat:new THREE.MeshLambertMaterial({ map:t, emissive:"#ff4fa8", emissiveIntensity:0.18 }),
       flash:new THREE.MeshLambertMaterial({ color:"#ffffff", emissive:"#ffe066", emissiveIntensity:0.9 }),
-      rope:new THREE.MeshLambertMaterial({ color:"#f5f3ff", emissive:"#7c6cff", emissiveIntensity:0.3 }) };
+      rope:new THREE.MeshLambertMaterial({ color:"#f5f3ff", emissive:"#7c6cff", emissiveIntensity:0.3 }),
+      warn:new THREE.MeshLambertMaterial({ map:stripes("#ff9f1c","#ffffff",2,"h"), emissive:"#ff6a00", emissiveIntensity:0.55 }),     // piston pulling back: about to punch
+      lit:new THREE.MeshBasicMaterial({ color:"#ffe14d" }), dim:new THREE.MeshLambertMaterial({ color:"#5b21b6" }),             // seesaw edge lights
+      cap:new THREE.MeshLambertMaterial({ color:"#ffd23f", emissive:"#ffb800", emissiveIntensity:0.45 }) };
     return HZM;
   }
 
@@ -180,7 +190,8 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
   function buildCourse(map){
     const c=S.compile(map), th=map.theme||{}, L=c.length;
     const group=new THREE.Group(); scene.add(group);
-    const cr={ map, c, group, colliders:[], bodies:[], movers:[], pads:[], belts:[], panels:[], veils:[], flags:[], spinners:[], floaters:[], geos:[], mats:[], hz:[] };
+    const cr={ map, c, group, colliders:[], bodies:[], movers:[], pads:[], belts:[], panels:[], veils:[], flags:[], spinners:[], floaters:[], geos:[], mats:[], hz:[],
+      discs:[], seesaws:[], grids:[], bumpers:[], lucky:[] };
     const PAL=k=>th[k]||({ main:["#8b5cf6","#a78bfa","#6d28d9"], alt:["#b69cff","#d6c8ff","#7c5ce0"], block:["#22d3ee","#a5f3fc","#0891b2"], wall:["#5eead4","#ccfbf1","#0d9488"],
       edge:["#ff5fb7","#ffffff","#ec4899"], mover:["#ff4fa8","#ffffff","#c026d3"], belt:["#ff4fa8","#ffffff","#be185d"], pad:["#ffd23f","#fff6c2","#d69e00"] })[k]||["#8b5cf6","#a78bfa","#6d28d9"];
     if (th.sky){ skyMat.uniforms.top.value.set(th.sky[0]); skyMat.uniforms.mid.value.set(th.sky[1]); skyMat.uniforms.low.value.set(th.sky[2]); }
@@ -229,6 +240,33 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
         if (G.tops.length) own(new THREE.Mesh(mergeGeometries(G.tops),tm)); if (G.sides.length) own(new THREE.Mesh(mergeGeometries(G.sides),sm)); cr.mats.push(tm,sm); }
       batch.clear();
     }
+    const topUV2=(g,rx,ry)=>{ const a=g.attributes.uv, n=g.attributes.normal; for (let i=0;i<a.count;i++) if (n.getY(i)>0.5) a.setXY(i,a.getX(i)*rx,a.getY(i)*ry); };
+    // disc look: pink + white pie slices (it turns), plum side, yellow rim. Shared by every disc.
+    let DM=null;
+    function discMats(){ if (DM) return DM; const P=PAL("mover");
+      const t=canvasTex("wedge"+P[0],(x,S2)=>{ const n=12, r=S2/2; for (let i=0;i<n;i++){ x.fillStyle=i%2?P[1]:P[0]; x.beginPath(); x.moveTo(r,r); x.arc(r,r,r,i*Math.PI*2/n,(i+1)*Math.PI*2/n); x.closePath(); x.fill(); }
+        x.fillStyle="#ffd23f"; x.beginPath(); x.arc(r,r,r*0.14,0,Math.PI*2); x.fill(); },256);
+      DM={ top:new THREE.MeshLambertMaterial({ map:t }), side:new THREE.MeshLambertMaterial({ color:P[2] }), rim:new THREE.MeshLambertMaterial({ color:"#fff3a8", emissive:"#ffd23f", emissiveIntensity:0.3 }) };
+      cr.mats.push(DM.top,DM.side,DM.rim); return DM; }
+    // lucky door face: candy colour with a big white "?"
+    const qDoorTex=col=>canvasTex("qd"+col,(x,S2)=>{ x.fillStyle=col; x.fillRect(0,0,S2,S2); x.fillStyle="rgba(255,255,255,.22)"; for (let i=0;i<S2;i+=32) x.fillRect(i,0,12,S2);
+      x.font=`900 ${S2*0.62}px Nunito, system-ui, sans-serif`; x.textAlign="center"; x.textBaseline="middle"; x.lineWidth=10; x.strokeStyle="rgba(40,10,90,.7)"; x.strokeText("?",S2/2,S2*0.55); x.fillStyle="#fff"; x.fillText("?",S2/2,S2*0.55); },128);
+    // tiles / trapdoors: one kinematic body per cell, ONE instanced mesh per field (colours per cell)
+    const cellGeo=new Map();
+    function gridBuild(p,F){
+      const g=cellGeo.get(F.tw+"_"+F.h+"_"+F.td)||(()=>{ const b=new THREE.BoxGeometry(F.tw,F.h,F.td).translate(0,-F.h/2,0).toNonIndexed(), n=b.attributes.normal, a=new Float32Array(n.count*3);
+        for (let i=0;i<n.count;i++){ const v=n.getY(i)>0.5?1:0.62; a[i*3]=a[i*3+1]=a[i*3+2]=v; } b.setAttribute("color",new THREE.BufferAttribute(a,3)); cellGeo.set(F.tw+"_"+F.h+"_"+F.td,b); cr.geos.push(b); return b; })();
+      const mat=new THREE.MeshLambertMaterial({ vertexColors:true, emissive:"#1b1050", emissiveIntensity:0.25 }); cr.mats.push(mat);
+      const inst=own(new THREE.InstancedMesh(g,mat,F.cells.length)); inst.frustumCulled=false;
+      const pal=PAL(F.type==="tiles"?"tile":"trap"), cA=new THREE.Color(pal[0]), cB=new THREE.Color(pal[1]);
+      const cells=F.cells.map(q=>{ const cx=(q.x0+q.x1)/2, cd=(q.d0+q.d1)/2;
+        const body=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(cx,q.top-q.h/2,-cd)); cr.bodies.push(body);
+        world.createCollider(RAPIER.ColliderDesc.cuboid(F.tw/2,q.h/2,F.td/2),body);
+        const base=F.type==="tiles"?((q.r+q.k)%2?cB:cA):cA; inst.setColorAt(q.n,base);
+        return { q, cx, cd, body, base, y:0, col:0 }; });
+      cr.grids.push({ F, inst, cells, blink:cB, warn:new THREE.Color("#ff4fa8") });
+    }
+    const fulcrums=[], drains=[];
     // --- builders ---
     const BUILDERS={
       floor:p=>{ box(p); addBox(p,p.c||"main"); },
@@ -238,7 +276,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
       ramp:p=>{ const F=rampFrame(p);
         cr.colliders.push(world.createCollider(RAPIER.ColliderDesc.cuboid(F.w/2,(p.h??1)/2,F.Ls/2).setTranslation(F.centre.x,F.centre.y,F.centre.z).setRotation({ x:F.q.x, y:F.q.y, z:F.q.z, w:F.q.w })));
         addRampBox(p,p.c||"main",{ thin:p.c==="edge" }); },
-      pad:p=>{ box(p); const P=PAL("pad"), w=p.x1-p.x0, len=p.d1-p.d0;
+      pad:p=>{ box({ ...p, h:p.h??0.3 }); const P=PAL("pad"), w=p.x1-p.x0, len=p.d1-p.d0;
         const t=padTex(P[0],P[1]).clone(); t.needsUpdate=true; t.repeat.set(Math.max(1,Math.round(w/3)),Math.max(1,Math.round(len/3)));
         const mat=new THREE.MeshLambertMaterial({ map:t, emissive:P[0], emissiveIntensity:0.35 });
         const side=new THREE.MeshLambertMaterial({ color:P[2], emissive:P[0], emissiveIntensity:0.2 });
@@ -303,6 +341,63 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
         // dark rails on the floor showing where it slides
         const span=Math.abs(h.xB-h.xA)+h.w; cr.hzTrack=(cr.hzTrack||[]); cr.hzTrack.push(new THREE.BoxGeometry(span,0.04,0.18).translate((h.xA+h.xB)/2,h.top+0.02,-h.d+h.thick/2+0.15),new THREE.BoxGeometry(span,0.04,0.18).translate((h.xA+h.xB)/2,h.top+0.02,-h.d-h.thick/2-0.15));
         cr.hz.push({ h, g, body, meshes, flash:0 }); },
+      // ---- Map 2 footing + hazards ----
+      disc:p=>{ const q=c.discs.find(z=>z.src===p);
+        cr.colliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(q.h/2,q.r).setTranslation(q.cx,q.top-q.h/2,-q.cd)));
+        const g=own(new THREE.Group()); g.position.set(q.cx,q.top,-q.cd);
+        const M=discMats();
+        const top=new THREE.Mesh(new THREE.CircleGeometry(q.r,48).rotateX(-Math.PI/2).translate(0,0.004,0),M.top); g.add(top);
+        const side=new THREE.Mesh(new THREE.CylinderGeometry(q.r,q.r*0.9,q.h,40,1,true).translate(0,-q.h/2,0),M.side); g.add(side);
+        const rim=new THREE.Mesh(new THREE.TorusGeometry(q.r,0.12,6,48).rotateX(Math.PI/2).translate(0,0.02,0),M.rim); g.add(rim);
+        cr.discs.push({ q, g }); },
+      seesaw:p=>{ const q=c.seesaws.find(z=>z.src===p), len=q.d1-q.d0, cd=(q.d0+q.d1)/2;
+        const body=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(q.cx,q.top,-cd)); cr.bodies.push(body);
+        world.createCollider(RAPIER.ColliderDesc.cuboid(q.w/2,q.h/2,len/2).setTranslation(0,-q.h/2,0),body);
+        const g=own(new THREE.Group()); g.position.set(q.cx,q.top,-cd);
+        const P=PAL("mover"), t=stripes(P[0],P[1],2,"v").clone(); t.needsUpdate=true; t.repeat.set(2,Math.max(1,Math.round(len/1.6)));
+        const tm=new THREE.MeshLambertMaterial({ map:t }), sm=new THREE.MeshLambertMaterial({ color:P[2] }); cr.mats.push(tm,sm);
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(q.w,q.h,len).translate(0,-q.h/2,0),[sm,sm,tm,sm,sm,sm]));
+        const edges=[-1,1].map(s2=>{ const m=new THREE.Mesh(geo("ssEdge"+len,()=>new THREE.BoxGeometry(0.3,0.16,len)),HZ.dim); m.position.set(s2*(q.w/2-0.15),0.06,0); g.add(m); return m; });
+        // fulcrum: a candy wedge under the pivot + a post down into the goo
+        const tri=new THREE.Shape(); tri.moveTo(0,0); tri.lineTo(-1.1,-2.2); tri.lineTo(1.1,-2.2); tri.closePath();
+        fulcrums.push(new THREE.ExtrudeGeometry(tri,{ depth:len*0.5, bevelEnabled:false }).translate(q.cx,q.top-q.h-0.02,-cd-len*0.25),
+          new THREE.CylinderGeometry(0.35,0.35,12,8).translate(q.cx,q.top-q.h-2.2-6,-cd));
+        cr.seesaws.push({ q, g, body, edges }); },
+      tiles:p=>gridBuild(p,c.tiles.find(z=>z.src===p)),
+      traps:p=>gridBuild(p,c.traps.find(z=>z.src===p)),
+      bumper:p=>{ const q=c.bumpers.find(z=>z.src===p);
+        cr.colliders.push(world.createCollider(RAPIER.ColliderDesc.cylinder(q.h/2,q.r).setTranslation(q.cx,q.base+q.h/2,-q.cd)));
+        cr.bumpers.push({ q, pulse:0 }); },
+      gumball:p=>{ const h=c.hazards.find(z=>z.src===p), n=h.lanes.length*(Math.ceil(h.travel/(h.every?h.every[0]:3))+2);
+        const inst=new THREE.InstancedMesh(geo("gum"+h.r,()=>barUV(new THREE.SphereGeometry(h.r,18,12),4,2)),HZ.mat,n); inst.count=0; inst.frustumCulled=false; own(inst);
+        // drain slot at the foot of the hill: balls sink into it
+        drains.push(new THREE.BoxGeometry(Math.abs(h.lanes[h.lanes.length-1]-h.lanes[0])+2*h.r+1,0.05,1.3).translate((h.lanes[0]+h.lanes[h.lanes.length-1])/2,h.top0+0.03,-(h.d0-0.8)));
+        cr.hz.push({ h, inst, meshes:[inst], flash:0, balls:[] }); },
+      piston:p=>{ const h=c.hazards.find(z=>z.src===p), g=own(new THREE.Group()), meshes=[];
+        const body=world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(h.xOut,h.top+h.h/2,-h.d)); cr.bodies.push(body);
+        world.createCollider(RAPIER.ColliderDesc.cuboid(h.L/2,h.h/2,h.thick/2),body);
+        const m=hzMesh(geo("piston"+h.L+"_"+h.h+"_"+h.thick,()=>{ const bg=new THREE.BoxGeometry(h.L,h.h,h.thick), a=bg.attributes.uv, n=bg.attributes.normal;
+          for (let i=0;i<a.count;i++){ const sideways=Math.abs(n.getY(i))>0.5||Math.abs(n.getZ(i))>0.5; a.setXY(i,a.getX(i)*(sideways?Math.max(1,Math.round(h.L/0.8)):1),a.getY(i)); } return bg; }),g);
+        meshes.push(m);
+        // where it punches: two dark strips on the floor
+        const x0=h.side*p.edge, x1=h.side*(p.edge-p.reach), cx=(x0+x1)/2, w=Math.abs(x1-x0);
+        cr.hzTrack=(cr.hzTrack||[]); cr.hzTrack.push(new THREE.BoxGeometry(w,0.04,0.18).translate(cx,h.top+0.02,-h.d+h.thick/2+0.15),new THREE.BoxGeometry(w,0.04,0.18).translate(cx,h.top+0.02,-h.d-h.thick/2-0.15));
+        cr.hz.push({ h, g, body, meshes, flash:0, warn:false }); },
+      luckydoors:p=>{ const D=c.doors.find(q=>q.src===p);
+        for (const q of D.posts){ box(q); addBox(q,"block",{ tile:2 }); }
+        for (const q of D.extra){ box(q); addBox(q,"block",{ tile:2 }); }
+        const L={ D, floors:[] }; cr.lucky.push(L);
+        const P=PAL("main"), fm=new THREE.MeshLambertMaterial({ map:stripes(P[0],P[1],2,"v") }), fs=new THREE.MeshLambertMaterial({ color:P[2] }); cr.mats.push(fm,fs);
+        for (const f of c.lfloors.filter(z=>z.D===D)){
+          const col=world.createCollider(RAPIER.ColliderDesc.cuboid((f.x1-f.x0)/2,f.h/2,(f.d1-f.d0)/2).setTranslation((f.x0+f.x1)/2,f.top-f.h/2,-(f.d0+f.d1)/2)); cr.colliders.push(col);
+          const tg=new THREE.BoxGeometry(f.x1-f.x0,f.h,f.d1-f.d0); topUV2(tg,Math.max(1,Math.round((f.x1-f.x0)/3.5)),Math.max(1,Math.round((f.d1-f.d0)/3.5)));
+          const m=own(new THREE.Mesh(tg,[fs,fs,fm,fs,fs,fs])); m.position.set((f.x0+f.x1)/2,f.top-f.h/2,-(f.d0+f.d1)/2);
+          L.floors.push({ f, col, m }); }
+        const cols=["#38bdf8","#c084fc","#60a5fa","#a78bfa","#22d3ee","#818cf8"];
+        for (const q of D.panels){
+          const mat=new THREE.MeshLambertMaterial({ map:qDoorTex(cols[q.k%cols.length]), emissive:cols[q.k%cols.length], emissiveIntensity:0.35, transparent:true, opacity:0.95 }); cr.mats.push(mat);
+          const m=own(new THREE.Mesh(new THREE.BoxGeometry(q.x1-q.x0-0.06,q.top-0.04,0.28),mat)); m.position.set((q.x0+q.x1)/2,q.top/2,-D.d);
+          cr.panels.push({ q, m, wob:0, pop:0, popped:false, base:mat }); } },
       sign:p=>{ const hw=S.halfWidthAt(c,p.d), cv=document.createElement("canvas"); cv.width=512; cv.height=112; const x=cv.getContext("2d");
         x.fillStyle="#2a1260"; x.beginPath(); x.roundRect(4,4,504,104,26); x.fill(); x.strokeStyle="#ffcf33"; x.lineWidth=6; x.stroke();
         x.font="54px 'Lilita One', system-ui, sans-serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillStyle="#ffffff";
@@ -315,6 +410,14 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     for (const p of map.pieces||[]){ const f=BUILDERS[p.type]; if (f) f(p); }
     flush();
     if (cr.hzTrack){ const m=new THREE.MeshBasicMaterial({ color:"#3b1670", transparent:true, opacity:0.55 }); cr.mats.push(m); own(new THREE.Mesh(mergeGeometries(cr.hzTrack),m)); }
+    if (drains.length){ const m=new THREE.MeshBasicMaterial({ color:"#1b0a3d" }); cr.mats.push(m); own(new THREE.Mesh(mergeGeometries(drains),m)); }
+    if (fulcrums.length){ const P=PAL("block"), m=new THREE.MeshLambertMaterial({ color:P[0], emissive:P[2], emissiveIntensity:0.25 }); cr.mats.push(m);
+      own(new THREE.Mesh(mergeGeometries(fulcrums.map(g=>{ const q=g.index?g.toNonIndexed():g; q.deleteAttribute("uv"); return q; })),m)); }
+    // bumpers: two instanced meshes (striped post + glowing cap) for all of them
+    if (cr.bumpers.length){ const n=cr.bumpers.length, r=cr.bumpers[0].q.r, h=cr.bumpers[0].q.h;
+      const post=own(new THREE.InstancedMesh(geo("bump"+r+"_"+h,()=>barUV(new THREE.CylinderGeometry(r,r*1.12,h,18).translate(0,h/2,0),4,2)),HZ.mat,n));
+      const cap=own(new THREE.InstancedMesh(geo("bcap"+r,()=>new THREE.CylinderGeometry(r*1.18,r*1.18,0.28,18)),HZ.cap,n));
+      post.frustumCulled=cap.frustumCulled=false; cr.bumpInst={ post, cap }; }
     for (const g of hzGeo.values()) cr.geos.push(g);
     // invisible end wall so nobody runs off the end of the world
     box({ d0:L+15, d1:L+16, x0:-T.halfWidth, x1:T.halfWidth, top:6, h:6 });
@@ -409,15 +512,54 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     for (const m of cr.mats) m.dispose();
     scene.remove(cr.group);
   }
-  function placeMovers(t){ for (const v of CR.movers){ const p=S.moverPos(v.m,t); v.body.setNextKinematicTranslation({ x:p.x, y:p.top-v.h/2, z:-p.d }); v.g.position.set(p.x,p.top-v.h/2,-p.d); }
+  const TMPM=new THREE.Matrix4(), TMPQ=new THREE.Quaternion(), TMPE=new THREE.Euler(), TMPP=new THREE.Vector3(), TMPS=new THREE.Vector3(1,1,1), ZAX=new THREE.Vector3(0,0,1);
+  // Map 2 footing: seesaws roll, fake tiles / trapdoors drop and come back, discs turn (visual only: the cylinder is
+  // round, so its collider never needs to turn). vis=false (fast-forward) skips the drawing work.
+  function placeKin(t,vis=true){
+    for (const z of CR.seesaws){ const a=S.seesawA(z.q,t); TMPQ.setFromAxisAngle(ZAX,a); z.body.setNextKinematicRotation({ x:TMPQ.x, y:TMPQ.y, z:TMPQ.z, w:TMPQ.w });
+      if (!vis) continue; z.g.rotation.z=a;
+      // telegraph: the edge that is about to go DOWN blinks (from 0.9 s before the swing until it lands)
+      const fut=S.seesawA(z.q,t+0.9)-a, blink=Math.floor(t*8)%2===0;
+      z.edges[0].material=fut>0.05&&blink?HZM.lit:HZM.dim; z.edges[1].material=fut<-0.05&&blink?HZM.lit:HZM.dim; }
+    for (const G of CR.grids){ const tiles=G.F.type==="tiles";
+      for (const z of G.cells){ const q=z.q, y=tiles?S.tileDrop(q,t):S.trapDrop(q,t);
+        if (y!==z.y){ z.y=y; z.body.setNextKinematicTranslation({ x:z.cx, y:q.top-q.h/2-Math.min(y,60), z:-z.cd }); }
+        if (!vis) continue;
+        let wob=0, col=0;
+        if (tiles){ wob=S.tileWobble(q,t); }
+        else { const st=S.trapState(q,t); if (st.s===1){ wob=0.5; col=Math.floor(t*9)%2?1:2; } }
+        const sh=wob?Math.sin(t*42+q.n)*0.07*wob:0;
+        TMPE.set(sh,0,wob?Math.cos(t*37+q.n)*0.06*wob:0); TMPQ.setFromEuler(TMPE); TMPP.set(z.cx+sh*0.6,q.top-Math.min(y,60)+(wob?Math.abs(sh)*0.6:0),-z.cd);
+        TMPS.setScalar(y>25?0.0001:1); TMPM.compose(TMPP,TMPQ,TMPS); G.inst.setMatrixAt(q.n,TMPM);
+        if (col!==z.col){ z.col=col; G.inst.setColorAt(q.n,col===1?G.blink:col===2?G.warn:z.base); G.inst.instanceColor.needsUpdate=true; } }
+      if (vis) G.inst.instanceMatrix.needsUpdate=true; }
+    if (!vis) return;
+    for (const z of CR.discs) z.g.rotation.y=z.q.phase+z.q.speed*t;
+    if (CR.bumpInst){ CR.bumpers.forEach((z,i)=>{ const q=z.q, s=1+0.25*z.pulse;
+      TMPQ.identity(); TMPS.set(s,1,s); TMPP.set(q.cx,q.base,-q.cd); TMPM.compose(TMPP,TMPQ,TMPS); CR.bumpInst.post.setMatrixAt(i,TMPM);
+      TMPS.set(s,1+0.6*z.pulse,s); TMPP.set(q.cx,q.top+0.1,-q.cd); TMPM.compose(TMPP,TMPQ,TMPS); CR.bumpInst.cap.setMatrixAt(i,TMPM); });
+      CR.bumpInst.post.instanceMatrix.needsUpdate=true; CR.bumpInst.cap.instanceMatrix.needsUpdate=true; }
+  }
+  function placeMovers(t,vis=true){ placeKin(t,vis); for (const v of CR.movers){ const p=S.moverPos(v.m,t); v.body.setNextKinematicTranslation({ x:p.x, y:p.top-v.h/2, z:-p.d }); v.g.position.set(p.x,p.top-v.h/2,-p.d); }
     for (const z of CR.hz){ const h=z.h, sh=S.hazardShape(h,t);
       if (h.type==="sweeper") z.spin.rotation.y=sh.a;
       else if (h.type==="pendulum") z.g.rotation.z=sh.th;
-      else { z.body.setNextKinematicTranslation({ x:sh.cx, y:h.top+h.h/2, z:-h.d }); z.g.position.set(sh.cx,h.top+h.h/2,-h.d); } } }
+      else if (h.type==="gumball"){ if (!vis) continue; const B=sh.balls; z.inst.count=B.length;
+        for (let i=0;i<B.length;i++){ const b=B[i]; TMPE.set(-b.s/b.r,0,0); TMPQ.setFromEuler(TMPE); TMPP.set(b.x,b.y,-b.d); TMPS.setScalar(1); TMPM.compose(TMPP,TMPQ,TMPS); z.inst.setMatrixAt(i,TMPM); }
+        z.inst.instanceMatrix.needsUpdate=true; }
+      else { z.body.setNextKinematicTranslation({ x:sh.cx, y:h.top+h.h/2, z:-h.d }); z.g.position.set(sh.cx,h.top+h.h/2,-h.d);
+        if (h.type==="piston"&&vis){ const w=S.pistonWarn(h,t)>0; if (w!==z.warn){ z.warn=w; if (!(z.flash>0)) for (const m of z.meshes) m.material=w?HZM.warn:HZM.mat; } } } } }
+  // the race seed decides fake tiles, gumball times and which lucky door is which: apply it + move the chute floor
+  function applySeed(seed){
+    S.applySeed(W.course,seed);
+    for (const L of CR.lucky) for (const F of L.floors){ const gone=L.D.kinds[F.f.k]==="chute";
+      F.col.setTranslation({ x:(F.f.x0+F.f.x1)/2, y:gone?-80:F.f.top-F.f.h/2, z:-(F.f.d0+F.f.d1)/2 }); F.m.visible=!gone; }
+    for (const G of CR.grids) for (const z of G.cells){ z.y=-1; z.col=-1; }
+  }
   function loadMap(id){
     const map=MAPS?MAPS.get(id):null; if (!map) throw new Error("no map "+id);
     destroyCourse(CR); CR=buildCourse(map); W.map=map; W.course=CR.c; W.finishLine=CR.finishArch;
-    placeMovers(0); world.step();
+    applySeed(W.seed||1); placeMovers(0); world.step();
   }
 
   // ============================================================
@@ -428,7 +570,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
   }
   // st: { d,x,y, vd,vx,vy, grounded, coyote, jbuf, cp, falls, fallen, fin, bonk, landed, a, dive, quiz, veilsDone, padV }
   function newState(i){ const sp=S.spawn(i,W.course); return { d:sp.d, x:sp.x, y:0, vd:0, vx:0, vy:0, grounded:true, coyote:0, jbuf:0, cp:0, falls:0, fallen:0, fin:false, bonk:0, landed:0, a:0, spIdx:i, dive:0, diveT:0, airT:0,
-    quiz:-1, veilsDone:0, wait:0, padV:0, jhit:null, snag:0, hit:0, imm:0, hitH:-1 }; }
+    quiz:-1, veilsDone:0, wait:0, padV:0, jhit:null, snag:0, hit:0, imm:0, hitH:-1, bumpT:0, bumpQ:-1, chute:-1 }; }
   const setCol=(st,col)=>col.setTranslation({ x:st.x, y:st.y+T.halfH+T.radius, z:-st.d });
   // let a bean through the veil it is stuck at (my bean: game.js calls W.passVeil(); bots: after their wait)
   function passVeilSt(st,ev,quiet){
@@ -454,7 +596,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     const c=W.course;
     if (st.fallen>0){ st.fallen-=DT; st.a=3;
       if (st.fallen<=0){ const p=S.respawnAt(c,st.cp,st.fx??0,st.spIdx,mt);
-        Object.assign(st,{ d:p.d, x:p.x, y:p.y, vd:0, vx:0, vy:0, grounded:false, dive:0, diveT:0, padV:0, hit:0, imm:0.6 });
+        Object.assign(st,{ d:p.d, x:p.x, y:p.y, vd:0, vx:0, vy:0, grounded:false, dive:0, diveT:0, padV:0, hit:0, imm:0.6, chute:-1 });
         setCol(st,col); ev.push("respawn"); }
       return; }
     if (st.quiz>=0){                                   // solving a veil: frozen in place, standing
@@ -465,7 +607,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     if (c.hazards.length){ st.imm=Math.max(0,st.imm-DT);
       for (const K of S.hazardContacts(c,mt,st.d,st.x,st.y)){
         const moving=Math.hypot(K.vx,K.vd)>T.hitMinSpd, into=K.nx*K.vx+K.nd*K.vd>0;
-        if (K.h.type==="gate"){ if (K.pen>0){ st.x+=K.nx*(K.pen+0.03); st.d+=K.nd*(K.pen+0.03); setCol(st,col); } if (!(moving&&into)) continue; }
+        if (K.h.solid){ if (K.pen>0){ st.x+=K.nx*(K.pen+0.03); st.d+=K.nd*(K.pen+0.03); setCol(st,col); } if (!(moving&&into)) continue; }
         if (st.imm<=0) knock(st,K,moving&&into,ev);
       } }
     let mx=inp.mx, mz=inp.mz; const l=Math.hypot(mx,mz); if (l>1){ mx/=l; mz/=l; }
@@ -493,11 +635,14 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
       st.vd=-q.bounce; st.vy=Math.max(st.vy,3.2); st.vx*=0.4; st.bonk=0.45; st.grounded=false; st.dive=0; st.jhit=q; ev.push("bonk"); break; } }
     st.vy-=T.gravity*DT; if (st.vy<-30) st.vy=-30;
     // what am I standing on? moving platforms carry you, belts push you
-    let cx=0, cd=0;
+    let cx=0, cd=0, cy=0;
     if (st.grounded&&!jumped){ const P=S.probe(c,st.d,st.x,mt-DT,st.y+0.1).p;
       if (P&&P.type==="mover"){ const a=S.moverPos(P,mt-DT), b=S.moverPos(P,mt); cx=b.x-a.x; cd=b.d-a.d; }
-      else if (P&&P.type==="belt"){ cx=(P.vx||0)*DT; cd=(P.vd||0)*DT; } }
-    const want={ x:st.vx*DT+cx, y:st.vy*DT, z:-(st.vd*DT+cd) };
+      else if (P&&P.type==="belt"){ cx=(P.vx||0)*DT; cd=(P.vd||0)*DT; }
+      else if (P&&P.type==="disc"){ const a=P.speed*DT, u=st.x-P.cx, v=st.d-P.cd, ca=Math.cos(a), sa=Math.sin(a); cx=u*ca-v*sa-u; cd=u*sa+v*ca-v; }
+      else if (P&&P.type==="seesaw"){ const y0=S.seesawTop(P,st.d,st.x,mt-DT), y1=S.seesawTop(P,st.d,st.x,mt); if (y0!=null&&y1!=null) cy=y1-y0;
+        cx=S.seesawSlide(S.seesawA(P,mt))*DT; } }
+    const want={ x:st.vx*DT+cx, y:st.vy*DT+cy, z:-(st.vd*DT+cd) };
     kcc.computeColliderMovement(col,want,undefined,BEAN_GROUPS);
     const got=kcc.computedMovement(), wasG=st.grounded;
     st.grounded=kcc.computedGrounded() && st.vy<=0.01;
@@ -506,6 +651,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     if (st.grounded){ if (!wasG && st.airT>0.15){ st.landed=Math.min(1,-st.vy/14); ev.push("land"); } if (st.dive===1){ st.dive=2; st.diveT=T.diveGetUp; } st.vy=0; st.airT=0; st.padV=0; }
     else { st.airT=(st.airT||0)+DT; if (st.vy>0 && got.y<want.y*0.5) st.vy=0; }                         // bumped the head
     // run into a wall at speed → bonk back (the "stumbling")
+    want.y-=cy;
     const wh=Math.hypot(want.x-cx,want.z+cd), gh=((got.x-cx)*(want.x-cx)+(got.z+cd)*(want.z+cd))/(wh*wh||1);
     let wall=false;
     if (wh>T.run*DT*0.75 && gh<0.25 && st.bonk<=0) for (let i=0,n=kcc.numComputedCollisions();i<n;i++){
@@ -518,6 +664,15 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     // bounce pads: touch one standing up → thrown up + forward
     if (st.grounded){ const P=S.probe(c,st.d,st.x,mt,st.y+0.1).p;
       if (P&&P.type==="pad"&&Math.abs(st.y-P.top)<0.25){ st.vy=P.vy; st.vd=P.vd; st.padV=P.vd; st.grounded=false; st.coyote=0; st.jbuf=0; st.dive=0; st.airT=0.01; ev.push("pad"); } }
+    // Map 2: a fake tile under me starts to wobble (local beans only) · pinball bumpers · falling into the lucky chute
+    if (st.grounded&&c.tiles.length){ const P=S.probe(c,st.d,st.x,mt,st.y+0.1).p; if (P&&P.type==="tile"&&P.fake&&S.tileIdle(P,mt)) P.trig=mt; }
+    if (st.bumpT>0) st.bumpT-=DT;
+    else if (c.bumpers.length) for (const q of c.bumpers){ if (Math.abs(st.d-q.cd)>2) continue;
+      const ux=st.x-q.cx, ud=st.d-q.cd, dist=Math.hypot(ux,ud);
+      if (dist<q.r+T.radius+0.1&&st.y<q.top-0.15&&st.y+1.7>q.base){ const k=dist||1;
+        st.vx=ux/k*q.kick; st.vd=ud/k*q.kick; st.vy=Math.max(st.vy,T.bumpUp); st.grounded=false; st.coyote=0; st.jbuf=0; st.dive=0; st.padV=0; st.airT=0.01;
+        st.hit=Math.max(st.hit,0.35); st.bumpT=0.35; st.bumpQ=q.i; ev.push("bump"); break; } }
+    for (const D of c.doors) if (D.lucky&&st.chute!==D.i&&st.d>D.lane[0]-0.5&&st.d<D.lane[1]+6&&st.y<-1.2){ st.chute=D.i; ev.push("chute"); }
     // math veil: the front of the bean touches the next curtain → freeze and ask (bots just wait)
     if (st.veilsDone<c.veils.length){ const v=c.veils[st.veilsDone];
       if (st.d>=v.d-T.radius){
@@ -538,7 +693,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
   //  STATE: my bean, bots, ghosts (online relay), camera
   // ============================================================
   const W={ R, scene, cam, mode:"menu", me:null, bots:[], ghosts:new Map(), snaps:[], players:new Map(), acc:0, mt:0, qpv:T.qpv,
-    teacher:false, onEvent:()=>{}, camPos:new THREE.Vector3(0,8,12), lastNow:performance.now(), map:null, course:null };
+    teacher:false, onEvent:()=>{}, camPos:new THREE.Vector3(0,8,12), lastNow:performance.now(), map:null, course:null, seed:1 };
   loadMap(mapId||(MAPS&&MAPS.DEFAULT));
   onProgress(0.96);
   function clearBeans(){
@@ -549,13 +704,14 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
   function addBean(b){ scene.add(b.root); scene.add(b.shadow); }
   function resetCourseLooks(){
     for (const v of CR.veils){ v.target=1; } for (const f of CR.flags){ f.got=false; f.mat.color.set("#c4b5fd"); f.mat.emissive.set("#3b2a7a"); }
-    for (const p of CR.panels){ p.popped=false; p.pop=0; p.wob=0; p.m.visible=true; p.m.scale.set(1,1,1); }
+    for (const p of CR.panels){ p.popped=false; p.pop=0; p.wob=0; p.m.visible=true; p.m.scale.set(1,1,1); if (p.base) p.m.material=p.base; }
   }
   // switch map (rebuilds the course). Call before startRace. Returns the map object.
   W.setMap=id=>{ const want=MAPS?MAPS.get(id):null; if (want&&W.map!==want){ clearBeans(); loadMap(want.id); } return W.map; };
   // race setup. me = { pid, color, name } or null (teacher). moverT0 = performance.now() at race time 0.
-  W.startRace=({ me, players, teacher=false, moverT0, startAt })=>{
-    clearBeans(); W.mode="race"; W.teacher=teacher; W.moverT0=moverT0; W.startAt=startAt; W.acc=0; resetCourseLooks();
+  W.startRace=({ me, players, teacher=false, moverT0, startAt, seed })=>{
+    clearBeans(); W.mode="race"; W.teacher=teacher; W.moverT0=moverT0; W.startAt=startAt; W.acc=0;
+    W.seed=(seed>>>0)||1; applySeed(W.seed); resetCourseLooks();
     W.players=new Map(players.map(p=>[p.pid,p]));
     if (me){ const st=newState(me.color); const bean=makeBean(me.color,{ name:"YOU", me:true }); addBean(bean);
       W.me={ pid:me.pid, st, col:makeBody(st), bean, prev:{ x:st.x, d:st.d } }; W.camPos.set(st.x,8.4,-st.d+9); }
@@ -632,6 +788,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     if (g>-50 && a!==3){ const hgt=Math.max(0,y-g), s=Math.max(0.35,1.15-hgt*0.12); b.shadow.visible=true; b.shadow.position.set(x,g+0.03,-d); b.shadow.scale.set(s,1,s); b.shadow.material.opacity=1; }
     else b.shadow.visible=false;
   }
+  let JM=null; const jellyMat=()=>JM||(JM=new THREE.MeshLambertMaterial({ color:"#ffd84d", emissive:"#ffd84d", emissiveIntensity:0.75, transparent:true, opacity:0.9 }));
   // course animation: belts scroll, pads pulse (ferry pads glow when it's safe to go), veils shimmer/fade, jelly wobbles, flags
   function animCourse(dt,t,mt){
     const c=W.course;
@@ -647,7 +804,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
     // jelly: closed panels wobble when hit, open ones wobble as someone passes (and pop away once I go through)
     if (CR.panels.length){
       const who=[]; if (W.me) who.push([W.me.st,true]); for (const b of W.bots) who.push([b.st,false]); for (const r of W.rows||[]) who.push([r,false]);
-      for (const [s,me] of who){ if (s.jhit){ const P=CR.panels.find(p=>p.q===s.jhit); if (P) P.wob=1; s.jhit=null; } }
+      for (const [s,me] of who){ if (s.jhit){ const P=CR.panels.find(p=>p.q===s.jhit); if (P){ P.wob=1; if (P.base) P.m.material=jellyMat(); } s.jhit=null; } }
       for (const P of CR.panels){ const q=P.q;
         for (const [s,me] of who){ if (Math.abs(s.d-(q.d0+q.d1)/2)<0.7&&s.x>q.x0&&s.x<q.x1&&s.y<q.top){ if (q.open){ P.wob=Math.max(P.wob,0.7); if (me&&s.d>(q.d0+q.d1)/2) P.popped=true; } else if (!me&&s.a!==3) P.wob=Math.max(P.wob,0.4); } }
         P.wob*=Math.exp(-dt*3); if (P.popped) P.pop=Math.min(1,P.pop+dt*4);
@@ -660,6 +817,8 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
       for (const z of CR.hz){ if (z.flash<=0) continue; z.flash-=dt*3.5; const on=z.flash>0&&Math.floor(z.flash*7)%2===0;
         for (const m of z.meshes) m.material=on?HZM.flash:HZM.mat; }
     }
+    if (CR.bumpers.length){ for (const st of [W.me&&W.me.st,...W.bots.map(b=>b.st)]) if (st&&st.bumpQ>=0){ CR.bumpers[st.bumpQ].pulse=1; st.bumpQ=-1; }
+      for (const z of CR.bumpers) z.pulse=Math.max(0,z.pulse-dt*4); }
     for (const s of CR.floaters) s.o.position.y=Math.sin(t*0.5+s.ph)*(s.cloud?0.6:1.2), s.cloud&&(s.o.position.x=Math.sin(t*0.03)*25);
   }
 
@@ -696,6 +855,10 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
         placeBean(g.bean,r,dt,t,i<12,g.prev); if (g.bean.label) g.bean.label.visible=W.teacher||i<12; });
       for (const [pid,g] of W.ghosts) if (!seen.has(pid)){ g.bean.dispose(); W.ghosts.delete(pid); }
       W.rows=rows;
+      // a classmate's ghost standing on a FAKE tile makes it wobble + drop here too (it's fake for everyone), so you see
+      // why they fell instead of a ghost sinking through a tile that stays put. Real tiles can never be triggered.
+      if (W.course.tiles.length) for (const r of rows){ if (r.a===3||r.fin) continue; const P=S.probe(W.course,r.d,r.x,W.mt,r.y+0.2).p;
+        if (P&&P.type==="tile"&&P.fake&&Math.abs(r.y-P.top)<0.35&&S.tileIdle(P,W.mt)) P.trig=W.mt; }
       // camera: fixed orientation, follows forward/sideways smoothly, never rotates
       if (W.me){
         const st=lerpSt(W.me.st,alpha), fy=W.me.st.fallen>0?Math.max(-1,st.y):Math.max(-1.5,st.y);
@@ -724,7 +887,7 @@ export async function createWorld({ canvas, onProgress=()=>{}, mapId }={}){
   // solo: run the bots on (no rendering) until they finish or maxT race-seconds pass. Used after you finish.
   W.fastForwardBots=(fromT,maxT,onFin)=>{
     let mt=fromT; const ev=[];
-    while (mt<maxT && W.bots.some(b=>!b.st.fin)){ mt+=DT; placeMovers(mt); world.step();
+    while (mt<maxT && W.bots.some(b=>!b.st.fin)){ mt+=DT; placeMovers(mt,false); world.step();
       for (const b of W.bots){ if (b.st.fin) continue; ev.length=0; stepBean(b.st,b.col,S.botInput(b.brain,b.st,mt,DT),mt,ev,b.brain); if (ev.includes("finish")) onFin(b,mt); } }
     return mt;
   };

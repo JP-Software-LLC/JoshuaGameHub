@@ -119,6 +119,7 @@
   .champ{display:flex;flex-direction:column;align-items:center;gap:2px}
   .champ .t{font-weight:900;letter-spacing:3px;color:var(--pink);text-transform:uppercase;font-size:14px}
   .champ h2{margin:0;font-family:var(--h);font-weight:400;font-size:42px;line-height:1.05}
+  .champ .mp{margin-top:4px;padding:3px 12px;border-radius:999px;background:#f2efff;color:var(--ink2);font-weight:900;font-size:14px}
   .board{display:flex;flex-direction:column;gap:7px;text-align:left}
   .line{display:grid;grid-template-columns:36px 30px 1fr auto auto;align-items:center;gap:10px;padding:9px 14px;border-radius:14px;background:#f2efff;font-weight:800;animation:pop .4s cubic-bezier(.2,1.4,.4,1) backwards}
   .line .pos{font-family:var(--h);font-size:22px;color:var(--ink2)}
@@ -224,6 +225,8 @@
   <div class="row"><button class="btn" id="bPublic">Race online</button><button class="btn blue" id="bPrivate">Private race</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
   <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a race for your class</button>
+  <div class="solo" id="soloMap"><span class="lbl">Solo map</span>
+    <select class="f" id="sMap" aria-label="Solo map"></select></div>
   <div class="solo" id="soloOpts"><span class="lbl">Solo math</span>
     <select class="f" id="sMode" aria-label="Solo question type"></select>
     <select class="f" id="sDig" aria-label="Solo numbers in each sum"><option value="1">1 digit</option><option value="12">1 &amp; 2 digits</option><option value="2">2 digits</option></select>
@@ -238,6 +241,8 @@
   <div class="code" id="lCode">----</div>
   <div class="count" id="lCount">1 / 40 racers</div>
   <div class="grid" id="lGrid"></div>
+  <div class="opt" id="lMapBox"><span class="lbl" id="lMapLbl">Map</span>
+    <select class="f" id="lMap" aria-label="Map"></select></div>
   <div class="opt" id="lModeBox"><span class="lbl" id="lModeLbl">Math</span>
     <select class="f" id="lMode" aria-label="Math question type"></select></div>
   <div class="opt" id="lQpvBox"><span class="lbl" id="lQpvLbl">Questions per veil</span>

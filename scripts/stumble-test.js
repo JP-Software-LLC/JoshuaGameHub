@@ -3,6 +3,8 @@
 // distance; then a time-limited race ends by itself; then the host ends one early with end{} (non-host can't).
 // Math veils: host-only qpv{n} (T.qpvMin..T.qpvMax, integers), mode{mode} (HOOPS.MODES), digits{d}; lobby + go carry
 // map (STUMBLE_MAPS.DEFAULT), qpv, mode, digits; dist = the map's length; anim a goes up to 5 (solving a veil).
+// Map picker: host-only map{id} in the lobby, only STUMBLE_MAPS.PICKABLE ids (never hazard-lab); race 4 runs on the
+// last pickable map (whatever maps exist) and go/ps/results use that map's length.
 "use strict";
 const { spawn }=require("child_process");
 const path=require("path");
@@ -11,6 +13,7 @@ const STUMBLE=require("../shared/stumble.js");
 const MAPS=require("../shared/stumble-maps.js");
 const HOOPS=require("../shared/hoops.js");
 const MAPLEN=MAPS.get(MAPS.DEFAULT).length;
+const PICK2=(MAPS.PICKABLE||[]).slice(-1)[0]||MAPS.DEFAULT, PICK2LEN=MAPS.get(PICK2).length;   // a 2nd real map if one exists
 const PORT=24700+(Math.random()*300|0);
 const MINUTE_MS=400;                                     // the time limit's "minute", shrunk for the test
 const srv=spawn(process.execPath,[path.join(__dirname,"..","server","index.js")],{ env:{ ...process.env, PORT, RUSH_COUNTDOWN_MS:300, STUMBLE_MINUTE_MS:MINUTE_MS }, stdio:["ignore","pipe","inherit"] });
@@ -54,6 +57,16 @@ srv.stdout.on("data",async d=>{
     await all[4].wait(m=>m.t==="lobby"&&m.qpv===3&&m.mode==="sub"&&m.digits==="12");
     for (const md of HOOPS.MODES){ mark(); all[0].send({ t:"mode", mode:md }); await all[4].wait(m=>m.t==="lobby"&&m.mode===md); }
     mark(); all[0].send({ t:"mode", mode:"sub" }); await all[4].wait(m=>m.t==="lobby"&&m.mode==="sub");
+    // ---- map picker: only PICKABLE ids (real maps, never test rooms), host only, lobby only
+    if (!Array.isArray(MAPS.PICKABLE) || !MAPS.PICKABLE.includes(MAPS.DEFAULT)) fail("PICKABLE should include the default map");
+    if (MAPS.PICKABLE.includes("hazard-lab") || MAPS.PICKABLE.some(id=>!MAPS.MAPS[id]||MAPS.MAPS[id].test)) fail("PICKABLE must only list real maps: "+MAPS.PICKABLE);
+    mark();
+    for (const id of ["hazard-lab","nope","",null,42,"__proto__","constructor"]) all[0].send({ t:"map", id });
+    all[1].send({ t:"map", id:PICK2 });                                         // not the host
+    await sleep(250);
+    if (all[4].msgs.slice(all[4].from).some(m=>m.t==="lobby"&&m.map!==MAPS.DEFAULT)) fail("bad / unpickable / non-host map accepted");
+    for (const id of MAPS.PICKABLE){ mark(); all[0].send({ t:"map", id }); await all[4].wait(m=>m.t==="lobby"&&m.map===id); }
+    mark(); all[0].send({ t:"map", id:MAPS.DEFAULT }); await all[4].wait(m=>m.t==="lobby"&&m.map===MAPS.DEFAULT);
     // ---- race 1: no limit, 60 % rule
     mark(); all[0].send({ t:"start" });
     const gos=await Promise.all(all.map(c=>c.wait(m=>m.t==="go")));
@@ -106,7 +119,20 @@ srv.stdout.on("data",async d=>{
     await all[2].wait(m=>m.t==="results",2000);
     await sleep(MINUTE_MS*3);                                                    // no stray limit timer from race 2
     if (all[2].msgs.slice(all[2].from).filter(m=>m.t==="results").length!==1) fail("extra results after end{}");
-    console.log("OK: bumbling stumbling math — host-only limit{0|2|3|5} in lobby, go carries limit, host-only qpv{1–4}/mode/digits, lobby+go carry map/qpv/mode/digits, dist = map length, ps rows [pid,d,x,fin,y,a≤5] clamped, ends at 60 % finished, unfinished by distance, time limit ends it, host-only end{}");
+    // ---- race 4: on the picked map (the last pickable one); go/ps/results use its length; no map change mid-race
+    mark(); all[0].send({ t:"map", id:PICK2 }); await all[4].wait(m=>m.t==="lobby"&&m.map===PICK2&&m.state==="lobby");
+    mark(); all[0].send({ t:"start" });
+    const gos4=await Promise.all(all.map(c=>c.wait(m=>m.t==="go")));
+    if (gos4.some(g=>g.map!==PICK2||g.dist!==PICK2LEN)) fail("go should carry the picked map + its length: "+JSON.stringify({ map:gos4[0].map, dist:gos4[0].dist, want:[PICK2,PICK2LEN] }));
+    all[0].send({ t:"map", id:MAPS.DEFAULT });
+    all[3].send({ t:"pos", d:99999 }); all[2].send({ t:"pos", d:12 }); await sleep(300);
+    const ps4=all[4].msgs.filter(m=>m.t==="ps").pop(), r4=ps4&&ps4.p.find(r=>r[0]===all[3].pid);
+    if (!r4 || r4[1]!==PICK2LEN) fail("d should clamp to the picked map's length: "+JSON.stringify(r4));
+    all[0].send({ t:"end" });
+    const res4=await all[2].wait(m=>m.t==="results",2000);
+    if (res4.dist!==PICK2LEN || res4.rank[0].name!=="P3") fail("results on the picked map: "+JSON.stringify({ dist:res4.dist, first:res4.rank[0].name }));
+    const lob4=await all[4].wait(m=>m.t==="lobby"&&m.state==="lobby"); if (lob4.map!==PICK2) fail("map change mid-race should be refused, the pick kept");
+    console.log("OK: bumbling stumbling math — host-only limit{0|2|3|5} in lobby, go carries limit, host-only qpv{1–4}/mode/digits, lobby+go carry map/qpv/mode/digits, host-only map{PICKABLE id} (not hazard-lab), dist = map length (also on "+PICK2+"), ps rows [pid,d,x,fin,y,a≤5] clamped, ends at 60 % finished, unfinished by distance, time limit ends it, host-only end{}");
     srv.kill(); setTimeout(()=>process.exit(0),200);
   } catch(e){ fail(e.message); }
 });

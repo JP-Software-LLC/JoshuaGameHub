@@ -5,7 +5,8 @@
 // Ends when ceil(60 %) of the class has finished (END_FRAC), when the host/teacher sends end{}, or at the optional
 // teacher time limit (limit{min}, min ∈ T.limits, 0 = off, the default). Hidden safety close at T.safetyMin minutes.
 // Math veils: host picks the Math Race mode{mode} + digits{d} (RushRoom MODES/DIGITS) and qpv{n} (questions per veil,
-// T.qpvMin..T.qpvMax, default T.qpv). The map is always STUMBLE_MAPS.DEFAULT for now; DIST = that map's length.
+// T.qpvMin..T.qpvMax, default T.qpv). Map picker: host sends map{id} (lobby only, id must be in STUMBLE_MAPS.PICKABLE;
+// default STUMBLE_MAPS.DEFAULT); this.dist = that map's length (ps clamp, results, liveRows).
 // lobby + go carry map, qpv, mode, digits. Questions are made in each browser (HOOPS.questionStream from the race seed).
 "use strict";
 const { RushRoom }=require("./rushroom");
@@ -32,7 +33,7 @@ class StumbleRoom extends RushRoom {
   psRow(q){ return [...super.psRow(q),Math.round((q.y||0)*100)/100,q.a|0]; }
   startRace(){
     if (this.state!=="lobby") return;
-    this.setMap(this.map);                                                     // (map choice comes later; always the default today)
+    this.setMap(this.map);                                                     // dist = the picked map's length
     for (const p of this.players.values()) Object.assign(p,{ y:0, a:0 });
     this.limitAt=this.limit?Date.now()+COUNTDOWN_MS+this.limit*MINUTE_MS:0;
     super.startRace();
@@ -46,8 +47,9 @@ class StumbleRoom extends RushRoom {
   }
   cleanup(){ clearTimeout(this.limitTimer); return super.cleanup(); }
   handle(msg){
-    if (msg.t==="limit" || msg.t==="end" || msg.t==="qpv"){
+    if (msg.t==="limit" || msg.t==="end" || msg.t==="qpv" || msg.t==="map"){
       const p=this.byCid(msg.cid), host=p && p.pid===this.host;
+      if (msg.t==="map"){ if (host && this.state==="lobby" && MAPS.pickable && MAPS.pickable(msg.id)){ this.setMap(msg.id); this.lobby(); } return; }
       if (msg.t==="qpv"){ const n=+msg.n; if (host && this.state==="lobby" && Number.isInteger(n) && n>=T.qpvMin && n<=T.qpvMax){ this.qpv=n; this.lobby(); } return; }
       if (msg.t==="limit"){ const m=+msg.min; if (host && this.state==="lobby" && T.limits.includes(m)){ this.limit=m; this.lobby(); } return; }
       if (host && this.state==="playing") this.finish();
