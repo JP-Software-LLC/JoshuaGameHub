@@ -52,12 +52,10 @@ class RushRoom extends RoomBase {
       case "iam": return this.handleIam(p,msg);
       case "pos":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(this.dist,msg.d));
-        if (Number.isFinite(msg.x)) p.x=Math.max(-6,Math.min(6,msg.x));
-        return;
+        return this.takePos(p,msg);
       case "finish":
         if (!p || this.state!=="playing" || p.fin!=null) return;
-        p.fin=Math.max(20,Math.min((this.constructor.MAX_MS||MAX_RACE_MS)/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
+        p.fin=Math.max(this.constructor.MIN_TIME??20,Math.min((this.constructor.MAX_MS||MAX_RACE_MS)/1000,+msg.time||0)); p.d=this.dist; p.extra=Math.max(0,Math.min(99,msg.extra|0)); p.log=cleanLog(msg.log);      // trust the client (by design)
         this.send({ t:"fin", pid:p.pid, time:p.fin, place:[...this.players.values()].filter(q=>q.fin!=null).length });
         if (!this.endTimer) this.endTimer=setTimeout(()=>this.finish(),this.constructor.AFTER_FIRST||AFTER_FIRST_MS);
         this.checkAllDone(); return;
@@ -92,6 +90,13 @@ class RushRoom extends RoomBase {
       else this.send({ ...this.goMsg(), in:this.startAt-Date.now(), you:{ d:p.d, x:p.x, fin:p.fin } },cid);   // rejoin mid-race
     }
   }
+  // Position hooks: subclasses that relay more than d/x (e.g. Bumbling Stumbling Math's height + anim) override both.
+  // A ps row always starts [pid, d, x, fin] so shared client code keeps working.
+  takePos(p,msg){
+    if (Number.isFinite(msg.d)) p.d=Math.max(0,Math.min(this.dist,msg.d));
+    if (Number.isFinite(msg.x)) p.x=Math.max(-6,Math.min(6,msg.x));
+  }
+  psRow(q){ return [q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]; }
   racers(){ return [...this.players.values()].filter(p=>p.pid!==this.teacher); }
   scheduleAuto(){
     if (this.state!=="lobby" || this.teacher) return;
@@ -113,7 +118,7 @@ class RushRoom extends RoomBase {
     this.seed=crypto.randomInt(1,2**31-1); this.startAt=Date.now()+COUNTDOWN_MS;
     this.state="playing"; this.register(); this.lobby();
     this.send({ ...this.goMsg(), in:COUNTDOWN_MS });
-    this.relay=setInterval(()=>this.send({ t:"ps", p:this.racers().map(q=>[q.pid,Math.round(q.d*10)/10,Math.round(q.x*100)/100,q.fin!=null?1:0]) }),RELAY_MS);
+    this.relay=setInterval(()=>this.send({ t:"ps", p:this.racers().map(q=>this.psRow(q)) }),RELAY_MS);
     this.capTimer=setTimeout(()=>this.finish(),COUNTDOWN_MS+(this.constructor.MAX_MS||MAX_RACE_MS));
   }
   checkAllDone(){

@@ -195,10 +195,10 @@ function resultsButton(m){
 }
 
 // ---------- teacher lobby screen: code · how to play · options · Start countdown · Close / Move
-const KIND_PATH={ math:"math-race", arrows:"arrow-blitz", hurdle:"hurdle-dash", rush:"rush-hour", bear:"bear-attack", memory:"memory-tiles", typing:"typing-cowboys", cannons:"star-cannons", darts:"dart-party", sky:"sky-climb", words:"word-rush", hoops:"mathsketball", munch:"marble-munch", softball:"softball-smarts", crossword:"crossword" };
-const CATS=[["🧮 Math",[["math","Math Race"],["munch","Marble Munch"],["softball","Softball Smarts"],["hoops","Mathsketball"],["hurdle","Hurdle Dash"]]],["🔤 Vocabulary",[["words","Word Rush"],["crossword","Vocab Crossword"]]],["⌨️ Typing",[["typing","Typing Cowboys"],["arrows","Arrow Blitz"]]],
+const KIND_PATH={ math:"math-race", arrows:"arrow-blitz", hurdle:"hurdle-dash", rush:"rush-hour", bear:"bear-attack", memory:"memory-tiles", typing:"typing-cowboys", cannons:"star-cannons", darts:"dart-party", sky:"sky-climb", words:"word-rush", hoops:"mathsketball", munch:"marble-munch", softball:"softball-smarts", crossword:"crossword", stumble:"bumbling-stumbling-math" };
+const CATS=[["🧮 Math",[["math","Math Race"],["munch","Marble Munch"],["softball","Softball Smarts"],["hoops","Mathsketball"],["hurdle","Hurdle Dash"],["stumble","Bumbling Stumbling Math"]]],["🔤 Vocabulary",[["words","Word Rush"],["crossword","Vocab Crossword"]]],["⌨️ Typing",[["typing","Typing Cowboys"],["arrows","Arrow Blitz"]]],
   ["🎉 Just for fun",[["memory","Memory Tiles"],["cannons","Star Cannons"],["darts","Dart Party"],["sky","Sky Climb"],["rush","Rush Hour"],["bear","Bear Attack!"]]]];
-const OPT_SEL=["#lMode","#custom","#lWords"];          // game option blocks (Math Race question type, Word Rush word list) moved onto this screen
+const OPT_SEL=["#lMode","#custom","#lWords","#lLimit"];          // game option blocks (Math Race question type, Word Rush word list, Bumbling Stumbling Math time limit) moved onto this screen
 let tlOn=false;
 // the game's menu card becomes the teacher lobby: its title + tips stay, its buttons/name box hide, our block is added
 function setTeach(on){
@@ -313,6 +313,7 @@ const HOW={
   "arrow-blitz":"Arrows appear on screen. Press the same arrow keys in the same order. Each one gets longer!",
   "mathsketball":"Answer 3 math questions right, then take 3 shots. Press Space (or SHOOT) when the line is in the green! Reach the basket goal to win.",
   "crossword":"Read a clue, then tap the squares and type the word. Use the word bank if you get stuck! Finish the whole crossword to win.",
+  "bumbling-stumbling-math":"Run with the arrow keys or WASD (or the joystick) and jump with Space. Bumble past the obstacles and don't fall off! Reach the finish line to win.",
   "softball-smarts":"The pitch comes in slow motion. Type the answer before the ball reaches you! Faster answers hit farther: single, double, triple or HOME RUN. Wrong or too slow = strike.",
   "marble-munch":"Mash Space (or CHOMP) when a marble rolls past your hippo. Caught one? Answer the question before the timer runs out to keep it!",
   "hurdle-dash":"Tap ← → (or the big buttons) to run. At each hurdle, answer the sum to jump over it!",

@@ -5,7 +5,9 @@ const fs=require("fs"), path=require("path");
 const ROOT=path.join(__dirname,"..");
 const PUBLIC=path.join(ROOT,"public");
 const TYPES={ ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8", ".css":"text/css",
-  ".png":"image/png", ".svg":"image/svg+xml", ".ico":"image/x-icon", ".json":"application/json", ".webp":"image/webp", ".mp3":"audio/mpeg", ".ogg":"audio/ogg" };
+  ".png":"image/png", ".svg":"image/svg+xml", ".ico":"image/x-icon", ".json":"application/json", ".webp":"image/webp", ".mp3":"audio/mpeg", ".ogg":"audio/ogg",
+  ".mjs":"text/javascript; charset=utf-8", ".wasm":"application/wasm", ".glb":"model/gltf-binary", ".gltf":"model/gltf+json", ".bin":"application/octet-stream",
+  ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".gif":"image/gif", ".wav":"audio/wav", ".ktx2":"image/ktx2" };
 
 function configJs(){
   // Empty server URL = same origin as the page (single-service / local dev).
@@ -40,6 +42,7 @@ function serve(req,res){
   else if (p==="/cannons.js") file=path.join(ROOT,"shared","cannons.js");
   else if (p==="/typing.js") file=path.join(ROOT,"shared","typing.js");
   else if (p==="/memory.js") file=path.join(ROOT,"shared","memory.js");
+  else if (p==="/stumble.js") file=path.join(ROOT,"shared","stumble.js");
   else if (p==="/hoops.js") file=path.join(ROOT,"shared","hoops.js");
   else {
     if (p.endsWith("/")) p+="index.html";
@@ -52,7 +55,7 @@ function serve(req,res){
     if (err){ res.writeHead(404,{"content-type":"text/plain"}); return res.end("not found"); }
     const ext=path.extname(file);
     res.writeHead(200,{ "content-type":TYPES[ext]||"application/octet-stream",
-      "cache-control": ext===".html"||ext===".js" ? "no-cache" : "public, max-age=86400" });
+      "cache-control": ext===".html"||ext===".js"||ext===".mjs" ? "no-cache" : "public, max-age=86400" });
     res.end(buf);
   });
 }

@@ -1,0 +1,2 @@
+three@0.170.0 (npm): build/three.module.min.js + examples/jsm GLTFLoader, SkeletonUtils, BufferGeometryUtils
+@dimforge/rapier3d-compat@0.14.0 (npm): rapier.es.js (WASM inlined as base64)

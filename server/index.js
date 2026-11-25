@@ -36,12 +36,13 @@ const { HoopsRoom }=require("./hoopsroom");
 const { MunchRoom }=require("./munchroom");
 const { SoftballRoom }=require("./softballroom");
 const { CrosswordRoom }=require("./crosswordroom");
+const { StumbleRoom }=require("./stumbleroom");
 const { CannonRoom }=require("./cannonroom");
 const { DartRoom }=require("./dartroom");
 const { SkyRoom }=require("./skyroom");
 const { WordRoom }=require("./wordroom");
 const { K }=require("./roombase");
-const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom, softball:SoftballRoom, crossword:CrosswordRoom };          // game id -> room class
+const KINDS={ cg:Room, math:MathRoom, rush:RushRoom, bear:BearRoom, hurdle:HurdleRoom, arrows:ArrowRoom, memory:MemoryRoom, typing:TypingRoom, cannons:CannonRoom, darts:DartRoom, sky:SkyRoom, words:WordRoom, hoops:HoopsRoom, munch:MunchRoom, softball:SoftballRoom, crossword:CrosswordRoom, stumble:StumbleRoom };          // game id -> room class
 const { serveStatic }=require("./static");
 
 const PORT=process.env.PORT||8080;
@@ -191,6 +192,7 @@ async function onMessage(c,m){
     case "goal":   return toRoom(c,{ t:"goal", goal:m.goal|0 });
     case "qtime":  return toRoom(c,{ t:"qtime", s:m.s|0 });
     case "pitch":  return toRoom(c,{ t:"pitch", s:m.s|0 });
+    case "limit":  return toRoom(c,{ t:"limit", min:+m.min });
     case "ans":    return toRoom(c,{ t:"ans", v:Math.max(-1,Math.min(99999,m.v|0)) });
     case "prog":  return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes
@@ -204,7 +206,7 @@ async function onMessage(c,m){
     case "score":  return toRoom(c,{ t:"score", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)), log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "pick":   return toRoom(c,{ t:"pick", b:m.b|0 });
     case "throw":  return toRoom(c,{ t:"throw", b:m.b|0 });
-    case "pos":    return toRoom(c,{ t:"pos", d:+m.d, x:+m.x });
+    case "pos":    return toRoom(c,m.y==null&&m.a==null?{ t:"pos", d:+m.d, x:+m.x }:{ t:"pos", d:+m.d, x:+m.x, y:+m.y, a:+m.a });   // y/a: Bumbling Stumbling Math
     case "finish": return toRoom(c,{ t:"finish", time:+m.time, extra:m.extra|0, log:Array.isArray(m.log)?m.log.slice(0,400):undefined });
     case "in":     return toRoom(c,{ t:"in", x:+m.x, y:+m.y });
     case "fire":   return toRoom(c,{ t:"fire" });

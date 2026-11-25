@@ -502,7 +502,7 @@ $("yr").textContent=new Date().getFullYear();
 //  Game registry: add an entry here for each new game.
 // ------------------------------------------------------------
 // learning games (math, typing, spelling, memory) → "📚 Educational"; everything else → "🎉 Just for fun"
-const EDU=new Set(["math-race","mathsketball","marble-munch","softball-smarts","hurdle-dash","arrow-blitz","typing-cowboys","word-rush","memory-tiles","odds-evens","crossword"]);
+const EDU=new Set(["math-race","mathsketball","marble-munch","softball-smarts","hurdle-dash","arrow-blitz","typing-cowboys","word-rush","memory-tiles","odds-evens","crossword","bumbling-stumbling-math"]);
 const GAMES=[
   { id:"clean-getaway", demo:true, kind:"cg", cat:"Chase", title:"CLEAN GETAWAY", path:"/clean-getaway/", blurb:"One thief, four guards, one very full bank.", tags:["1–5 players","Online","Chase"], thumb:"cg" },
   { id:"math-race", demo:true, teach:true, kind:"math", cat:"Brainy", title:"MATH RACE", path:"/math-race/", blurb:"One minute. Nothing but sums. No Enter key.", tags:["Up to 40","Online","Brainy"], thumb:"math" },
@@ -511,6 +511,7 @@ const GAMES=[
   { id:"mathsketball", demo:true, teach:true, kind:"hoops", cat:"Brainy", title:"MATHSKETBALL", path:"/mathsketball/", blurb:"Answer 3 sums, then shoot 3 hoops. First to 10 baskets!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"hoops" },
   { id:"marble-munch", demo:true, teach:true, kind:"munch", cat:"Brainy", title:"MARBLE MUNCH", path:"/marble-munch/", blurb:"Mash Space to chomp marbles. Answer fast to keep them!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"munch" },
   { id:"softball-smarts", demo:true, teach:true, kind:"softball", cat:"Brainy", title:"SOFTBALL SMARTS", path:"/softball-smarts/", blurb:"The pitch comes in slow motion. Answer before it reaches you!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"softball" },
+  { id:"bumbling-stumbling-math", teach:true, kind:"stumble", cat:"Racing", title:"BUMBLING STUMBLING MATH", path:"/bumbling-stumbling-math/", blurb:"A wobbly 3D obstacle race. Run, jump and stumble to the finish!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"stumble" },
   { id:"hurdle-dash", demo:true, teach:true, kind:"hurdle", cat:"Racing", title:"HURDLE DASH", path:"/hurdle-dash/", blurb:"Tap ← → to sprint. Solve a sum to clear each hurdle!", tags:["Up to 40","Online","Racing"], badge:"NEW", thumb:"hurdle" },
   { id:"arrow-blitz", demo:true, teach:true, kind:"arrows", cat:"Brainy", title:"ARROW BLITZ", path:"/arrow-blitz/", blurb:"One minute of arrow sequences. Each one gets longer!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"arrows" },
   { id:"memory-tiles", demo:true, teach:true, kind:"memory", cat:"Brainy", title:"MEMORY TILES", path:"/memory-tiles/", blurb:"Remember the pictures, then stand on the right tile!", tags:["Up to 40","Online","Brainy"], badge:"NEW", thumb:"memory" },
@@ -642,6 +643,32 @@ function softballThumb(){
       <text x="-38" y="12" font-family="Consolas, monospace" font-weight="700" font-size="26" fill="#3a78e6">+</text>
       <rect x="-40" y="19" width="68" height="3" fill="#3a78e6"/><rect x="-50" y="30" width="100" height="8" rx="4" fill="#7c3aed"/></g>
     <text x="270" y="372" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="38" fill="#facc15" stroke="#0f2a1f" stroke-width="7" paint-order="stroke">SOFTBALL SMARTS</text>
+  </svg>`;
+  const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
+  return img;
+}
+// Bumbling Stumbling Math thumbnail: a bright purple/blue obstacle course floating in the sky, a bean leaping a gap
+function stumbleThumb(){
+  const bean=(x,y,s,c,r)=>`<g transform="translate(${x},${y}) rotate(${r}) scale(${s})"><ellipse cx="0" cy="44" rx="20" ry="5" fill="#000" opacity="${s>1?0:.18}"/>
+    <rect x="-20" y="-34" width="40" height="70" rx="20" fill="${c}" stroke="#2a1650" stroke-width="3"/><rect x="-13" y="-24" width="26" height="15" rx="7" fill="#fff"/>
+    <circle cx="-5" cy="-17" r="3.4" fill="#1b1b2e"/><circle cx="6" cy="-17" r="3.4" fill="#1b1b2e"/><path d="M-6 -2 q6 6 12 0" stroke="#2a1650" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 380">
+    <defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset=".6" stop-color="#818cf8"/><stop offset="1" stop-color="#c4b5fd"/></linearGradient>
+    <linearGradient id="pl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#7e22ce"/></linearGradient>
+    <linearGradient id="pb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+    <rect width="540" height="380" fill="url(#sk)"/>
+    <g fill="#fff" opacity=".75"><ellipse cx="90" cy="70" rx="46" ry="16"/><ellipse cx="120" cy="60" rx="30" ry="18"/><ellipse cx="430" cy="48" rx="50" ry="15"/><ellipse cx="400" cy="40" rx="26" ry="15"/></g>
+    <polygon points="230,150 310,150 330,170 210,170" fill="url(#pb)"/><rect x="246" y="118" width="12" height="32" fill="#f472b6"/><rect x="282" y="118" width="12" height="32" fill="#f472b6"/><rect x="240" y="110" width="60" height="12" rx="6" fill="#facc15"/>
+    <g transform="translate(270,135) rotate(-18)"><rect x="-56" y="-5" width="112" height="10" rx="5" fill="#fb923c" stroke="#7c2d12" stroke-width="2"/></g>
+    <polygon points="20,250 210,250 230,280 0,280" fill="url(#pl)"/><polygon points="0,280 230,280 230,300 0,300" fill="#581c87"/>
+    <polygon points="320,232 540,232 540,300 340,300" fill="url(#pb)"/><polygon points="340,300 540,300 540,320 340,320" fill="#1e3a8a"/>
+    <g fill="#fde047">${[0,1,2,3,4].map(i=>`<polygon points="${352+i*38},240 ${372+i*38},240 ${366+i*38},292 ${346+i*38},292" opacity=".55"/>`).join("")}</g>
+    <g fill="#fff" opacity=".9">${[0,1,2,3,4,5].map(i=>`<rect x="${30+i*30}" y="257" width="16" height="16" rx="3" fill="${i%2?"#f0abfc":"#fff"}"/>`).join("")}</g>
+    <path d="M150 230 Q 260 90 380 210" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="4 10" opacity=".75"/>
+    <g transform="translate(500,232)"><rect x="-3" y="-80" width="6" height="80" fill="#f8fafc"/><path d="M3 -80 h34 v22 h-34 z" fill="#22c55e"/></g>
+    ${bean(110,212,.8,"#22d3ee",-6)}${bean(440,196,.8,"#fb7185",8)}${bean(272,104,1.15,"#facc15",22)}
+    <text x="270" y="352" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="30" fill="#facc15" stroke="#2a1650" stroke-width="7" paint-order="stroke">BUMBLING STUMBLING MATH</text>
   </svg>`;
   const img=new Image(); img.alt=""; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   img.style.cssText="width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s cubic-bezier(.2,.8,.2,1)";
@@ -875,6 +902,7 @@ for (const g of GAMES){
   if (g.thumb==="softball") el.querySelector(".thumb").prepend(softballThumb());
   if (g.thumb==="arrows") el.querySelector(".thumb").prepend(arrowThumb());
   if (g.thumb==="memory") el.querySelector(".thumb").prepend(memoryThumb());
+  if (g.thumb==="stumble") el.querySelector(".thumb").prepend(stumbleThumb());
   if (g.thumb==="crossword") el.querySelector(".thumb").prepend(crosswordThumb());
   if (g.thumb==="oddsevens") el.querySelector(".thumb").prepend(oddsThumb());
   if (g.thumb==="typing") el.querySelector(".thumb").prepend(typingThumb());
@@ -996,6 +1024,7 @@ const CLASS_GAMES=[
   { id:"marble-munch", ico:"🦛", skill:"Math facts: + − × ÷ and money (you pick)", len:"~1–2 minutes", view:"Watch the whole bowl", desc:"Students mash Space to chomp marbles rolling around the bowl, then answer a quick question to keep each one (you set 2–10 seconds). Ends when every marble is eaten." },
   { id:"softball-smarts", ico:"🥎", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Each pitch floats in slow motion with a question. Answer before it reaches the plate: the faster the answer, the bigger the hit. You set the seconds per pitch (3–12) and the runs to win." },
   { id:"mathsketball", ico:"🏀", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Three right answers earn three shots; stop the power meter in the green to score. Ends when 60% of the class has 10 baskets." },
+  { id:"bumbling-stumbling-math", ico:"🤸", skill:"Coordination now · math gates coming soon", len:"~1–3 minutes", view:"A drone view of the whole course", desc:"A wobbly 3D obstacle race: students run, jump and stumble along the course on their own screens. Ends when 60% of the class has finished, when you press End, or at an optional time limit (2, 3 or 5 minutes)." },
   { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
   { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
   { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
@@ -1127,7 +1156,7 @@ $("sCodeForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("sC
 
 // Teacher: compact list of the whole-class games, each with one big button
 // Teacher view: one column per category
-const TCATS=[["🧮 Math",["math-race","marble-munch","softball-smarts","mathsketball","hurdle-dash","odds-evens"]],["🔤 Vocabulary",["word-rush","crossword"]],["⌨️ Typing",["typing-cowboys","arrow-blitz"]],
+const TCATS=[["🧮 Math",["math-race","marble-munch","softball-smarts","mathsketball","hurdle-dash","bumbling-stumbling-math","odds-evens"]],["🔤 Vocabulary",["word-rush","crossword"]],["⌨️ Typing",["typing-cowboys","arrow-blitz"]],
   ["🎉 Just for fun",["memory-tiles","star-cannons","dart-party","sky-climb","rush-hour","bear-attack"]]];
 $("tList").innerHTML=TCATS.map(([cat,ids])=>`<div class="tcol"><h3>${cat}</h3>${ids.map(id=>{ const c=CLASS_GAMES.find(x=>x.id===id), g=GAMES.find(x=>x.id===id); if (!c||!g) return "";
   return `<div class="tg"><div class="nm"><span>${c.ico}</span>${g.title}</div><p>${c.skill} · ⏱ ${c.len}</p><a class="open" href="${g.path}?play=teacher">Open a Lobby</a></div>`; }).join("")}</div>`).join("");

@@ -48,7 +48,7 @@ srv.stdout.on("data",async d=>{
       close([T,...kids]);
     }
     // Rush Hour + Hurdle Dash: teacher not a racer; race ends when the students finish
-    for (const kind of ["rush","hurdle","typing","hoops"]){
+    for (const kind of ["rush","hurdle","typing","hoops","stumble"]){
       const { T, kids }=await room(kind);
       const go=await T.wait(m=>m.t==="go");
       if (kind==="typing"&&go.dist!==22) fail("typing: race should be 22 words");
@@ -111,7 +111,7 @@ srv.stdout.on("data",async d=>{
     // public rooms refuse Teacher Mode
     { const P=client("Pub"); await P.ready; await P.wait(m=>m.t==="welcome"); P.send({ t:"quick", game:"memory" }); await P.wait(m=>m.t==="joined");
       P.send({ t:"teacher" }); await sleep(250); if (P.msgs.filter(m=>m.t==="lobby").pop().teacher) fail("public room accepted a teacher"); P.ws.close(); }
-    console.log("OK: teacher mode — math, arrows, rush, hurdle, typing, bear, cannons, darts, sky, words, memory: teacher runs it, never plays or ranks, auto-start off, students can't take over, public rooms refuse");
+    console.log("OK: teacher mode — math, arrows, rush, hurdle, typing, hoops, stumble, bear, cannons, darts, sky, words, memory: teacher runs it, never plays or ranks, auto-start off, students can't take over, public rooms refuse");
     srv.kill(); setTimeout(()=>process.exit(0),200);
   } catch(e){ fail(e.message); }
 });

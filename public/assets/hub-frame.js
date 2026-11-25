@@ -50,7 +50,7 @@
   const me=document.currentScript, ALWAYS=me&&me.hasAttribute("data-always"), PAD=me&&me.hasAttribute("data-pad");
   const GAMES=[
     ["/clean-getaway/","Clean Getaway","🏦"],["/arrow-blitz/","Arrow Blitz","🏹"],["/math-race/","Math Race","➗"],
-    ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/mathsketball/","Mathsketball","🏀"],["/marble-munch/","Marble Munch","🦛"], ["/softball-smarts/","Softball Smarts","🥎"],["/bear-attack/","Bear Attack!","🐻"],
+    ["/rush-hour/","Rush Hour","🚗"],["/hurdle-dash/","Hurdle Dash","🏃"],["/mathsketball/","Mathsketball","🏀"],["/marble-munch/","Marble Munch","🦛"], ["/softball-smarts/","Softball Smarts","🥎"],["/bumbling-stumbling-math/","Bumbling Stumbling Math","🤸"],["/bear-attack/","Bear Attack!","🐻"],
     ["/memory-tiles/","Memory Tiles","🧠"],["/odds-evens/","Odds or Evens","✂️"], ["/crossword/","Vocab Crossword","✏️"],["/typing-cowboys/","Typing Cowboys","🤠"],["/star-cannons/","Star Cannons","🚀"],["/dart-party/","Dart Party","🎈"],["/sky-climb/","Sky Climb","🪽"],["/word-rush/","Word Rush","🔤"],
   ];
   const here=location.pathname.replace(/index\.html$/,"");
