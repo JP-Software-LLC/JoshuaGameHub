@@ -1,6 +1,6 @@
 # Map 1: Jellybean Skyway (design draft)
 
-A candy road floating through a purple and blue sky. It is about **600 m** long, with **16 rooms** and **15 math veils**, and runs about **2 minutes** without questions.
+A candy road floating through a purple and blue sky. It is about **600 m** long, with **9 rooms** and **8 math veils** (2 questions each by default, so 16 questions), and runs about **2 minutes** without questions.
 It's one straight course. The camera never turns.
 
 ## Design rules for 3rd graders
@@ -28,31 +28,29 @@ It's one straight course. The camera never turns.
 
 8. **Easy route vs. fast route.** Splits give a safe path and a faster, riskier one. Both cross every veil at the same depth: a veil is a full-width, full-height curtain across the whole course.
 
-## Rooms
-Each room is a reusable module, a short piece of course that the map lists in order. Here, d is the distance along the course in metres, and V is a veil. A veil sits at the end of every room except the last.
+## Rooms (revision 2: 9 rooms, 8 veils, fewer piece types)
+To keep the build small, five piece types were cut as the hardest to build: rotating discs, rolling gumballs, pendulums, sweepers and sliding gates.
+All of them need moving solids that push the character controller. They can come back on a later map.
+
+**Pieces Map 1 uses (8):**
+- hop walls, gaps, moving platforms (already built)
+- bounce pads, conveyor belts, jelly doors, split routes, dive-shortcut gaps
+
+d is the distance along the course in metres, and each room is about 66 m:
 
 | # | Room | d (m) | Idea | Phase | Est. time |
 |---|---|---|---|---|---|
-| 1 | **Launch Pad** | 0–36 | Wide plaza with three rows of low hop walls | teach jump | 6 s |
-| 2 | **Jellybean Gaps** | 36–74 | Three 2 m gaps, a candy floor under the first one | teach gaps | 7 s |
-| 3 | **Bounce House** | 74–110 | Yellow pads launch you onto an upper deck; a ramp around is the easy route | teach pads + split | 7 s |
-| 4 | **Sliding Gates** | 110–148 | Two pink walls slide slowly side to side, each with a wide opening | teach gates | 8 s |
-| 5 | **The Sweeper** | 148–186 | One slow spinning arm on a round railed platform; jump it or get pushed | teach sweeper | 8 s |
-| 6 | **Cloud Ferry** | 186–224 | Two moving platforms carry you across a big gap (already in the slice) | test timing | 9 s |
-| 7 | **Fork in the Road** | 224–264 | Left: a slow conveyor that pushes you back (safe). Right: a narrow beam with two small gaps (fast). They merge | split | 8 s |
-| 8 | **Bumper Swing** | 264–302 | Three big soft balls swing across; walls at the edges, so no falling | teach pendulums | 8 s |
-| 9 | **Door Dash-ish** | 302–338 | A wall of 5 doors: 3 open, 2 jelly doors that bounce you back gently, then a second wall | luck (light) | 7 s |
-| 10 | **Spin Cycle** | 338–376 | Three slowly rotating discs over goo, with a 1.5 m hop between them | teach discs | 8 s |
-| 11 | **Double Sweep** | 376–414 | Two sweepers turning opposite ways, no rails | twist sweeper | 8 s |
-| 12 | **Gate Gaps** | 414–452 | Sliding gates on islands, so you time a gap jump through a gate | twist gates + gaps | 8 s |
-| 13 | **Pendulum Bridge** | 452–490 | Pendulums over a 5 m-wide bridge with half rails | twist pendulums | 8 s |
-| 14 | **Super Bounce** | 490–530 | A chain of pads over a long gap; a dive gap down the middle is the shortcut | finale, fun | 7 s |
-| 15 | **Candy Climb** | 530–568 | Wide stairs up, with rolling gumballs coming down the edges | breather + twist | 8 s |
-| 16 | **Finish Parade** | 568–600 | A wide downhill to the arch, with confetti cannons. No veil | celebration | 5 s |
+| 1 | **Launch Pad** | 0–66 | Wide plaza, three rows of low hop walls | teach jump | 12 s |
+| 2 | **Jellybean Gaps** | 66–132 | Four 2–3 m gaps; a candy floor under the first one | teach gaps | 13 s |
+| 3 | **Bounce House** | 132–198 | Yellow pads launch you onto an upper deck; a ramp around is the easy route | teach pads + split | 13 s |
+| 4 | **Cloud Ferry** | 198–264 | Moving platforms carry you across a big gap | test timing | 15 s |
+| 5 | **Treadmill Trouble** | 264–330 | Belts push you backward, then sideways; hop walls on the belts | teach belts, twist jump | 14 s |
+| 6 | **Jelly Doors** | 330–396 | Two walls of 5 doors, some of which jiggle and bounce you back gently | light luck | 12 s |
+| 7 | **Fork in the Road** | 396–462 | Left: a slow belt (safe). Right: a narrow beam with gaps and a dive shortcut (fast). They merge | split + dive | 13 s |
+| 8 | **Bounce & Ferry** | 462–528 | Pads that launch you onto moving platforms | twist pads + ferry | 14 s |
+| 9 | **Super Bounce → Finish Parade** | 528–600 | A chain of pads over the last gap, then a wide downhill to the arch with confetti. No veil | finale | 12 s |
 
-That totals about **2 min** (≈ 120 s). The veils sit at the end of rooms 1–15, so roughly every 7–8 seconds.
-
-**Repeats:** gaps, gates, sweepers and pendulums each appear twice: taught first, then twisted later. Pads, discs and splits appear once or twice. Rooms 6, 9 and 15 are the breathers.
+That totals about **2 min**. The **8 veils** sit at the end of rooms 1–8, about every 13 s.
 
 ## Veil behaviour (agreed)
 - A blue see-through curtain spans the full width and full height at its depth. You can't avoid it.
@@ -60,7 +58,8 @@ That totals about **2 min** (≈ 120 s). The veils sit at the end of rooms 1–1
   - Your bean freezes in place and a question pops up, with the same rules as Hurdle Dash: checked on the last digit, Backspace works, and a wrong answer shows the right one and gives a new question.
   - Right: the veil turns off for you (ghosts walk through it anyway), with a ✓ and a little forward hop. The veil is now your checkpoint.
 - Other players see a bean frozen at the veil with a small "?" bubble (new anim state `a=5`).
-- Questions come from the race seed, so everyone gets the same 15 in the same order. Teacher modes and digits come from Math Race.
+- **Questions per veil:** the teacher sets this in the lobby; the default is 2. You pass after that many right answers.
+- Questions come from the race seed, so everyone gets the same questions in the same order. Teacher modes and digits come from Math Race.
 
 ## Swapping maps later
 - **Map data:** `shared/stumble-maps.js` holds a registry `MAPS = { "jellybean-skyway": {…}, … }`. Each map is pure data:
