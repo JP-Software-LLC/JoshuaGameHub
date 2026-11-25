@@ -198,7 +198,7 @@ function resultsButton(m){
 const KIND_PATH={ math:"math-race", arrows:"arrow-blitz", hurdle:"hurdle-dash", rush:"rush-hour", bear:"bear-attack", memory:"memory-tiles", typing:"typing-cowboys", cannons:"star-cannons", darts:"dart-party", sky:"sky-climb", words:"word-rush", hoops:"mathsketball", munch:"marble-munch", softball:"softball-smarts", crossword:"crossword", stumble:"bumbling-stumbling-math" };
 const CATS=[["🧮 Math",[["math","Math Race"],["munch","Marble Munch"],["softball","Softball Smarts"],["hoops","Mathsketball"],["hurdle","Hurdle Dash"],["stumble","Bumbling Stumbling Math"]]],["🔤 Vocabulary",[["words","Word Rush"],["crossword","Vocab Crossword"]]],["⌨️ Typing",[["typing","Typing Cowboys"],["arrows","Arrow Blitz"]]],
   ["🎉 Just for fun",[["memory","Memory Tiles"],["cannons","Star Cannons"],["darts","Dart Party"],["sky","Sky Climb"],["rush","Rush Hour"],["bear","Bear Attack!"]]]];
-const OPT_SEL=["#lMode","#custom","#lWords","#lLimit"];          // game option blocks (Math Race question type, Word Rush word list, Bumbling Stumbling Math time limit) moved onto this screen
+const OPT_SEL=["#lMode","#ckDigits","#custom","#lWords","#lQpv","#lLimit"];   // game option blocks moved onto this screen, in this order (Math Race / Bumbling Stumbling Math question type, digits, Word Rush word list, Stumble questions per veil + time limit)
 let tlOn=false;
 // the game's menu card becomes the teacher lobby: its title + tips stay, its buttons/name box hide, our block is added
 function setTeach(on){
@@ -235,8 +235,11 @@ function teacherLobby(L){
   }
   setTeach(true);
   const opts=o.querySelector("#ckTLOpts");
-  OPT_SEL.forEach(sel=>{ const n=document.querySelector(sel); if (!n || opts.contains(n)) return; const box=n.closest("#lobby>div>div, #lobby .panel>div")||n; opts.appendChild(n.id==="custom"||n.id==="lWords"?n:box); });
-  const dig=document.getElementById("ckDigits"); if (dig && !opts.contains(dig)) opts.appendChild(dig);
+  // each block keeps OPT_SEL order, even one added later (the digit picker comes back when a teacher leaves Money mode)
+  const optBox=sel=>{ const n=document.querySelector(sel); return n&&(n.id==="custom"||n.id==="lWords"||n.id==="ckDigits"?n:n.closest("#lobby>div>div, #lobby .panel>div")||n); };
+  OPT_SEL.forEach((sel,i)=>{ const box=optBox(sel); if (!box || opts.contains(box)) return;
+    let after=OPT_SEL.slice(i+1).map(optBox).find(b=>b&&opts.contains(b));
+    while (after && after.parentNode!==opts) after=after.parentNode; opts.insertBefore(box,after||null); });
   o.querySelector("#ckTLOpt").hidden=!opts.children.length;
   o.querySelector("#ckTLCode").textContent=L.code||"----";
   const kids=(L.players||[]).filter(p=>p.pid!==L.teacher);

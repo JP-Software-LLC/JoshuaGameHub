@@ -193,6 +193,7 @@ async function onMessage(c,m){
     case "qtime":  return toRoom(c,{ t:"qtime", s:m.s|0 });
     case "pitch":  return toRoom(c,{ t:"pitch", s:m.s|0 });
     case "limit":  return toRoom(c,{ t:"limit", min:+m.min });
+    case "qpv":    return toRoom(c,{ t:"qpv", n:+m.n });               // Bumbling Stumbling Math: questions per veil
     case "ans":    return toRoom(c,{ t:"ans", v:Math.max(-1,Math.min(99999,m.v|0)) });
     case "prog":  return toRoom(c,{ t:"prog", round:m.round|0, n:Math.max(0,Math.min(99999,m.n|0)) });
     case "teacher": {                                   // optionally linked to one of the signed-in teacher's classes

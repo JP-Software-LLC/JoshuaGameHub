@@ -79,6 +79,7 @@
   #track{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:min(44vw,520px);height:22px}
   #track .rail{position:absolute;left:0;right:22px;top:8px;height:6px;border-radius:6px;background:rgba(30,10,80,.35)}
   #track .cp{position:absolute;top:4px;width:4px;height:14px;margin-left:-2px;background:#fff3a8;border-radius:2px}
+  #track .cp.v{top:4px;width:12px;height:12px;margin-left:-6px;background:#38bdf8;border:2px solid #fff;border-radius:3px;transform:rotate(45deg);box-shadow:0 0 6px rgba(56,189,248,.8)}
   #track .flag{position:absolute;right:0;top:-2px;width:20px;height:24px;border-radius:3px;background:conic-gradient(#000 25%,#fff 0 50%,#000 0 75%,#fff 0) 0 0/10px 10px;box-shadow:0 0 0 2px #fff}
   #track .dot{position:absolute;top:5px;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:2px solid #fff;opacity:.85}
   #track .dot.me{width:20px;height:20px;top:1px;margin-left:-10px;opacity:1;z-index:2;box-shadow:0 0 0 3px var(--ink)}
@@ -104,7 +105,8 @@
   #tBoard .tt{font-family:var(--h);font-size:30px;line-height:1.1}
   #tBoard .tt small{font-family:var(--b);font-size:13px;font-weight:900;color:var(--ink2);display:block}
   #tBoard ol{list-style:none;margin:8px 0;padding:0;display:flex;flex-direction:column;gap:5px}
-  #tBoard li{display:grid;grid-template-columns:22px 1fr 48px;gap:8px;align-items:center;font-weight:800;font-size:14px}
+  #tBoard li .vt{font-weight:900;color:var(--blu);margin-right:2px}
+  #tBoard li{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;font-weight:800;font-size:14px}
   #tBoard li .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #tBoard li .v{text-align:right;color:var(--ink2);font-variant-numeric:tabular-nums}
   #tBoard li i{width:14px;height:16px;border-radius:50% 50% 45% 45%;display:inline-block;vertical-align:-2px;margin-right:6px}
@@ -126,6 +128,52 @@
   .line.p1{background:#fff4cc;box-shadow:inset 0 0 0 3px var(--sun)}
   .line.me{box-shadow:inset 0 0 0 3px var(--pur)}
   .you{display:flex;justify-content:space-between;font-weight:800;color:var(--ink2);padding:0 6px}
+  /* math veil question card (keyboard only: number keys + Backspace) */
+  #quiz{position:fixed;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none;z-index:4;padding:16px}
+  #quiz.on{display:flex}
+  #quiz:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(37,99,235,.0) 30%,rgba(30,64,175,.45));animation:qfade .3s}
+  @keyframes qfade{from{opacity:0}}
+  .qc{position:relative;width:min(440px,100%);background:#fff;border-radius:30px;padding:0 0 22px;text-align:center;overflow:hidden;
+    box-shadow:0 10px 0 #1e40af,0 0 0 6px #7dd3fc,0 30px 80px -10px rgba(10,20,80,.7);animation:qpop .45s cubic-bezier(.2,1.5,.4,1)}
+  @keyframes qpop{0%{transform:scale(.3) rotate(-6deg);opacity:0}60%{opacity:1}100%{transform:none}}
+  .qc.out{animation:qout .35s ease-in forwards}
+  @keyframes qout{to{transform:scale(.6) translateY(-40px);opacity:0}}
+  .qh{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px;background:linear-gradient(90deg,#2563eb,#38bdf8);color:#fff}
+  .qv{font-family:var(--h);font-size:24px;letter-spacing:1px;text-shadow:0 2px 0 #1e40af}
+  .qp{display:flex;align-items:center;gap:6px;font-weight:900;font-size:18px}
+  .qp i{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.3);box-shadow:inset 0 0 0 3px #fff;display:grid;place-items:center;font-style:normal;font-size:14px;color:#1e40af}
+  .qp i.on{background:var(--sun);box-shadow:inset 0 0 0 3px #fff,0 0 12px #ffe48a;animation:qpip .4s cubic-bezier(.2,1.8,.4,1)}
+  @keyframes qpip{from{transform:scale(2)}}
+  .qsum{display:inline-grid;justify-items:end;margin:16px auto 0;font-family:var(--h);font-size:84px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+  .qsum .qb{display:flex;gap:22px;align-items:baseline}
+  .qsum .qb span:first-child{color:var(--blu)}
+  .qsum .line{justify-self:stretch;height:8px;border-radius:4px;background:var(--ink);margin:8px 0 12px}
+  .qa{display:flex;gap:8px;align-items:flex-end;justify-content:flex-end}
+  .qa b{width:64px;height:84px;border-radius:16px;background:#eef4ff;box-shadow:inset 0 0 0 4px #bfdbfe;display:grid;place-items:center;font-weight:400;font-size:70px;color:var(--ink)}
+  .qa b.cur{box-shadow:inset 0 0 0 4px var(--blu);animation:qcur 1s ease-in-out infinite}
+  @keyframes qcur{50%{box-shadow:inset 0 0 0 4px #93c5fd}}
+  .qa u{text-decoration:none;font-size:70px;padding:0 2px}
+  .qc.right .qa b{background:#dcfce7;box-shadow:inset 0 0 0 4px var(--ok);color:var(--ok)}
+  .qc.wrong .qa b{background:#ffe4e6;box-shadow:inset 0 0 0 4px var(--bad);color:var(--bad)}
+  .qc.wrong .qa{animation:qshake .45s}
+  @keyframes qshake{20%{transform:translateX(-14px)}40%{transform:translateX(12px)}60%{transform:translateX(-8px)}80%{transform:translateX(5px)}}
+  .qmsg{margin-top:12px;font-weight:900;font-size:20px;color:var(--ink2);min-height:1.4em}
+  .qmsg em{font-style:normal;font-family:var(--h);font-weight:400;font-size:34px;color:var(--ok);vertical-align:-3px;margin-left:6px}
+  .qc.wrong .qmsg{color:var(--bad)}
+  .qc.right .qmsg{color:var(--ok)}
+  .qmsg kbd{display:inline-block;background:#f2efff;border-radius:6px;padding:0 6px;font-family:inherit;box-shadow:0 2px 0 #d8d0f7}
+  .qyay{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle,#4ade80,#16a34a);color:#fff;font-family:var(--h)}
+  .qc.pass .qyay{display:flex;animation:qfade .2s}
+  .qyay b{font-size:120px;line-height:1;font-weight:400;animation:qtick .5s cubic-bezier(.2,1.8,.4,1)}
+  .qyay span{font-size:38px;letter-spacing:1px;text-shadow:0 3px 0 #166534}
+  @keyframes qtick{from{transform:scale(0) rotate(-30deg)}}
+  .qyay i{position:absolute;left:50%;top:45%;width:14px;height:14px;border-radius:3px;animation:qburst .8s ease-out forwards}
+  @keyframes qburst{from{transform:translate(-50%,-50%)}to{transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(220deg);opacity:0}}
+  #falls span+span{margin-left:12px;color:var(--blu)}
+  #ckDigits{align-items:center}
+  .solo{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+  .solo select.f{width:auto;padding:7px 6px;font-size:14px;border-width:2px;border-radius:12px}
+  @media (max-width:620px){ .qsum{font-size:64px} .qa b{width:50px;height:66px;font-size:54px} .qa u{font-size:54px} }
   #confetti{position:fixed;inset:0;pointer-events:none;z-index:8}
   #exitBtn{position:fixed;top:12px;right:12px;z-index:9;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;background:#fff;border:0;color:var(--ink2);box-shadow:0 3px 0 rgba(40,20,110,.3);cursor:pointer}
   #exitBtn:hover,#exitBtn:focus-visible{color:var(--bad);outline:none}
@@ -147,13 +195,19 @@
 
 <div id="hud">
   <div class="hbox" id="place">–<small>/ –</small></div>
-  <div class="hbox" id="falls">💥 0 falls</div>
+  <div class="hbox" id="falls"><span id="fallsN">💥 0 falls</span><span id="veilsN" title="Math veils passed">🔷 0 / 8</span></div>
   <div id="track"><div class="rail"></div><div id="cps"></div><div class="flag"></div><div id="dots"></div></div>
   <div class="hbox" id="clock">0:00.0</div>
   <div id="feed"></div>
   <div id="msg"></div>
-  <div id="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>← ↑ → ↓</kbd> to run · <kbd>Space</kbd> to jump · again in the air to dive</div>
+  <div id="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or <kbd>← ↑ → ↓</kbd> to run · <kbd>Space</kbd> to jump · again in the air to dive · 🔷 math veil: type the answer</div>
   <div id="tBoard"></div>
+  <div id="quiz"><div class="qc" id="qc" role="dialog" aria-label="Math veil question">
+    <div class="qh"><span class="qv" id="qVeil">MATH VEIL 1</span><span class="qp" id="qPips"></span></div>
+    <div class="qsum"><div id="qTop"></div><div class="qb"><span id="qOp"></span><span id="qBot"></span></div><div class="line"></div><div class="qa" id="qAns"></div></div>
+    <div class="qmsg" id="qMsg" aria-live="polite"></div>
+    <div class="qyay" id="qYay"><b>✓</b><span>VEIL OPEN!</span></div>
+  </div></div>
   <div id="done"><div class="card"><h2>FINISHED!</h2><b id="dTime">0:00.0</b><p id="dNote">Waiting for the others…</p></div></div>
 </div>
 
@@ -162,13 +216,17 @@
   <h1 class="logo">BUMBLING<span>STUMBLING MATH</span><small>RUN · JUMP · DON'T FALL</small></h1>
   <div class="how">
     <div><b>🏃</b>Run with <b style="display:inline;font-size:inherit">WASD</b> or the arrow keys</div>
-    <div><b>🦘</b>Press Space to jump the gaps and hop on the moving platform</div>
-    <div><b>🏁</b>Fall off? You pop back at the last checkpoint. Reach the finish!</div>
+    <div><b>🦘</b>Space to jump the gaps. Fall off? You pop back at the last checkpoint</div>
+    <div><b>🔷</b>Hit a blue math veil? Type the answers with the number keys to open it!</div>
   </div>
   <div><div class="lbl" style="margin-bottom:6px">Your name</div><input class="f" id="nameIn" maxlength="14" placeholder="Type a name" autocomplete="off"></div>
   <div class="row"><button class="btn" id="bPublic">Race online</button><button class="btn blue" id="bPrivate">Private race</button></div>
   <div class="row"><input class="f" id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" style="text-transform:uppercase;letter-spacing:6px;text-align:center"><button class="btn alt" id="bJoin" style="flex:0 0 auto">Join</button></div>
   <button class="btn alt" id="bTeacher">🍎 Teacher mode · run a race for your class</button>
+  <div class="solo" id="soloOpts"><span class="lbl">Solo math</span>
+    <select class="f" id="sMode" aria-label="Solo question type"></select>
+    <select class="f" id="sDig" aria-label="Solo numbers in each sum"><option value="1">1 digit</option><option value="12">1 &amp; 2 digits</option><option value="2">2 digits</option></select>
+    <select class="f" id="sQpv" aria-label="Solo questions per veil"></select></div>
   <button class="btn alt" id="bSolo">Solo race vs bots</button>
   <p class="err" id="err"></p>
 </div></section>
@@ -179,6 +237,10 @@
   <div class="code" id="lCode">----</div>
   <div class="count" id="lCount">1 / 40 racers</div>
   <div class="grid" id="lGrid"></div>
+  <div class="opt" id="lModeBox"><span class="lbl" id="lModeLbl">Math</span>
+    <select class="f" id="lMode" aria-label="Math question type"></select></div>
+  <div class="opt" id="lQpvBox"><span class="lbl" id="lQpvLbl">Questions per veil</span>
+    <select class="f" id="lQpv" aria-label="Questions per veil"></select></div>
   <div class="opt" id="lLimitBox"><span class="lbl" id="lLimitLbl">Time limit</span>
     <select class="f" id="lLimit" aria-label="Time limit"><option value="0">Off</option><option value="2">2 minutes</option><option value="3">3 minutes</option><option value="5">5 minutes</option></select></div>
   <p class="note" id="lNote"></p>
@@ -196,6 +258,8 @@
 
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
 <script src="../assets/classkit.js"></script>
+<script src="../hoops.js"></script>
+<script src="../stumble-maps.js"></script>
 <script src="../stumble.js"></script>
 <script src="game.js"></script>
 </body>

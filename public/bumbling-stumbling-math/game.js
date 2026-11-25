@@ -6,6 +6,9 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const store={ get(k){ try{return localStorage.getItem(k);}catch{return null;} }, set(k,v){ try{localStorage.setItem(k,v);}catch{} } };
 const { T, COURSE }=STUMBLE;
+// map registry (shared/stumble-maps.js): veil depths, checkpoints, length. Falls back to the old slice course.
+const MAPS=window.STUMBLE_MAPS||{ DEFAULT:"", get:()=>({ id:"", name:"", length:T.dist, veils:[], checkpoints:[] }) };
+const QMODES=[["add","+ Add"],["sub","− Subtract"],["mul","× Multiply"],["div","÷ Divide"],["money","$ Money"]];
 const pcol=i=>`hsl(${(i*137.508+275)%360},78%,58%)`;           // same as world.js
 const fmt=t=>t==null?"–":`${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}`;
 const fmtS=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
@@ -45,7 +48,7 @@ async function prefetch(url,size,from,to,txt){
 // ============================================================
 //  STATE
 // ============================================================
-const G={ mode:"", me:0, players:new Map(), startAt:0, finished:new Map(), botFin:new Map(), done:false, resultShown:false, sentAt:0, limitEnd:0, teacher:false, finishT:null };
+const G={ mode:"", me:0, dist:T.dist, map:MAPS.get(MAPS.DEFAULT), qpv:T.qpv, qmode:"add", digits:"1", nextQ:null, veils:new Set(), right:0, wrong:0, players:new Map(), startAt:0, finished:new Map(), botFin:new Map(), done:false, resultShown:false, sentAt:0, limitEnd:0, teacher:false, finishT:null };
 let screen="menu";
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id)); screen=id;
@@ -69,6 +72,11 @@ addEventListener("keydown",e=>{
   if (e.target.tagName==="INPUT"||e.target.tagName==="SELECT"||e.target.tagName==="TEXTAREA") return;
   if (e.key==="Escape"&&screen!=="menu") return exitGame();
   if (screen!=="race") return;
+  if (Q.on){                                  // a math veil is up: number keys + Backspace answer, movement keys do nothing
+    quizKey(e);
+    const k=KEYMAP[e.code]; if (k){ e.preventDefault(); if (k!=="j") held.add(k); }   // remember arrows (you run on once it opens), never Space
+    return;
+  }
   const k=KEYMAP[e.code]; if (!k) return; e.preventDefault();
   held.add(k); if (k==="j" && !e.repeat && WORLD){ WORLD.input.jump=true; WORLD.input.press=true; }
   if (!G.keysHidden && performance.now()>G.startAt+4000){ G.keysHidden=true; $("keys").classList.add("hide"); }
@@ -76,7 +84,8 @@ addEventListener("keydown",e=>{
 addEventListener("keyup",e=>{ const k=KEYMAP[e.code]; if (k) held.delete(k); });
 addEventListener("blur",()=>held.clear());
 function readInput(){
-  const I=WORLD.input; I.mx=(held.has("r")?1:0)-(held.has("l")?1:0); I.mz=(held.has("u")?1:0)-(held.has("d")?1:0);
+  const I=WORLD.input;
+  if (Q.on){ I.mx=I.mz=0; I.jump=I.press=false; return; } I.mx=(held.has("r")?1:0)-(held.has("l")?1:0); I.mz=(held.has("u")?1:0)-(held.has("d")?1:0);
   I.jump=held.has("j")||I.press;              // hold Space = hop again as soon as you land; a fresh press in the air dives
 }
 
@@ -86,13 +95,81 @@ function readInput(){
 function raceSecs(){ return Math.max(0,(performance.now()-G.startAt)/1000); }
 function onWorldEvent(e,pid,st){
   if (pid===G.me){
-    if (e==="checkpoint"){ flash("CHECKPOINT!"); }
+    if (e==="veil"){ openQuiz(st&&st.quiz!=null?st.quiz:0); }
+    else if (e==="flag"){ toast("🚩 Checkpoint"); }
+    else if (e==="checkpoint"){ flash("CHECKPOINT!"); }
     else if (e==="fall"){ flash("WHOOPS!"); if (navigator.vibrate) navigator.vibrate(60); }
     else if (e==="finish") onFinish();
     return;
   }
   if (G.mode==="solo" && e==="finish" && !G.botFin.has(pid)){ G.botFin.set(pid,raceSecs()); if (!DEMO) toast(`🏁 ${G.players.get(pid)?.name} finished!`); }
 }
+
+// ============================================================
+//  MATH VEILS — touching a veil freezes my bean (world.js) and opens this card. Same rules as Hurdle Dash:
+//  Math Race questions (HOOPS.questionStream from the race seed), checked the moment the answer has enough digits,
+//  Backspace works, no Enter. Wrong = shake + the right answer, then a NEW question. G.qpv right answers open it.
+// ============================================================
+const Q={ on:false, k:-1, got:0, need:2, q:null, typed:"", state:"ask", timer:0 };
+const WRONG_MS=1700, RIGHT_MS=650, PASS_MS=900;
+const cents=v=>{ const c=Math.round(+v); return "$"+Math.floor(c/100)+"."+String(c%100).padStart(2,"0"); };
+const qNum=v=>typeof v==="string"?Math.round(parseFloat(v.replace(/[^0-9.]/g,""))*100):v;
+function openQuiz(k){
+  if (Q.on) return;
+  if (G.done || G.teacher || !G.nextQ){ if (WORLD && WORLD.passVeil) WORLD.passVeil(); return; }   // (no question generator: never get stuck)
+  clearTimeout(Q.timer);
+  Object.assign(Q,{ on:true, k, got:0, need:G.qpv });
+  for (const h of ["u","d","l","r","j"]) held.delete(h);
+  const qc=$("qc"); qc.className="qc"; void qc.offsetWidth;           // replay the pop-in
+  $("qVeil").textContent=`🔷 MATH VEIL ${k+1}`;
+  $("quiz").classList.add("on");
+  newQuestion();
+}
+function newQuestion(){
+  Q.q=G.nextQ(); Q.typed=""; Q.state="ask"; $("qc").classList.remove("right","wrong");
+  let a=Q.q.top, b=Q.q.bottom;                                            // the BIGGER number always goes on top
+  if ((Q.q.op==="+"||Q.q.op==="×") && qNum(b)>qNum(a)) [a,b]=[b,a];
+  $("qTop").textContent=a; $("qOp").textContent=Q.q.op; $("qBot").textContent=b;
+  renderQuiz();
+}
+function renderQuiz(){
+  const q=Q.q, L=q.len, t=Q.typed;
+  let h=q.money?"<u>$</u>"+(L<3?"<u>0.</u>":""):"";
+  for (let i=0;i<L;i++){ if (q.money && L>=3 && i===L-2) h+="<u>.</u>"; h+=`<b class="${i===t.length&&Q.state==="ask"?"cur":""}">${t[i]||""}</b>`; }
+  $("qAns").innerHTML=h;
+  $("qPips").innerHTML=Array.from({ length:Q.need },(_,i)=>`<i class="${i<Q.got?"on":""}">${i<Q.got?"★":""}</i>`).join("")+`<span>${Q.got} / ${Q.need}</span>`;
+  $("qMsg").innerHTML=Q.state==="wrong"?`Oops! It's<em>${q.money?cents(q.s):q.s}</em>`
+    :Q.state==="right"?(Q.need-Q.got===1?"✓ Right! One more…":"✓ Right!")
+    :Q.need>1&&Q.got===0?`Get ${Q.need} right to open the veil!`:"Type the answer · <kbd>⌫</kbd> to fix";
+}
+function quizKey(e){
+  if (e.ctrlKey||e.metaKey||e.altKey) return;
+  if (/^[0-9]$/.test(e.key)){ e.preventDefault(); if (Q.state!=="ask") return;
+    Q.typed+=e.key; renderQuiz(); if (Q.typed.length>=Q.q.len) checkAnswer(); return; }
+  if (e.key==="Backspace"){ e.preventDefault(); if (Q.state==="ask" && Q.typed){ Q.typed=Q.typed.slice(0,-1); renderQuiz(); } }
+}
+function checkAnswer(){
+  const qc=$("qc");
+  if (+Q.typed===Q.q.s){
+    Q.got++; G.right++;
+    if (Q.got>=Q.need) return passQuiz();
+    Q.state="right"; qc.classList.add("right"); renderQuiz();
+    Q.timer=setTimeout(newQuestion,RIGHT_MS);
+  } else {
+    G.wrong++; Q.state="wrong"; qc.classList.add("wrong"); renderQuiz();
+    if (navigator.vibrate) navigator.vibrate(80);
+    Q.timer=setTimeout(newQuestion,WRONG_MS);
+  }
+}
+function passQuiz(){
+  Q.state="pass"; renderQuiz(); G.veils.add(Q.k);
+  const qc=$("qc"); qc.classList.add("right","pass");
+  $("qYay").querySelectorAll("i").forEach(i=>i.remove());
+  for (let i=0;i<18;i++){ const a=i/18*Math.PI*2, r=120+Math.random()*90, el=document.createElement("i");
+    el.style.cssText=`--x:${Math.cos(a)*r}px;--y:${Math.sin(a)*r}px;background:${i%3?pcol(i*3):"#ffcf33"}`; $("qYay").appendChild(el); }
+  Q.timer=setTimeout(()=>{ qc.classList.add("out"); Q.timer=setTimeout(()=>{ closeQuiz(); if (WORLD && WORLD.passVeil) WORLD.passVeil(); flash("GO!"); },300); },PASS_MS);
+}
+function closeQuiz(){ clearTimeout(Q.timer); Q.on=false; Q.state="ask"; $("quiz").classList.remove("on"); }
 
 // ============================================================
 //  LOOP
@@ -111,7 +188,7 @@ function frame(now){
   if (screen!=="race") return;
   const me=WORLD.me&&WORLD.me.st;
   if (G.mode==="online" && me && now>=G.startAt && !G.done && now-G.sentAt>100){
-    G.sentAt=now; Net.send({ t:"pos", d:Math.round(Math.max(0,Math.min(T.dist,me.d))*100)/100, x:Math.round(me.x*100)/100, y:Math.round(me.y*100)/100, a:me.a });
+    G.sentAt=now; Net.send({ t:"pos", d:Math.round(Math.max(0,Math.min(G.dist,me.d))*100)/100, x:Math.round(me.x*100)/100, y:Math.round(me.y*100)/100, a:Q.on?5:me.a });
   }
   if (now-hudAt>120){ hudAt=now; hud(now); }
 }
@@ -132,17 +209,24 @@ function hud(now){
   if (G.teacher){ teacherBoard(all,now,left); return; }
   const place=all.findIndex(a=>a.pid===G.me)+1, suf=(place%100>10&&place%100<14)?"th":["th","st","nd","rd"][place%10]||"th";
   $("place").innerHTML=`${place}<sup style="font-size:.45em">${suf}</sup><small>/ ${all.length}</small>`;
-  const f=WORLD.me?WORLD.me.st.falls:0; $("falls").textContent=`💥 ${f} fall${f===1?"":"s"}`;
-  $("dots").innerHTML=all.map(a=>{ const pl=G.players.get(a.pid); return `<i class="dot ${a.pid===G.me?"me":""}" style="left:calc((100% - 22px) * ${Math.max(0,Math.min(1,a.d/T.dist)).toFixed(4)});background:${pcol(pl?.color??0)}"></i>`; }).join("");
+  const f=WORLD.me?WORLD.me.st.falls:0; $("fallsN").textContent=`💥 ${f} fall${f===1?"":"s"}`;
+  const nv=(G.map.veils||[]).length; $("veilsN").textContent=nv?`🔷 ${G.veils.size} / ${nv}`:""; $("veilsN").style.display=nv?"":"none";
+  $("dots").innerHTML=all.map(a=>{ const pl=G.players.get(a.pid); return `<i class="dot ${a.pid===G.me?"me":""}" style="left:calc((100% - 22px) * ${Math.max(0,Math.min(1,a.d/G.dist)).toFixed(4)});background:${pcol(pl?.color??0)}"></i>`; }).join("");
 }
 
 // ============================================================
 //  RACE START / FINISH
 // ============================================================
-async function beginRace({ players, me, inMs, mode, teacher=false, endsIn=0, raceMs=null }){
+async function beginRace({ players, me, inMs, mode, teacher=false, endsIn=0, raceMs=null, seed=1, map, dist, qpv, qmode, digits }){
   G.pendingGo=true; const t0=performance.now();
   await ready; G.pendingGo=false;
   const lag=performance.now()-t0, now=performance.now();
+  closeQuiz();
+  const M=MAPS.get(map||MAPS.DEFAULT);
+  Object.assign(G,{ map:M, dist:dist||M.length||T.dist, qpv:Math.max(T.qpvMin,Math.min(T.qpvMax,qpv|0||T.qpv)), qmode:qmode||"add", digits:digits||"1",
+    nextQ:window.HOOPS?HOOPS.questionStream(seed,qmode||"add",digits||"1"):null, veils:new Set(), right:0, wrong:0 });   // same seed → same questions, same order for everyone
+  if (WORLD.setMap) WORLD.setMap(M.id);
+  WORLD.qpv=G.qpv;                                // solo bots wait at each veil about as long as qpv questions take
   Object.assign(G,{ mode, me, players:new Map(players.map(p=>[p.pid,p])), startAt:now+inMs-lag, finished:new Map(), botFin:new Map(), done:false, resultShown:false,
     sentAt:0, teacher, finishT:null, limitEnd:endsIn>0?now+endsIn-lag:0, keysHidden:false });
   const moverT0=raceMs!=null?now-raceMs-lag:G.startAt;
@@ -151,7 +235,10 @@ async function beginRace({ players, me, inMs, mode, teacher=false, endsIn=0, rac
   WORLD.selfPid=me;
   countShown=-1; $("done").classList.remove("on"); $("keys").classList.toggle("hide",teacher); $("feed").innerHTML="";
   $("tBoard").classList.toggle("on",teacher); for (const id of ["place","falls","track"]) $(id).style.display=teacher?"none":"";
-  $("cps").innerHTML=COURSE.CHECKPOINTS.slice(1).map(c=>`<i class="cp" style="left:calc((100% - 22px) * ${c/T.dist})"></i>`).join("");
+  // progress track: a blue diamond at each math veil (+ small ticks at the quiet flags)
+  const veils=M.veils||[], flags=(M.checkpoints||[]).filter(c=>c.veil==null&&c.d>0).map(c=>c.d), olds=veils.length?[]:COURSE.CHECKPOINTS.slice(1);
+  $("cps").innerHTML=[...flags,...olds].map(d=>`<i class="cp" style="left:calc((100% - 22px) * ${d/G.dist})"></i>`).join("")
+    +veils.map(d=>`<i class="cp v" style="left:calc((100% - 22px) * ${d/G.dist})"></i>`).join("");
   show("race");
 }
 function onFinish(){
@@ -160,7 +247,7 @@ function onFinish(){
   const falls=WORLD.me.st.falls;
   if (G.mode==="online") Net.send({ t:"finish", time:Math.round(G.finishT*100)/100, extra:falls });
   $("dTime").textContent=fmt(G.finishT);
-  $("dNote").textContent=`💥 ${falls} fall${falls===1?"":"s"} · `+(G.mode==="solo"?"nice running!":"waiting for the others…");
+  $("dNote").textContent=`💥 ${falls} fall${falls===1?"":"s"} · ✅ ${G.right} right answer${G.right===1?"":"s"} · `+(G.mode==="solo"?"nice running!":"waiting for the others…");
   $("done").classList.add("on"); flash("FINISH!"); confetti();
   if (G.mode==="solo") setTimeout(soloResults,2600);
 }
@@ -173,14 +260,15 @@ $("bSolo").onclick=async ()=>{
   const seed=(Math.random()*2**31)|0;
   const names=["Wobbles","Jellybean","Bonk","Noodle","Sprinkles","Dizzy","Gumdrop"];
   const players=[{ pid:1, name, color:0 }, ...names.map((n,i)=>({ pid:i+2, name:n, color:i+1 }))];
-  await beginRace({ players, me:1, inMs:3500, mode:"solo" });
+  const sp=soloPrefs();
+  await beginRace({ players, me:1, inMs:3500, mode:"solo", seed, qmode:sp.mode, digits:sp.digits, qpv:sp.qpv });
   names.forEach((n,i)=>WORLD.addBot({ pid:i+2, color:i+1, name:n, skill:0.25+0.7*i/(names.length-1), seed:seed+i*101 }));
 };
 function soloResults(){
   if (G.resultShown||screen!=="race"||G.mode!=="solo") return;
   // let the stragglers finish off-screen (up to 3 race-minutes)
   WORLD.fastForwardBots(raceSecs(),180,(b,t)=>{ if (!G.botFin.has(b.pid)) G.botFin.set(b.pid,t); });
-  const rank=[{ pid:G.me, name:G.players.get(G.me).name, color:0, time:G.finishT, d:T.dist, extra:WORLD.me.st.falls },
+  const rank=[{ pid:G.me, name:G.players.get(G.me).name, color:0, time:G.finishT, d:G.dist, extra:WORLD.me.st.falls },
     ...WORLD.bots.map(b=>({ pid:b.pid, name:G.players.get(b.pid).name, color:G.players.get(b.pid).color, time:G.botFin.get(b.pid)??null, d:b.st.d, extra:b.st.falls }))]
     .sort((a,b)=>(a.time==null)-(b.time==null)||(a.time!=null?a.time-b.time:b.d-a.d));
   showResults(rank);
@@ -190,12 +278,12 @@ function soloResults(){
 //  RESULTS — top 3 or top 15 % (whichever is more) + your place
 // ============================================================
 function showResults(rank){
-  G.resultShown=true; endTeacher();
+  G.resultShown=true; endTeacher(); closeQuiz();
   if (!rank.length){ show(G.mode==="solo"?"menu":"lobby"); return; }
   const w=rank[0], n=topCount(rank.length), best=w.time;
   $("champ").innerHTML=`<div style="font-size:64px;line-height:1">🏆</div><div class="t">${w.pid===G.me?"You won the race!":"Race champion!"}</div><h2>${esc(w.name)}</h2>`;
   const line=(e,i)=>`<div class="line ${i===0?"p1":""} ${e.pid===G.me?"me":""}" style="animation-delay:${i*60}ms"><span class="pos">${i+1}</span><i style="background:${pcol(e.color)}">${e.color+1}</i>
-    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">${e.extra!=null?`💥 ${e.extra} fall${e.extra===1?"":"s"}`:""}</span><span class="tm">${e.time!=null?fmt(e.time):Math.round(100*Math.max(0,e.d||0)/T.dist)+"%"}</span></div>`;
+    <span class="nm">${esc(e.name)}${e.pid===G.me?" (you)":""}</span><span class="cl">${e.extra!=null?`💥 ${e.extra} fall${e.extra===1?"":"s"}`:""}</span><span class="tm">${e.time!=null?fmt(e.time):Math.round(100*Math.max(0,e.d||0)/G.dist)+"%"}</span></div>`;
   $("rBoard").innerHTML=rank.slice(0,n).map(line).join("");
   const mi=rank.findIndex(e=>e.pid===G.me);
   $("rYou").innerHTML=mi>=n?`<span>You · ${mi+1} of ${rank.length}</span><span>${rank[mi].time!=null?fmt(rank[mi].time)+" (+"+(rank[mi].time-best).toFixed(1)+"s)":"didn't finish"}</span>`:"";
@@ -242,9 +330,10 @@ function onNet(m){
     case "lobby": Net.lobby=m; m.at=performance.now(); if (screen==="lobby") renderLobby(); break;
     case "go": {
       const iTeach=!!m.teacher && m.teacher===Net.pid;
-      beginRace({ players:m.players, me:Net.pid, inMs:m.in, mode:"online", teacher:iTeach, endsIn:m.endsIn||0, raceMs:m.raceMs??m.elapsed??null }).then(()=>{
-        if (m.you && !iTeach){ if (m.you.fin!=null){ G.done=true; G.finishT=m.you.fin; $("dTime").textContent=fmt(m.you.fin); $("dNote").textContent="waiting for the others…"; $("done").classList.add("on"); WORLD.placeMe(T.dist,true); }
-          else if (m.you.d>0) WORLD.placeMe(m.you.d); } });
+      beginRace({ players:m.players, me:Net.pid, inMs:m.in, mode:"online", teacher:iTeach, endsIn:m.endsIn||0, raceMs:m.raceMs??m.elapsed??null,
+        seed:m.seed, map:m.map, dist:m.dist, qpv:m.qpv, qmode:m.mode, digits:m.digits }).then(()=>{
+        if (m.you && !iTeach){ if (m.you.fin!=null){ G.done=true; G.finishT=m.you.fin; $("dTime").textContent=fmt(m.you.fin); $("dNote").textContent="waiting for the others…"; $("done").classList.add("on"); WORLD.placeMe(G.dist,true); }
+          else if (m.you.d>0){ WORLD.placeMe(m.you.d); (G.map.veils||[]).forEach((v,i)=>{ if (v<m.you.d) G.veils.add(i); }); } } });   // rejoin: veils behind you count as passed
       break; }
     case "addp": if (m.p){ G.players.set(m.p.pid,m.p); if (WORLD) WORLD.setPlayer(m.p); } break;   // a classmate joined mid-race
     case "ps": if (G.mode==="online" && WORLD && WORLD.mode==="race") WORLD.pushSnap(m.p); break;
@@ -262,7 +351,7 @@ function renderLobby(){
   $("lGrid").innerHTML=L.players.filter(p=>p.pid!==L.teacher).map(p=>`<span class="chip ${p.pid===Net.pid?"me":""} ${p.connected?"":"away"}"><i style="background:${pcol(p.color)}">${p.color+1}</i>${esc(p.name)}${p.pid===L.host?" ★":""}</span>`).join("");
   const host=L.host===Net.pid;
   $("bStart").style.display=host?"":"none";
-  limitUI(L);
+  limitUI(L); mathUI(L);
   clearInterval(lobbyTimer);
   const note=()=>{
     let t=L.state==="playing"?"A race is going on…":host?"You're the host. Start when everyone's in!":"Waiting for the host to start…";
@@ -278,6 +367,30 @@ function limitUI(L){
   sel.disabled=!host; $("lLimitLbl").textContent=host?"Time limit (you choose)":"Time limit";
 }
 $("lLimit").addEventListener("change",e=>Net.send({ t:"limit", min:+e.target.value }));
+// math options (host/teacher, lobby only): question type + questions per veil; ClassKit adds the digit picker (#ckDigits)
+// and moves #lMode / #lQpv / #lLimit into the teacher's lobby card
+const fillSel=(id,opts)=>{ $(id).innerHTML=opts.map(([v,t])=>`<option value="${v}">${t}</option>`).join(""); };
+const QPV_OPTS=[]; for (let n=T.qpvMin;n<=T.qpvMax;n++) QPV_OPTS.push([n,`${n} question${n===1?"":"s"}`]);
+fillSel("lMode",QMODES); fillSel("sMode",QMODES); fillSel("lQpv",QPV_OPTS); fillSel("sQpv",QPV_OPTS.map(([n])=>[n,`${n} per veil`]));
+function mathUI(L){
+  const host=L.host===Net.pid&&L.state==="lobby";
+  for (const [id,v,lbl,txt] of [["lMode",L.mode||"add","lModeLbl","Math"],["lQpv",L.qpv||T.qpv,"lQpvLbl","Questions per veil"]]){
+    const sel=$(id); if (document.activeElement!==sel) sel.value=String(v); sel.disabled=!host; $(lbl).textContent=txt+(host?" (you choose)":""); }
+  const dig=$("ckDigits"), mb=$("lModeBox");                  // ClassKit's digit picker: right under the question type
+  if (dig && mb.parentNode===dig.parentNode && mb.nextElementSibling!==dig) mb.after(dig);
+}
+$("lMode").addEventListener("change",e=>Net.send({ t:"mode", mode:e.target.value }));
+$("lQpv").addEventListener("change",e=>Net.send({ t:"qpv", n:+e.target.value }));
+// solo pickers on the menu (remembered on this device)
+function soloPrefs(){ return { mode:$("sMode").value, digits:$("sDig").value, qpv:+$("sQpv").value }; }
+$("sMode").value=QMODES.some(m=>m[0]===store.get("sbm_mode"))?store.get("sbm_mode"):"add";
+$("sDig").value=["1","12","2"].includes(store.get("sbm_dig"))?store.get("sbm_dig"):"1";
+$("sQpv").value=String(Math.max(T.qpvMin,Math.min(T.qpvMax,+store.get("sbm_qpv")||T.qpv)));
+const soloDigUI=()=>{ $("sDig").style.display=$("sMode").value==="money"?"none":""; };   // money has no digit choice (as in Math Race)
+soloDigUI();
+$("sMode").addEventListener("change",e=>{ store.set("sbm_mode",e.target.value); soloDigUI(); });
+$("sDig").addEventListener("change",e=>store.set("sbm_dig",e.target.value));
+$("sQpv").addEventListener("change",e=>store.set("sbm_qpv",e.target.value));
 function goOnline(msg){ err(""); myName(); Net.open(); Net.send(msg); }
 $("bPublic").onclick=()=>goOnline({ t:"quick", game:"stumble" });
 $("bPrivate").onclick=()=>goOnline({ t:"create", game:"stumble" });
@@ -306,15 +419,17 @@ function teacherBoard(all,now,left){
   const pre=now<G.startAt, n=topCount(all.length), done=all.filter(a=>a.fin).length, need=Math.ceil(T.endFrac*all.length);
   const rest=all.length-Math.min(n,all.length);
   $("tbT").innerHTML=`${pre?"Get ready… "+Math.ceil((G.startAt-now)/1000):fmt(Math.max(0,(now-G.startAt)/1000))}<small>${done} of ${all.length} finished${all.length?` · ends at ${need}`:""}${left!=null?` · ⏱ ${fmtS(left)} left`:""}</small>`;
-  $("tbList").innerHTML=all.slice(0,n).map((a,i)=>{ const p=G.players.get(a.pid); return `<li><span style="color:var(--ink2)">${i+1}</span><span class="n"><i style="background:${pcol(p?.color??0)}"></i>${esc(p?.name||"…")}</span><span class="v">${a.fin&&a.ft!=null?fmt(a.ft).replace(/\.\d$/,""):Math.round(100*Math.max(0,a.d)/T.dist)+"%"}</span></li>`; }).join("");
+  $("tbList").innerHTML=all.slice(0,n).map((a,i)=>{ const p=G.players.get(a.pid); return `<li><span style="color:var(--ink2)">${i+1}</span><span class="n"><i style="background:${pcol(p?.color??0)}"></i>${esc(p?.name||"…")}</span><span class="v">${a.fin&&a.ft!=null?fmt(a.ft).replace(/\.\d$/,""):veilTag(a)+Math.round(100*Math.max(0,a.d)/G.dist)+"%"}</span></li>`; }).join("");
   $("tbMore").textContent=rest>0?`+ ${rest} more running`:""; $("tbMore").style.display=rest>0?"":"none";
 }
+// veils behind a racer (from their distance) for the teacher board: "🔷3 · 41%"
+function veilTag(a){ const v=G.map.veils||[]; if (!v.length) return ""; return `<b class="vt">🔷${v.filter(d=>a.d>d+0.3).length}</b> `; }
 function endTeacher(){ $("tBoard").classList.remove("on"); }
 
 function exitGame(){
   if (screen==="menu"){ location.href="../"; return; }
   if (Net.ws && Net.ws.readyState===1) Net.ws.send(JSON.stringify({ t:"leave" }));
-  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); G.mode=""; endTeacher();
+  Net.close(); Net.code=null; Net.lobby=null; clearInterval(lobbyTimer); G.mode=""; endTeacher(); closeQuiz();
   if (WORLD) WORLD.menu();
   show("menu");
 }
@@ -326,4 +441,4 @@ if (!DEMO){
   addEventListener("DOMContentLoaded",()=>{ const j=new URLSearchParams(location.search).get("join"); if (!j) return; history.replaceState(null,"",location.pathname);
     $("codeIn").value=j.toUpperCase(); $("bJoin").click(); });
 }
-window.__SBM={ G, get world(){ return WORLD; } };      // for automated tests
+window.__SBM={ G, Q, openQuiz, get world(){ return WORLD; } };      // for automated tests

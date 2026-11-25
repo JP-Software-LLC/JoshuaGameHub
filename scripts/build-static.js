@@ -20,6 +20,7 @@ fs.copyFileSync(path.join(root,"shared","wordsearch.js"),path.join(out,"wordsear
 fs.copyFileSync(path.join(root,"shared","memory.js"),path.join(out,"memory.js"));
 fs.copyFileSync(path.join(root,"shared","hoops.js"),path.join(out,"hoops.js"));
 fs.copyFileSync(path.join(root,"shared","stumble.js"),path.join(out,"stumble.js"));
+fs.copyFileSync(path.join(root,"shared","stumble-maps.js"),path.join(out,"stumble-maps.js"));
 const url=(process.env.GAME_SERVER_URL||"").trim();
 fs.writeFileSync(path.join(out,"config.js"),`window.CG_CONFIG=${JSON.stringify({ server:url })};\n`);
 console.log(`dist/ built · game server: ${url||"(same origin)"}`);
