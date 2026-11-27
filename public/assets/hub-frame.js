@@ -127,8 +127,8 @@
     const teacher=here.startsWith("/teacher");
     const bar=document.createElement("header"); bar.id="jgh-bar"; bar.setAttribute("data-off","");
     bar.innerHTML=`
-      ${teacher&&!ALWAYS?"":`<a class="jgh-back" href="${HOME}" aria-label="Back to the games">← Back to games</a>`}
-      <a class="jgh-brand" href="${HOME}" aria-label="Joshua Game Hub home">
+      ${teacher?"":`<a class="jgh-back" href="${HOME}" aria-label="Back to the games">← Back to games</a>`}
+      <a class="jgh-brand" href="${teacher?"/#home":HOME}" aria-label="Joshua Game Hub home">
         <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect width="16" height="16" rx="3" fill="#07080c"/><rect x="3" y="5" width="10" height="6" fill="#58c27d"/><rect x="3" y="7" width="10" height="1" fill="#2f7d4a"/><rect x="7" y="6" width="2" height="4" fill="#f2c94c"/></svg>
         <b>JOSHUA <span>GAME</span> HUB</b></a>
       <div class="jgh-crumb"><i></i><strong>${cur?cur[2]+" "+cur[1]:teacher?"🍎 Teacher dashboard":here.startsWith("/school")?"🏰 School castles":""}</strong></div>
@@ -138,7 +138,7 @@
       </nav>`;
     const menu=document.createElement("div"); menu.id="jgh-menu"; menu.hidden=true;
     menu.innerHTML=GAMES.map(g=>`<a href="${g[0]}"${cur&&cur[0]===g[0]?' aria-current="page"':""}><span>${g[2]}</span>${g[1]}</a>`).join("")
-      +`<hr><a href="${HOME}"><span>🏠</span>Game hub home</a><a href="/teacher/"><span>🍎</span>Teacher dashboard</a>`;
+      +`<hr><a href="${teacher?"/#home":HOME}"><span>🏠</span>Game hub home</a><a href="/teacher/"><span>🍎</span>Teacher dashboard</a>`;
     document.body.prepend(menu); document.body.prepend(bar);
     const more=bar.querySelector("#jgh-more");
     const close=()=>{ menu.hidden=true; more.setAttribute("aria-expanded","false"); };

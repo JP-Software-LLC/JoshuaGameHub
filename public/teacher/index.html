@@ -19,7 +19,33 @@
   .brand{font-weight:700;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:8px}
   .brand span{color:var(--acc2)}
   .who{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:14px}
-  main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+  .shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:26px;max-width:1360px;margin:0 auto;padding:18px 20px 60px;align-items:start}
+  main{min-width:0}
+  /* teacher sidebar: Games · Sets · My Classes · School · Account */
+  .snav{position:sticky;top:70px;display:flex;flex-direction:column;gap:2px;background:var(--p1);border:1px solid var(--edge);border-radius:18px;padding:12px}
+  .snav .nh{font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--mute);padding:12px 10px 4px}
+  .snav .nh:first-child{padding-top:4px}
+  .snav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;color:var(--dim);text-decoration:none;font-weight:600;font-size:15px}
+  .snav a.sub{padding-left:16px}
+  .snav a:hover{background:var(--p2);color:var(--ink)}
+  .snav a.on{background:rgba(255,107,107,.14);color:var(--ink);box-shadow:inset 3px 0 0 var(--acc)}
+  .snav a .i{width:22px;text-align:center}
+  .snav .top{margin-top:8px}
+  .snav .foot{margin-top:12px;padding:12px 10px 2px;border-top:1px solid var(--edge);font-size:13px;color:var(--mute);line-height:1.45}
+  .snav .foot b{color:var(--ink);display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .snav .foot .btn{display:block;text-align:center;text-decoration:none;margin-top:8px}
+  .ph{margin:0 0 18px} .ph h1{font-size:30px} .ph .sub{margin:4px 0 0;max-width:760px}
+  .gsec{margin:0 0 26px} .gsec h2{font-size:18px;margin:0 0 12px;color:var(--dim)}
+  .ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .gc{display:flex;flex-direction:column;gap:8px;background:var(--p1);border:1px solid var(--edge);border-radius:16px;padding:16px}
+  .gc .nm{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px} .gc .nm span{font-size:28px}
+  .gc p{margin:0;color:var(--dim);font-size:14px;line-height:1.45} .gc .meta{color:var(--mute);font-size:13px}
+  .gc .btn{margin-top:auto;text-align:center;text-decoration:none;box-shadow:0 4px 0 #a33a3a;font-size:16px}
+  .soon{max-width:760px} .soon ul{margin:6px 0 18px;padding-left:20px;color:var(--dim);line-height:1.8}
+  .soon .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);background:rgba(242,201,76,.12);border-radius:999px;padding:4px 10px;margin-bottom:10px}
+  .lane{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--edge)} .lane:first-child{border-top:0}
+  .lane .nm{flex:0 0 160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .lane .bar2{flex:1}
+  .lane.me .nm{color:var(--acc2);font-weight:700}
   .card{background:var(--p1);border:1px solid var(--edge);border-radius:18px;padding:22px}
   .narrow{max-width:460px;margin:40px auto}
   h1{margin:0 0 6px;font-size:28px}
@@ -64,17 +90,21 @@
   .back{color:var(--dim);text-decoration:none;font-size:14px}
   .muted{color:var(--mute);font-size:13px}
   .claim{border-color:rgba(255,107,107,.5);background:linear-gradient(rgba(255,107,107,.08),transparent)}
-  @media (max-width:820px){ .layout{grid-template-columns:1fr} .hide-s{display:none} td,th{padding:8px 6px} }
+  @media (max-width:820px){ .layout{grid-template-columns:1fr} .hide-s{display:none} td,th{padding:8px 6px}
+    .shell{grid-template-columns:1fr;gap:14px;padding:12px 12px 50px}
+    .snav{position:static;flex-direction:row;overflow-x:auto;padding:8px;gap:4px;scrollbar-width:none}
+    .snav .nh,.snav .foot{display:none} .snav a{white-space:nowrap;flex:0 0 auto} .snav a.sub,.snav .top{padding-left:12px;margin-top:0} }
 body{padding-top:46px} .who-row{justify-content:flex-end;padding-bottom:0}
 .viewing{background:#3a2a0b;border:1px solid #b9862a;color:#ffd98a;border-radius:999px;padding:4px 12px;font-size:13px;max-width:72vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .viewas .who-row{position:relative;z-index:5}
 </style>
 <script src="/assets/hub-frame.js" data-always defer></script>
 <script src="/assets/castle.js"></script>
+<script src="/assets/class-games.js"></script>
 </head>
 <body>
 <div class="bar who-row"><div class="who" id="who"></div></div>
-<main id="app"><div class="empty">Loading…</div></main>
+<div class="shell"><nav class="snav" id="nav" aria-label="Teacher menu"></nav><main id="app"><div class="empty">Loading…</div></main></div>
 
 <script src="../config.js" onerror="window.CG_CONFIG={server:''}"></script>
 <script>
@@ -142,13 +172,32 @@ let ME=null, CFG={};
   addEventListener("hashchange",route);
   route();
 })();
+// sidebar sections. Games + Explore sets work signed out (open a lobby without an account); the rest need a sign-in.
+const SECTION={ games:"games", sets:"sets", classes:"classes", class:"classes", session:"classes", student:"classes", school:"school", account:"account" };
+function renderNav(sec,sub){
+  const L=(href,ico,txt,on,cls="")=>`<a href="#${href}" class="${cls} ${on?"on":""}"${on?' aria-current="page"':""}><span class="i">${ico}</span>${txt}</a>`;
+  const t=ME&&ME.teacher;
+  $("nav").innerHTML=`<div class="nh">Games</div>
+    ${L("games/edu","📚","Educational",sec==="games"&&sub!=="fun","sub")}${L("games/fun","🎉","Just for fun",sec==="games"&&sub==="fun","sub")}
+    <div class="nh">Sets</div>
+    ${L("sets/mine","🗂️","My sets",sec==="sets"&&sub!=="explore","sub")}${L("sets/explore","🔎","Explore sets",sec==="sets"&&sub==="explore","sub")}
+    ${L("classes","👥","My Classes",sec==="classes","top")}${L("school","🏫","School",sec==="school")}${L("account","👤","Account",sec==="account")}
+    <div class="foot">${t?`Signed in as<b>${esc(t.displayName||t.email)}</b>`:`Sign in to save results, build sets and grow your castle.<a class="btn sm" href="#classes">Sign in</a>`}</div>`;
+}
 async function route(){
-  if (!authTok()) return renderSignIn();
+  const [kind,id,tab]=location.hash.slice(1).split("/");
+  const sec=SECTION[kind]||"games";
+  if (!authTok()){
+    ME=null; renderNav(sec,id);
+    if (sec==="games") return renderGames(id);
+    if (sec==="sets"&&id==="explore") return renderSets("explore");
+    return renderSignIn();
+  }
   try{ ME=await api("/api/me"); }catch(e){ return; }
   document.body.classList.toggle("viewas",!!ME.viewAs);
+  renderNav(sec,id);
   $("who").innerHTML=ME.viewAs
-    ?`<span class="viewing">👁 Viewing as <b>${esc(ME.teacher.displayName||ME.teacher.email)}</b> · ${esc(ME.teacher.email)} · view only</span><a href="#" id="exitView">Exit</a>`
-    :`<span class="hide-s">${esc(ME.teacher.displayName||ME.teacher.email)}</span><a href="#account">Account</a>`;
+    ?`<span class="viewing">👁 Viewing as <b>${esc(ME.teacher.displayName||ME.teacher.email)}</b> · ${esc(ME.teacher.email)} · view only</span><a href="#" id="exitView">Exit</a>`:"";
   if (ME.viewAs) $("exitView").onclick=e=>{ e.preventDefault(); exitView(); };
   else if (!ME.teacher.google && (!ME.teacher.hasPassword || ME.teacher.mustChange)) return renderSetPassword();
   else if (!ME.teacher.displayName || !ME.teacher.schoolId) return renderSetup();
@@ -156,11 +205,61 @@ async function route(){
   const inv=store.get("jgh_invite"); if (inv) return acceptInvite(inv);
   const claim=store.get("jgh_claim"); if (claim) return renderClaim(claim);
   }
-  const [kind,id,tab]=location.hash.slice(1).split("/");
   if (kind==="session") return renderSession(id);
   if (kind==="student") return renderStudent(id);
-  if (kind==="account") return renderAccount();
-  return renderClasses(kind==="class"?+id:null,tab||"games");
+  if (sec==="account") return renderAccount();
+  if (sec==="school") return renderSchool();
+  if (sec==="sets") return renderSets(id==="explore"?"explore":"mine");
+  if (sec==="classes") return renderClasses(kind==="class"?+id:null,tab||"games");
+  return renderGames(id);
+}
+
+// ============================================================
+//  GAMES: Educational (Math · Vocabulary · Typing) · Just for fun
+// ============================================================
+function renderGames(sub){
+  const fun=sub==="fun", groups=(window.CLASS_GROUPS||[]).filter(g=>g.edu===!fun);
+  const card=id=>{ const c=(window.CLASS_GAMES||[]).find(x=>x.id===id); if (!c) return "";
+    return `<div class="gc"><div class="nm"><span>${c.ico}</span>${esc(c.name)}</div><p>${esc(c.skill)}</p>
+      <div class="meta">⏱ ${esc(c.len)} · ${esc(c.view)}</div><a class="btn" href="${c.path}?play=teacher">Open a Lobby</a></div>`; };
+  $("app").innerHTML=`<div class="ph"><h1>${fun?"🎉 Just for fun":"📚 Educational games"}</h1>
+      <p class="sub">${fun?"Brain breaks for the whole class: quick, silly and great for re-energising the room.":"Press <b>Open a Lobby</b>, put the 4-letter code on your board, and press Start when everyone's in. You don't play, so the leaderboard is all about your students."}</p></div>
+    ${groups.map(g=>`<section class="gsec">${fun?"":`<h2>${esc(g.label)}</h2>`}<div class="ggrid">${g.ids.map(card).join("")}</div></section>`).join("")}
+    ${ME?"":`<p class="muted"><a href="#classes">Sign in</a> to save every game to a class and see each student's progress. No account is needed just to play.</p>`}`;
+}
+
+// ============================================================
+//  SETS: My sets · Explore sets (question sets that work in any game; being designed)
+// ============================================================
+function renderSets(which){
+  const mine=which!=="explore";
+  $("app").innerHTML=`<div class="ph"><h1>${mine?"🗂️ My sets":"🔎 Explore sets"}</h1>
+      <p class="sub">${mine?"Your own questions and vocabulary, ready to play in any game.":"Ready-made sets from us and other teachers, by grade and subject."}</p></div>
+    <div class="card soon"><span class="tag">Coming soon</span>
+      ${mine?`<h2>Bring your own lesson</h2><p class="sub">Build a set once and play it in any game that fits.</p>
+        <ul><li>Paste a word list or Q&amp;A, or upload a spreadsheet</li><li>Number answers, multiple choice, and term → definition</li><li>Share a set with colleagues at your school</li></ul>
+        <button class="btn" disabled>＋ New set</button>`
+      :`<h2>Starter sets for every class</h2><p class="sub">Search ready-made sets, copy one into My sets, and change anything you like.</p>
+        <ul><li>Math facts, sight words, vocabulary and more</li><li>Filter by grade, subject and standard</li><li>Sets shared by teachers at your school</li></ul>`}</div>`;
+}
+
+// ============================================================
+//  SCHOOL: your castle, where it stands at your school, and the live tournament
+// ============================================================
+async function renderSchool(){
+  const t=ME.teacher, sid=t.schoolId;
+  $("app").innerHTML=`<div class="ph"><h1>🏫 School</h1><p class="sub">Every class game you save adds bricks to your castle: an average result ≈ 100 bricks per student, in any game.</p></div>
+    <div class="layout"><div>${Castle.card({ name:t.displayName||"Your", bricks:ME.castle?ME.castle.bricks:0, games:ME.castle?ME.castle.games:0, mine:true })}</div><div id="sch"><div class="card empty">Loading…</div></div></div>`;
+  if (!sid){ $("sch").innerHTML=`<div class="card"><p class="sub">Pick your school in <a href="#account">Account</a> to see the castles there.</p></div>`; return; }
+  let d; try{ const r=await fetch(apiBase()+"/api/school/"+encodeURIComponent(sid)); d=await r.json(); if (!r.ok) throw new Error(d.error); }
+  catch{ $("sch").innerHTML=`<div class="card empty">Couldn't load your school right now.</div>`; return; }
+  const myName=t.displayName||"", rank=d.castles.findIndex(c=>c.name===myName)+1, T=d.tournament, fmt=n=>Number(n||0).toLocaleString();
+  $("sch").innerHTML=`<div class="card"><h2>${esc(d.school.name)}</h2>
+      <p class="sub">${d.castles.length} teacher castle${d.castles.length===1?"":"s"}${rank?` · yours is <b style="color:var(--ink)">#${rank}</b>`:""}</p>
+      ${T?`<label>⚔️ Live tournament · ${esc(T.name)} · first to 🧱 ${fmt(T.goal)}</label>
+        ${T.standings.slice(0,5).map(s=>`<div class="lane ${s.name===myName?"me":""}"><span class="nm">${esc(s.name)}</span><div class="bar2"><i style="width:${Math.min(100,s.bricks/T.goal*100).toFixed(1)}%;background:var(--gold)"></i></div><span class="muted">${fmt(s.bricks)}</span></div>`).join("")}`
+      :`<p class="muted">No tournament running right now.</p>`}
+      <a class="btn ghost" style="display:inline-block;margin-top:16px;text-decoration:none" href="/school/?id=${encodeURIComponent(sid)}">See every castle at your school →</a></div>`;
 }
 
 // ============================================================
@@ -288,12 +387,12 @@ async function renderSetup(){
 async function acceptInvite(token){
   try{ const r=await api("/api/invites/accept","POST",{ token }); store.set("jgh_invite",null); location.hash=`#class/${r.classId}/games`; route(); }
   catch(e){ store.set("jgh_invite",null);
-    $("app").innerHTML=`<div class="card narrow"><h2>Invite problem</h2><p class="sub">${esc(e.message)}</p><a class="btn" href="#">Go to my classes</a></div>`; }
+    $("app").innerHTML=`<div class="card narrow"><h2>Invite problem</h2><p class="sub">${esc(e.message)}</p><a class="btn" href="#classes">Go to my classes</a></div>`; }
 }
 async function renderClaim(claim){
   let info;
   try{ info=await api("/api/pending/"+encodeURIComponent(claim)); }
-  catch(e){ store.set("jgh_claim",null); $("app").innerHTML=`<div class="card narrow"><h2>Results not found</h2><p class="sub">${esc(e.message)}</p><a class="btn" href="#">Go to my classes</a></div>`; return; }
+  catch(e){ store.set("jgh_claim",null); $("app").innerHTML=`<div class="card narrow"><h2>Results not found</h2><p class="sub">${esc(e.message)}</p><a class="btn" href="#classes">Go to my classes</a></div>`; return; }
   const { classes }=await api("/api/classes");
   $("app").innerHTML=`<div class="card narrow claim"><h2>📊 Save these results</h2>
     <p class="sub"><b style="color:var(--ink)">${esc(gameName(info.game,info.mode))}</b> · ${info.players} student${info.players===1?"":"s"} · ${when(info.endedAt)}<br>Which class played?</p>
@@ -309,7 +408,7 @@ async function renderClaim(claim){
       store.set("jgh_claim",null); location.hash=`#session/${r.sessionId}`; route(); }
     catch(e){ $("msg").textContent=e.message; }
   };
-  $("skip").onclick=e=>{ e.preventDefault(); store.set("jgh_claim",null); location.hash=""; route(); };
+  $("skip").onclick=e=>{ e.preventDefault(); store.set("jgh_claim",null); location.hash="#classes"; route(); };
 }
 
 // ============================================================
@@ -321,10 +420,7 @@ async function renderClasses(classId,tab){
   $("app").innerHTML=`<div class="layout"><div class="side"><h3>Your classes</h3>
       ${classes.map(c=>`<a class="cls ${cur&&c.id===cur.id?"on":""}" href="#class/${c.id}/games"><span>${esc(c.name)}</span><small>${c.role==="coteacher"?"co-teacher":c.students+" 👤"}</small></a>`).join("")}
       <div class="row" style="margin-top:8px;flex-wrap:nowrap"><input id="nc" maxlength="60" placeholder="New class name"><button class="btn sm" id="add">Add</button></div>
-      <p class="muted" style="margin:10px 2px">Start a game from the <a href="/#teachers">game hub</a> with 🍎 Teacher mode and pick a class. Results save here automatically.</p>
-      <h3 style="margin-top:22px">Your castle</h3>
-      ${Castle.card({ name:ME.teacher.displayName||"Your", bricks:ME.castle?ME.castle.bricks:0, games:ME.castle?ME.castle.games:0, mine:true })}
-      <p class="muted" style="margin:8px 2px">Every class game you save adds bricks: an average score ≈ 100 bricks per student, in any game.${ME.teacher.schoolId?` <a href="/school/?id=${encodeURIComponent(ME.teacher.schoolId)}">See your school's castles →</a>`:""}</p></div>
+      <p class="muted" style="margin:10px 2px">Open a lobby from <a href="#games/edu">Games</a> and pick a class at the end. Results save here automatically.</p></div>
     <div id="pane">${cur?"":`<div class="card empty">Make your first class on the left to get started.</div>`}</div></div>`;
   $("add").onclick=async()=>{ const n=$("nc").value.trim(); if (!n) return; const c=(await api("/api/classes","POST",{ name:n })).class; location.hash=`#class/${c.id}/games`; };
   if (!cur) return;
@@ -361,7 +457,7 @@ async function tabSharing(cur){
     ${you==="owner"?`<label for="iv" style="margin-top:20px">Invite a co-teacher by email</label><div class="row" style="flex-wrap:nowrap"><input id="iv" type="email" placeholder="colleague@school.org"><button class="btn" id="send">Send invite</button></div>
       <p class="muted" style="margin:8px 0 0">The invite only works for someone who signs in with that exact email. It can be used once and expires in 7 days.</p><p class="msg" id="msg"></p>
       ${invites.length?`<label>Waiting to accept</label>${invites.map(i=>`<div class="row" style="justify-content:space-between;padding:6px 0"><span>${esc(i.email)} <span class="muted">· expires ${when(i.expires_at)}</span></span><button class="btn ghost sm" data-cancel="${esc(i.email)}">Cancel</button></div>`).join("")}`:""}`:""}`;
-  $("tabbody").querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ if (!confirm("Remove access to this class?")) return; await api(`/api/classes/${cur.id}/members/${b.dataset.rm}`,"DELETE"); +b.dataset.rm===ME.teacher.id?(location.hash=""):tabSharing(cur); });
+  $("tabbody").querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ if (!confirm("Remove access to this class?")) return; await api(`/api/classes/${cur.id}/members/${b.dataset.rm}`,"DELETE"); +b.dataset.rm===ME.teacher.id?(location.hash="#classes"):tabSharing(cur); });
   $("tabbody").querySelectorAll("[data-cancel]").forEach(b=>b.onclick=async()=>{ await api(`/api/classes/${cur.id}/invites`,"DELETE",{ email:b.dataset.cancel }); tabSharing(cur); });
   if ($("send")) $("send").onclick=async()=>{ try{ const r=await api(`/api/classes/${cur.id}/invites`,"POST",{ email:$("iv").value.trim() });
       $("msg").className="msg ok"; $("msg").innerHTML=r.devLink?`Dev mode: invite link <a href="${esc(r.devLink)}">${esc(r.devLink)}</a>`:r.delivered?"Invite sent!":"Invite created, but emails aren't set up on this server yet."; setTimeout(()=>tabSharing(cur),r.devLink?6000:1200); }
@@ -372,7 +468,7 @@ function tabSettings(cur){
     <label style="margin-top:24px">Delete class</label><p class="sub" style="margin-bottom:10px">Permanently deletes this class, its students and every saved game. Co-teachers lose access too. This can't be undone.</p>
     <button class="btn danger" id="del">Delete ${esc(cur.name)}</button><p class="msg err" id="msg"></p>`;
   $("ren").onclick=async()=>{ await api(`/api/classes/${cur.id}`,"PATCH",{ name:$("rn").value.trim() }); route(); };
-  $("del").onclick=async()=>{ if (prompt(`Type the class name to delete it permanently:\n${cur.name}`)!==cur.name) return; await api(`/api/classes/${cur.id}`,"DELETE"); location.hash=""; route(); };
+  $("del").onclick=async()=>{ if (prompt(`Type the class name to delete it permanently:\n${cur.name}`)!==cur.name) return; await api(`/api/classes/${cur.id}`,"DELETE"); location.hash="#classes"; route(); };
 }
 
 // ============================================================
@@ -432,7 +528,7 @@ async function renderStudent(id){
 // ============================================================
 async function renderAccount(){
   const { schools }=await api("/api/schools"); const sc=schools.find(s=>s.id===ME.teacher.schoolId);
-  $("app").innerHTML=`<a class="back" href="#">← Back to classes</a><div class="card narrow" style="margin-top:10px"><h2>Your account</h2>
+  $("app").innerHTML=`<div class="card narrow" style="margin-top:10px"><h2>Your account</h2>
     <p class="sub">${esc(ME.teacher.displayName)} · ${esc(ME.teacher.email)}${sc?`<br>${esc(sc.name)}, ${esc(sc.state)}`:""}</p>
     <div class="row"><button class="btn ghost" id="edit">Change name or school</button><button class="btn ghost" id="out">Sign out</button></div>
     <label style="margin-top:24px">Password &amp; recovery question</label>

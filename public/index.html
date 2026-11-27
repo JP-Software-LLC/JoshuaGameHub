@@ -488,6 +488,7 @@
 
 <footer><div class="wrap"><b>JOSHUA GAME HUB</b><span>Made for the browser · © <span id="yr"></span></span></div></footer>
 
+<script src="assets/class-games.js"></script>
 <script src="config.js" onerror="window.CG_CONFIG={server:''}"></script>
 <script src="sim.js"></script>
 <script src="assets/cg-art.js"></script>
@@ -1006,25 +1007,7 @@ pollLive(); setInterval(pollLive,20000);
 // ------------------------------------------------------------
 //  For teachers: one card per whole-class game, straight into Teacher mode
 // ------------------------------------------------------------
-const CLASS_GAMES=[
-  { id:"math-race", ico:"🧮", skill:"Addition · subtraction · times tables · division · money", len:"3 × 1-min rounds", view:"You pick the question type", desc:"Answers are checked as they're typed, so quick, accurate answers win. Round-by-round leaderboards keep everyone going." },
-  { id:"marble-munch", ico:"🦛", skill:"Math facts: + − × ÷ and money (you pick)", len:"~1–2 minutes", view:"Watch the whole bowl", desc:"Students mash Space to chomp marbles rolling around the bowl, then answer a quick question to keep each one (you set 2–10 seconds). Ends when every marble is eaten." },
-  { id:"softball-smarts", ico:"🥎", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Each pitch floats in slow motion with a question. Answer before it reaches the plate: the faster the answer, the bigger the hit. You set the seconds per pitch (3–12) and the runs to win." },
-  { id:"mathsketball", ico:"🏀", skill:"Math facts: + − × ÷ and money (you pick)", len:"~2–3 minutes", view:"Live standings on your screen", desc:"Three right answers earn three shots; stop the power meter in the green to score. Ends when 60% of the class has 10 baskets." },
-  { id:"bumbling-stumbling-math", ico:"🤸", skill:"Coordination now · math gates coming soon", len:"~1–3 minutes", view:"A drone view of the whole course", desc:"A wobbly 3D obstacle race: students run, jump and stumble along the course on their own screens. Ends when 60% of the class has finished, when you press End, or at an optional time limit (2, 3 or 5 minutes)." },
-  { id:"hurdle-dash", ico:"🏃", skill:"Quick addition under pressure", len:"~1-min race", view:"Live standings on your screen", desc:"Students sprint by tapping ← →, then answer a sum to clear each of 10 hurdles. A wrong answer means a trip." },
-  { id:"arrow-blitz", ico:"⬆️", skill:"Focus, sequencing and keyboard skills", len:"1 minute", view:"Class timer, then the winners", desc:"Type ever-longer arrow sequences without a slip. Rewards concentration over speed alone." },
-  { id:"memory-tiles", ico:"🧠", skill:"Visual memory and attention", len:"~2 minutes", view:"Watch the whole board", desc:"Pictures flash on a grid, then hide. Students stand on the tile that matches. Last one standing wins." },
-  { id:"crossword", ico:"✏️", skill:"Your own vocabulary words", len:"5–15 minutes", view:"Live standings on your screen", desc:"Paste your vocab list in the lobby: we build a crossword and fill in dictionary clues you can edit. Students join with the code and solve it on their own screens, with a word bank to keep it easy." },
-  { id:"odds-evens", ico:"✂️", skill:"Odd and even numbers", len:"15 s per student", view:"Played on your smart board", desc:"Students take turns at the board slicing the right numbers." },
-  { id:"typing-cowboys", ico:"🤠", skill:"Typing and spelling", len:"~1–2 min race", view:"Live standings on your screen", desc:"Students type words to gallop their cowboy to the finish. Wrong words don't count against them." },
-  { id:"star-cannons", ico:"🚀", skill:"Teamwork and quick reactions", len:"~2–4 min", view:"Watch the whole game on your screen", desc:"The whole class shares one floor of laser cannons against bouncing asteroids. Last cannon standing ends it." },
-  { id:"dart-party", ico:"🎈", skill:"Aiming and quick thinking", len:"~1–2 min", view:"Watch the whole field on your screen", desc:"Students walk to aim and throw darts at drifting balloons. First to 20 points ends the game." },
-  { id:"word-rush", ico:"🔤", skill:"Spelling, vocabulary and visual scanning", len:"~3–6 min", view:"The word bank on your big screen", desc:"Everyone gets the same giant word search. The first student to drag across a word claims it in their own colour, live on every screen." },
-  { id:"sky-climb", ico:"🪽", skill:"Persistence and coordination", len:"~4 min", view:"Watch the climb on your screen", desc:"Students flap and steer up through gaps in stone floors, dodging buzzing critters. The game waits until everyone reaches the top." },
-  { id:"rush-hour", ico:"🚗", skill:"Reaction time and quick decisions", len:"~80-second race", view:"Live standings on your screen", desc:"A just-for-fun brain break. A catch-up boost keeps the whole class close, so nobody is left far behind." },
-  { id:"bear-attack", ico:"🐻", skill:"A movement-and-timing brain break", len:"~1–2 minutes", view:"Watch the whole ice", desc:"Skate out of the bear's red path before it charges. Silly, fast and great for re-energising the room." },
-];
+const CLASS_GAMES=window.CLASS_GAMES;
 $("tgrid").innerHTML=CLASS_GAMES.map(c=>{ const g=GAMES.find(x=>x.id===c.id); return `<div class="trow">
   <span class="ico">${c.ico}</span><div class="tx"><b>${g.title}</b><span>${c.skill}</span></div><span class="len">⏱ ${c.len}</span>
   <a class="go" href="${g.path}?play=teacher">🍎 START</a></div>`; }).join("");
@@ -1079,6 +1062,8 @@ function setView(v,push){
   if (!VIEWS.includes(v)) v="home";
   VIEWS.forEach(x=>document.body.classList.toggle("v-"+x,x===v));
   if (v!=="home"){ if (push) hit(v); ls.set("jgh_mode",v); ss.set("jgh_view",v); } else ss.set("jgh_view","home");
+  // teachers live in the dashboard (sidebar: Games · Sets · My Classes · School · Account); a game's Back (/#teacher) lands there too
+  if (v==="teacher"){ location.replace("/teacher/#games/edu"); return; }
   if (push && location.hash!=="#"+v) history.pushState(null,"","#"+v);
   if (v==="student") studentView(); else document.body.classList.remove("signin");
   scrollTo(0,0);
@@ -1143,8 +1128,7 @@ $("sCodeForm").addEventListener("submit",e=>{ e.preventDefault(); goToCode($("sC
 
 // Teacher: compact list of the whole-class games, each with one big button
 // Teacher view: one column per category
-const TCATS=[["🧮 Math",["math-race","marble-munch","softball-smarts","mathsketball","hurdle-dash","bumbling-stumbling-math","odds-evens"]],["🔤 Vocabulary",["word-rush","crossword"]],["⌨️ Typing",["typing-cowboys","arrow-blitz"]],
-  ["🎉 Just for fun",["memory-tiles","star-cannons","dart-party","sky-climb","rush-hour","bear-attack"]]];
+const TCATS=window.CLASS_GROUPS.map(g=>[g.label,g.ids]);
 $("tList").innerHTML=TCATS.map(([cat,ids])=>`<div class="tcol"><h3>${cat}</h3>${ids.map(id=>{ const c=CLASS_GAMES.find(x=>x.id===id), g=GAMES.find(x=>x.id===id); if (!c||!g) return "";
   return `<div class="tg"><div class="nm"><span>${c.ico}</span>${g.title}</div><p>${c.skill} · ⏱ ${c.len}</p><a class="open" href="${g.path}?play=teacher">Open a Lobby</a></div>`; }).join("")}</div>`).join("");
 </script>
